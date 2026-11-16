@@ -1,0 +1,1277 @@
+/* ========================================================
+   RETENTIONFLOW • THE DENTAL SHAMAN
+   Engineered with UI/UX Pro Max Design Intelligence
+   Official Shopify Polaris Design System (Data-Dense Dashboard)
+   WCAG AA Compliant &bull; Inter + JetBrains Mono
+   ======================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Official Shopify Polaris & UI Pro Max Design Tokens */
+  --p-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --p-font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Surfaces & Backgrounds */
+  --p-color-bg-app: #f6f6f7;
+  --p-color-bg-surface: #ffffff;
+  --p-color-bg-surface-secondary: #fbfbfc;
+  --p-color-bg-surface-subdued: #f7f8f9;
+  --p-color-bg-surface-hover: #f1f2f4;
+  --p-color-bg-interactive: #202223;
+
+  /* Typography */
+  --p-color-text: #202223;
+  --p-color-text-subdued: #5c5f62; /* 4.6:1 contrast ratio against #ffffff (WCAG AA pass) */
+  --p-color-text-muted: #6d7175;
+  --p-color-text-interactive: #008060;
+  --p-color-text-on-primary: #ffffff;
+
+  /* Borders & Dividers */
+  --p-color-border: #e1e3e5;
+  --p-color-border-subdued: #ebebeb;
+  --p-color-border-dark: #d2d5d8;
+  --p-color-border-hover: #babfc3;
+
+  /* Shopify Polaris Actions */
+  --p-color-action-primary: #008060;
+  --p-color-action-primary-hover: #006e52;
+  --p-color-action-secondary: #ffffff;
+  --p-color-action-secondary-border: #babfc3;
+  --p-color-action-secondary-hover: #f6f6f7;
+  --p-color-action-critical: #d82c0d;
+
+  /* The Dental Shaman Brand Color */
+  --p-color-brand-primary: #744B6F;
+  --p-color-brand-hover: #5e3a5a;
+  --p-color-brand-light: #f7f1f6;
+  --p-color-brand-border: #d9c4d6;
+
+  /* Badges & Status */
+  --p-badge-success-bg: #cbf4c9;
+  --p-badge-success-text: #0e6245;
+  --p-badge-warning-bg: #ffea8a;
+  --p-badge-warning-text: #5c3b00;
+  --p-badge-info-bg: #e4e5e7;
+  --p-badge-info-text: #202223;
+  --p-badge-brand-bg: #f5edf4;
+  --p-badge-brand-text: #744B6F;
+
+  /* Shadows & Radius */
+  --p-radius-xs: 3px;
+  --p-radius-sm: 4px;
+  --p-radius-base: 8px;
+  --p-radius-lg: 12px;
+  --p-radius-full: 9999px;
+
+  --p-shadow-card: 0 0 0 1px rgba(63, 63, 68, 0.05), 0 1px 3px 0 rgba(63, 63, 68, 0.15);
+  --p-shadow-subtle: 0 1px 0 rgba(0, 0, 0, 0.05);
+  --p-shadow-popover: 0 3px 6px -3px rgba(23, 24, 24, 0.08), 0 8px 20px -4px rgba(23, 24, 24, 0.12);
+  --p-shadow-modal: 0 26px 80px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+  /* Transition timings per UI Pro Max */
+  --p-motion-duration-fast: 150ms;
+  --p-motion-duration-base: 200ms;
+  --p-motion-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
+  font-family: var(--p-font-family);
+  background-color: var(--p-color-bg-app);
+  color: var(--p-color-text);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Accessible Keyboard Focus Rings */
+:focus-visible {
+  outline: 2px solid #008060 !important;
+  outline-offset: 2px !important;
+}
+
+/* ========================================================
+   SHOPIFY POLARIS APP SHELL
+   ======================================================== */
+.Polaris-Page {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+}
+
+/* Polaris Breadcrumb & Header */
+.is-embedded-shopify .Polaris-Breadcrumbs {
+  display: none !important;
+}
+.is-embedded-shopify .Polaris-Page {
+  padding-top: 12px;
+}
+
+.Polaris-Page-Header {
+  margin-bottom: 20px;
+}
+
+.Polaris-Breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--p-color-text-subdued);
+  margin-bottom: 8px;
+}
+
+.Polaris-Breadcrumbs a {
+  color: var(--p-color-text-subdued);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.Polaris-Breadcrumbs a:hover {
+  text-decoration: underline;
+  color: var(--p-color-text);
+}
+
+.Polaris-Page-Header__Row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.Polaris-Page-Header__TitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.Polaris-Header-Logo {
+  height: 44px;
+  width: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.Polaris-Header-Logo img {
+  height: 42px;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
+  display: block;
+}
+
+.Polaris-Page-Header__Title {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--p-color-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.4px;
+}
+
+.Polaris-Page-Header__Subtitle {
+  font-size: 12.5px;
+  color: var(--p-color-text-subdued);
+  margin-top: 3px;
+}
+
+.Polaris-ButtonGroup {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ========================================================
+   OFFICIAL POLARIS BUTTONS (ACCESSIBLE & POLISHED)
+   ======================================================== */
+.Polaris-Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--p-font-family);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  min-height: 34px;
+  border-radius: var(--p-radius-sm);
+  background: var(--p-color-action-secondary);
+  color: var(--p-color-text);
+  border: 1px solid var(--p-color-action-secondary-border);
+  box-shadow: var(--p-shadow-subtle);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--p-motion-duration-fast) var(--p-motion-ease), border-color var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.Polaris-Button svg {
+  flex-shrink: 0;
+}
+
+.Polaris-Button:hover {
+  background: var(--p-color-action-secondary-hover);
+  border-color: var(--p-color-border-hover);
+}
+
+.Polaris-Button:active {
+  background: #edeeef;
+}
+
+.Polaris-Button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.Polaris-Button--primary {
+  background: var(--p-color-action-primary);
+  color: #ffffff;
+  border-color: var(--p-color-action-primary-hover);
+}
+
+.Polaris-Button--primary:hover {
+  background: var(--p-color-action-primary-hover);
+  border-color: #005a42;
+}
+
+.Polaris-Button--brand {
+  background: var(--p-color-brand-primary);
+  color: #ffffff;
+  border-color: var(--p-color-brand-hover);
+}
+
+.Polaris-Button--brand:hover {
+  background: var(--p-color-brand-hover);
+}
+
+.Polaris-Button--dark {
+  background: #202223;
+  color: #ffffff;
+  border-color: #202223;
+}
+
+.Polaris-Button--dark:hover {
+  background: #343739;
+}
+
+.Polaris-Button--slim {
+  padding: 4px 10px;
+  min-height: 28px;
+  font-size: 12px;
+}
+
+/* ========================================================
+   POLARIS UNDERLINE TABS
+   ======================================================== */
+.Polaris-Tabs-Wrapper {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--p-color-border);
+  background: #ffffff;
+  border-radius: var(--p-radius-base) var(--p-radius-base) 0 0;
+  padding: 0 16px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.Polaris-Tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.Polaris-Tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.Polaris-Tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--p-color-text-subdued);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--p-motion-duration-fast) var(--p-motion-ease), border-color var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.Polaris-Tab svg {
+  color: var(--p-color-text-muted);
+  transition: color var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.Polaris-Tab:hover {
+  color: var(--p-color-text);
+}
+
+.Polaris-Tab:hover svg {
+  color: var(--p-color-text);
+}
+
+.Polaris-Tab.active {
+  color: var(--p-color-text);
+  font-weight: 600;
+  border-bottom-color: var(--p-color-text);
+}
+
+.Polaris-Tab.active svg {
+  color: var(--p-color-text);
+}
+
+.Polaris-TabBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--p-radius-full);
+  background: #e4e5e7;
+  color: var(--p-color-text);
+  line-height: 1.2;
+}
+
+.Polaris-Tab.active .Polaris-TabBadge {
+  background: #202223;
+  color: #ffffff;
+}
+
+/* Tab Panels */
+.Polaris-TabContent {
+  display: none;
+  animation: polarisTabFadeIn var(--p-motion-duration-base) var(--p-motion-ease);
+}
+
+.Polaris-TabContent.active {
+  display: block;
+}
+
+@keyframes polarisTabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================================================
+   POLARIS 4-METRIC EXECUTIVE STRIP
+   ======================================================== */
+.Polaris-KpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 960px) {
+  .Polaris-KpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .Polaris-KpiGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.Polaris-KpiCard {
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-base);
+  padding: 18px 20px;
+  box-shadow: var(--p-shadow-subtle);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.Polaris-KpiCard__Header {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--p-color-text-subdued);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.Polaris-KpiCard__Value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--p-color-text);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.Polaris-KpiCard__Value.emerald {
+  color: #008060;
+}
+
+.Polaris-KpiCard__Value.brand {
+  color: var(--p-color-brand-primary);
+}
+
+.Polaris-KpiCard__Subtitle {
+  font-size: 11.5px;
+  color: var(--p-color-text-subdued);
+  margin-top: 6px;
+}
+
+/* ========================================================
+   POLARIS CARDS & CONTAINERS
+   ======================================================== */
+.Polaris-Card {
+  background: var(--p-color-bg-surface);
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-base);
+  box-shadow: var(--p-shadow-subtle);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.Polaris-Card__Header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--p-color-border-subdued);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.Polaris-Card__Title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--p-color-text);
+}
+
+.Polaris-Card__Subtitle {
+  font-size: 12px;
+  color: var(--p-color-text-subdued);
+  margin-top: 2px;
+}
+
+.Polaris-Card__Body {
+  padding: 20px;
+}
+
+/* ========================================================
+   POLARIS FILTER & SEARCH CONTROLS (INDEX FILTERS)
+   ======================================================== */
+.Polaris-TableControls {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--p-color-border-subdued);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Polaris-SearchContainer {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+  max-width: 480px;
+}
+
+.Polaris-SearchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--p-color-text-muted);
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+.Polaris-SearchInput {
+  width: 100%;
+  padding: 7px 12px 7px 32px;
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid var(--p-color-border-dark);
+  border-radius: var(--p-radius-sm);
+  outline: none;
+  background: #ffffff;
+  color: var(--p-color-text);
+  transition: border-color var(--p-motion-duration-fast) var(--p-motion-ease), box-shadow var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.Polaris-SearchInput:focus {
+  border-color: #008060;
+  box-shadow: 0 0 0 1px #008060;
+}
+
+.Polaris-FilterPills {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.Polaris-FilterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--p-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--p-color-border-dark);
+  background: #ffffff;
+  color: var(--p-color-text);
+  cursor: pointer;
+  transition: all var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.Polaris-FilterPill svg {
+  flex-shrink: 0;
+}
+
+.Polaris-FilterPill:hover {
+  background: var(--p-color-bg-surface-hover);
+}
+
+.Polaris-FilterPill.active {
+  background: #202223;
+  color: #ffffff;
+  border-color: #202223;
+}
+
+.Polaris-FilterPill.active .filter-badge-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.filter-badge-count {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #e4e5e7;
+  border-radius: 10px;
+  font-size: 10.5px;
+  margin-left: 2px;
+}
+
+/* ========================================================
+   POLARIS DATA TABLE & INDEXTABLE
+   ======================================================== */
+.table-responsive-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.Polaris-DataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.Polaris-DataTable thead th {
+  background: var(--p-color-bg-surface-subdued);
+  color: var(--p-color-text-subdued);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--p-color-border);
+  white-space: nowrap;
+}
+
+.Polaris-DataTable tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--p-color-border-subdued);
+  color: var(--p-color-text);
+  vertical-align: middle;
+}
+
+.Polaris-DataTable tbody tr:hover {
+  background: var(--p-color-bg-surface-secondary);
+}
+
+.Polaris-DataTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ========================================================
+   POLARIS STATUS BADGES (NO EMOJIS, CLEAN SVGS)
+   ======================================================== */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--p-radius-sm);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.status-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pill.converted {
+  background: var(--p-badge-success-bg);
+  color: var(--p-badge-success-text);
+}
+
+.status-pill.pending {
+  background: var(--p-badge-warning-bg);
+  color: var(--p-badge-warning-text);
+}
+
+.status-pill.neutral {
+  background: var(--p-badge-info-bg);
+  color: var(--p-badge-info-text);
+}
+
+.status-pill.failed {
+  background: #fed3d1;
+  color: #8a1f11;
+}
+
+.status-pill.brand {
+  background: var(--p-badge-brand-bg);
+  color: var(--p-badge-brand-text);
+  border: 1px solid var(--p-color-brand-border);
+}
+
+/* Official Polaris Tags */
+.Polaris-Tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e4e5e7;
+  color: #202223;
+  border-radius: var(--p-radius-sm);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Sequence Stage Labels */
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--p-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: #f1f2f3;
+  color: #5c5f62;
+  border: 1px solid #e1e3e5;
+}
+
+.stage-pill.stage-1,
+.stage-pill.stage-2,
+.stage-pill.stage-3,
+.stage-pill.stage-4,
+.stage-pill.stage-5 {
+  background: #f1f2f3;
+  color: #5c5f62;
+  border: 1px solid #e1e3e5;
+}
+
+/* ========================================================
+   CAMPAIGN SILOS & SEQUENCES (DATA-DENSE DASHBOARD)
+   ======================================================== */
+.silo-section {
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-base);
+  margin-bottom: 20px;
+  box-shadow: var(--p-shadow-subtle);
+  overflow: hidden;
+}
+
+.silo-header {
+  padding: 16px 20px;
+  background: #fdfdfe;
+  border-bottom: 1px solid var(--p-color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.silo-header__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.silo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--p-radius-base);
+  background: var(--p-color-bg-surface-subdued);
+  border: 1px solid var(--p-color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--p-color-text);
+  flex-shrink: 0;
+}
+
+.silo-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--p-color-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.silo-subtitle {
+  font-size: 12px;
+  color: var(--p-color-text-subdued);
+  margin-top: 1px;
+}
+
+.sequence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--p-color-border-subdued);
+  gap: 16px;
+  transition: background var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.sequence-row:last-child {
+  border-bottom: none;
+}
+
+.sequence-row:hover {
+  background: var(--p-color-bg-surface-secondary);
+}
+
+.sequence-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.sequence-name {
+  font-weight: 600;
+  color: var(--p-color-text);
+  font-size: 13.5px;
+  margin-bottom: 3px;
+}
+
+.sequence-desc {
+  font-size: 12px;
+  color: var(--p-color-text-subdued);
+  line-height: 1.4;
+}
+
+.sequence-meta {
+  min-width: 240px;
+  font-size: 11.5px;
+  color: var(--p-color-text-subdued);
+}
+
+.sequence-meta strong {
+  color: var(--p-color-text);
+}
+
+.sequence-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========================================================
+   MODALS (AUTHENTIC POLARIS OVERLAYS)
+   ======================================================== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalFadeIn var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: var(--p-radius-base);
+  box-shadow: var(--p-shadow-modal);
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlideUp var(--p-motion-duration-base) var(--p-motion-ease);
+}
+
+.modal-card--wide {
+  max-width: 1060px;
+}
+
+.modal-card--editor {
+  max-width: 1140px;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--p-color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--p-color-text);
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--p-color-border);
+  background: var(--p-color-bg-surface-subdued);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Master Gate Specifics */
+.auth-gate-card {
+  text-align: center;
+  padding: 36px 32px 32px;
+  max-width: 440px;
+}
+
+.auth-gate-logo {
+  height: 60px;
+  width: auto;
+  margin: 0 auto 16px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: none;
+}
+
+.auth-gate-logo img {
+  height: 56px;
+  width: auto;
+  max-width: 90px;
+  object-fit: contain;
+  display: block;
+}
+
+/* ========================================================
+   FORM CONTROLS (POLARIS INPUTS)
+   ======================================================== */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--p-color-text);
+  margin-bottom: 5px;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--p-color-border-dark);
+  border-radius: var(--p-radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  background: #ffffff;
+  color: var(--p-color-text);
+  outline: none;
+  transition: border-color var(--p-motion-duration-fast) var(--p-motion-ease), box-shadow var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: #008060;
+  box-shadow: 0 0 0 1px #008060;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+/* ========================================================
+   COMPOSER CAMPAIGN & STAGE PROFESSIONAL NAVIGATOR
+   ======================================================== */
+.composer-campaign-bar {
+  background: #f6f6f7;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.composer-section-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--p-color-text-subdued);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.composer-camp-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.composer-camp-tab {
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--p-color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.composer-camp-tab:hover {
+  border-color: #babfc3;
+  background: #fafbfb;
+}
+
+.composer-camp-tab.active {
+  background: #202223;
+  color: #ffffff;
+  border-color: #202223;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.composer-stage-bar {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-sm);
+}
+
+.composer-stage-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+  .composer-stage-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.composer-stage-btn {
+  padding: 7px 6px;
+  background: #f6f6f7;
+  border: 1px solid var(--p-color-border);
+  border-radius: 6px;
+  font-size: 11.5px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--p-color-text);
+}
+
+.composer-stage-btn:hover {
+  background: #eef0f1;
+  border-color: #babfc3;
+}
+
+.composer-stage-btn.active {
+  background: #008060;
+  color: #ffffff;
+  border-color: #008060;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,128,96,0.25);
+}
+
+.composer-stage-btn .stage-timing {
+  font-size: 10px;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+.composer-stage-btn.active .stage-timing {
+  color: #d1fae5;
+  opacity: 1;
+}
+
+.composer-stage-title-pill {
+  font-size: 12px;
+  color: var(--p-color-text);
+  background: #f6f6f7;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid #008060;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Split Grid for Email Composer */
+.composer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 20px;
+  min-height: 480px;
+}
+
+@media (max-width: 880px) {
+  .composer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview-container {
+  background: #f7f8f9;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-base);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--p-color-border);
+}
+
+.preview-frame {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-sm);
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+/* Template Studio Code Editor */
+.editor-split-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  min-height: 460px;
+}
+
+@media (max-width: 900px) {
+  .editor-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.code-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: #1e1e2e;
+  border-radius: var(--p-radius-sm);
+  border: 1px solid #313244;
+  overflow: hidden;
+}
+
+.code-editor-header {
+  padding: 8px 12px;
+  background: #181825;
+  color: #a6adc8;
+  font-size: 11.5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #313244;
+}
+
+.code-editor-textarea {
+  width: 100%;
+  height: 380px;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: var(--p-font-family-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 12px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  tab-size: 2;
+}
+
+/* ========================================================
+   TOAST NOTIFICATIONS (POLARIS SNACKBAR)
+   ======================================================== */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  background: #202223;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: var(--p-radius-base);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--p-shadow-popover);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toastIn var(--p-motion-duration-fast) var(--p-motion-ease);
+}
+
+.toast.toast--success {
+  background: #008060;
+}
+
+.toast.toast--error {
+  background: #d82c0d;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Period KPI mini grid */
+.period-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--p-color-bg-surface-subdued);
+  border-bottom: 1px solid var(--p-color-border);
+}
+
+@media (max-width: 768px) {
+  .period-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.period-kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-radius-sm);
+  padding: 12px 14px;
+}
+
+.period-kpi-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--p-color-text-subdued);
+  margin-bottom: 4px;
+}
+
+.period-kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--p-color-text);
+  line-height: 1.2;
+}
+
+.period-kpi-sub {
+  font-size: 11px;
+  color: var(--p-color-text-subdued);
+  margin-top: 3px;
+}

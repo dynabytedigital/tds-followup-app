@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RetentionFlow &middot; The Dental Shaman</title>
+  <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <link rel="stylesheet" href="style.css?v=12.0">
+</head>
+<body>
+
+  <!-- MASTER SECURITY GATE (POLARIS AUTH MODAL) -->
+  <div id="authGateModal" class="modal-overlay active">
+    <div class="modal-card auth-gate-card">
+      <div class="auth-gate-logo">
+        <img src="logo.png" alt="The Dental Shaman">
+      </div>
+      <h2 style="font-size: 18px; font-weight: 700; color: var(--p-color-text); margin-bottom: 4px;">RetentionFlow</h2>
+      <p style="font-size: 12.5px; color: var(--p-color-text-subdued); margin-bottom: 22px;">The Dental Shaman</p>
+
+      <form id="authGateForm" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" style="text-align: left; margin-bottom: 18px;">
+          <label class="form-label" for="masterAccessKey">Master Operator Key</label>
+          <input type="password" id="masterAccessKey" class="form-input" placeholder="Enter Master Access Key" required autofocus>
+        </div>
+        <button type="submit" id="btnAuthSubmit" class="Polaris-Button Polaris-Button--dark" style="width: 100%; padding: 9px; margin-top: 6px;">
+          Sign In to Console
+        </button>
+        <div id="authErrorMsg" style="display: none; color: var(--p-color-action-critical); font-size: 12px; margin-top: 10px; font-weight: 500;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN SHOPIFY POLARIS APP SHELL -->
+  <div class="Polaris-Page">
+
+    <!-- SHOPIFY POLARIS APP HEADER -->
+    <header class="Polaris-Page-Header">
+      <div class="Polaris-Breadcrumbs">
+        <a href="#">Apps</a>
+        <span>&rsaquo;</span>
+        <span style="color: var(--p-color-text); font-weight: 600;">RetentionFlow</span>
+      </div>
+
+      <div class="Polaris-Page-Header__Row">
+        <div class="Polaris-Page-Header__TitleGroup">
+          <div class="Polaris-Header-Logo">
+            <img src="logo.png" alt="The Dental Shaman">
+          </div>
+          <div>
+            <div class="Polaris-Page-Header__Title">
+              RetentionFlow
+            </div>
+            <div class="Polaris-Page-Header__Subtitle">
+              The Dental Shaman
+            </div>
+          </div>
+        </div>
+
+        <div class="Polaris-ButtonGroup">
+          <button class="Polaris-Button" id="btnSyncCustomers" onclick="syncCustomers()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Sync Customers
+          </button>
+          <button class="Polaris-Button" id="btnSyncConversions" onclick="syncConversions()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            Audit Conversions
+          </button>
+          <button class="Polaris-Button Polaris-Button--dark" onclick="downloadCsvReport()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Report (CSV)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 4-METRIC POLARIS EXECUTIVE STRIP -->
+    <div class="Polaris-KpiGrid">
+      <div class="Polaris-KpiCard">
+        <div class="Polaris-KpiCard__Header">
+          <span>Attributed Revenue</span>
+        </div>
+        <div class="Polaris-KpiCard__Value" id="kpiTotalRevenue">&pound;0.00</div>
+        <div class="Polaris-KpiCard__Subtitle">Revenue from sent follow-ups</div>
+      </div>
+
+      <div class="Polaris-KpiCard">
+        <div class="Polaris-KpiCard__Header">
+          <span>Emails Sent</span>
+        </div>
+        <div class="Polaris-KpiCard__Value" id="kpiTotalDispatched">0</div>
+        <div class="Polaris-KpiCard__Subtitle">Across <span id="kpiTotalCustomers">--</span> store customers</div>
+      </div>
+
+      <div class="Polaris-KpiCard">
+        <div class="Polaris-KpiCard__Header">
+          <span>Clicks</span>
+        </div>
+        <div class="Polaris-KpiCard__Value" id="kpiTotalClicked">0</div>
+        <div class="Polaris-KpiCard__Subtitle"><span id="kpiClickRate">0.0</span>% click rate</div>
+      </div>
+
+      <div class="Polaris-KpiCard">
+        <div class="Polaris-KpiCard__Header">
+          <span>Orders Placed</span>
+        </div>
+        <div class="Polaris-KpiCard__Value" id="kpiTotalConverted">0</div>
+        <div class="Polaris-KpiCard__Subtitle"><span id="kpiConversionRate">0.0</span>% conversion rate</div>
+      </div>
+    </div>
+
+    <!-- POLARIS UNDERLINE TABS NAVIGATION -->
+    <div class="Polaris-Tabs-Wrapper">
+      <nav class="Polaris-Tabs">
+        <button class="Polaris-Tab active" onclick="switchTab('customers', this)">
+          Customers <span class="Polaris-TabBadge" id="badgeCustomerCount">0</span>
+        </button>
+        <button class="Polaris-Tab" onclick="switchTab('templates', this)">
+          Campaigns <span class="Polaris-TabBadge" id="badgeTemplateCount">20</span>
+        </button>
+        <button class="Polaris-Tab" onclick="switchTab('conversions', this)">
+          Attribution <span class="Polaris-TabBadge" id="badgeConversionCount">0</span>
+        </button>
+        <button class="Polaris-Tab" onclick="switchTab('dispatches', this)">
+          Activity <span class="Polaris-TabBadge" id="badgeDispatchCount">0</span>
+        </button>
+        <button class="Polaris-Tab" onclick="switchTab('settings', this)">
+          Settings
+        </button>
+      </nav>
+    </div>
+
+    <!-- ========================================================
+         TAB 1: CUSTOMER DIRECTORY & DIRECT SEND
+         ======================================================== -->
+    <div id="tab-customers" class="Polaris-TabContent active">
+      <div class="Polaris-Card">
+        <div class="Polaris-Card__Header">
+          <div>
+            <div class="Polaris-Card__Title">Customers</div>
+          </div>
+          <div style="font-size: 12px; color: var(--p-color-text-subdued);" id="customerSyncStatus">
+            Ready
+          </div>
+        </div>
+
+        <div class="Polaris-TableControls">
+          <div class="Polaris-SearchContainer">
+            <svg class="Polaris-SearchIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="customerSearchInput" class="Polaris-SearchInput" placeholder="Search by name, email, or tags..." oninput="filterCustomers()">
+          </div>
+
+          <div class="Polaris-FilterPills">
+            <button class="Polaris-FilterPill active" onclick="setCustomerFilter('all', this)">All</button>
+            <button class="Polaris-FilterPill" onclick="setCustomerFilter('never_followed', this)">Never Followed Up</button>
+            <button class="Polaris-FilterPill" onclick="setCustomerFilter('repeat_buyers', this)">Repeat Buyers (2+)</button>
+            <button class="Polaris-FilterPill" onclick="setCustomerFilter('vip', this)">High Spenders (&gt;&pound;100)</button>
+            <button class="Polaris-FilterPill" onclick="setCustomerFilter('converted', this)">Converted</button>
+            <button class="Polaris-FilterPill" onclick="setCustomerFilter('failed', this)">Delivery Failed</button>
+          </div>
+        </div>
+
+        <div class="table-responsive-wrapper">
+          <table class="Polaris-DataTable">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Orders</th>
+                <th>Total Spent</th>
+                <th>Segment</th>
+                <th>Last Follow-Up</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: var(--p-color-text-subdued);">
+                  Loading synchronized Shopify customers...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 2: CAMPAIGN SEQUENCES
+         ======================================================== -->
+    <div id="tab-templates" class="Polaris-TabContent">
+      <div class="Polaris-Card" style="margin-bottom: 16px;">
+        <div class="Polaris-Card__Header">
+          <div>
+            <div class="Polaris-Card__Title">Campaign Sequences</div>
+          </div>
+          <button class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openComposerWithTemplate()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Compose Follow-Up
+          </button>
+        </div>
+
+        <div class="Polaris-TableControls" style="border-bottom: none;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Sequence:</span>
+            <div class="Polaris-FilterPills" id="templateCampaignPills">
+              <button class="Polaris-FilterPill active" onclick="setTemplateCampaign('all', this)">All Sequences (20)</button>
+              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('water_flosser', this)">Water Flosser (5)</button>
+              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_cup', this)">Mouthwash Cup (5)</button>
+              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_spray', this)">Ozomist Spray (5)</button>
+              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('ebook_50', this)">All E-Books 50% (5)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SILOS RENDER CONTAINER -->
+      <div id="templateCardsContainer">
+        <!-- Injected dynamically as structured Polaris Silo cards by app.js -->
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 3: ORDER ATTRIBUTION
+         ======================================================== -->
+    <div id="tab-conversions" class="Polaris-TabContent">
+      <div class="Polaris-Card">
+        <div class="Polaris-Card__Header">
+          <div>
+            <div class="Polaris-Card__Title">Attribution</div>
+            <p class="Polaris-Card__Subtitle">
+              Track orders and revenue generated from customer follow-up sequences.
+            </p>
+          </div>
+          <div class="Polaris-ButtonGroup">
+            <button class="Polaris-Button Polaris-Button--dark Polaris-Button--slim" onclick="openExecutiveReport()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              Export PDF
+            </button>
+            <button class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="downloadFilteredCsv()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- DATE FILTERS & CAMPAIGN SELECTOR -->
+        <div class="Polaris-TableControls" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Date range:</span>
+              <div class="Polaris-FilterPills" id="conversionPeriodPills">
+                <button class="Polaris-FilterPill active" onclick="setConversionPeriod(7, this)">Last 7 Days</button>
+                <button class="Polaris-FilterPill" onclick="setConversionPeriod(30, this)">Last 30 Days</button>
+                <button class="Polaris-FilterPill" onclick="setConversionPeriod(90, this)">Last 90 Days</button>
+                <button class="Polaris-FilterPill" onclick="setConversionPeriod('all', this)">All Time</button>
+                <button class="Polaris-FilterPill" onclick="toggleCustomDateInputs(this)">Custom Range</button>
+              </div>
+            </div>
+
+            <div id="conversionSummaryRibbon" style="font-size: 12px; color: var(--p-color-text-subdued); font-weight: 500;">
+              Last 7 Days
+            </div>
+          </div>
+
+          <!-- Custom Date Range Form (collapsible) -->
+          <div id="customDateRangeBox" style="display: none; align-items: center; gap: 10px; background: #ffffff; padding: 8px 12px; border-radius: var(--p-radius-sm); border: 1px solid var(--p-color-border); flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text-subdued);">Custom Range:</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <label for="filterStartDate" style="font-size: 11.5px; color: var(--p-color-text-subdued);">From</label>
+              <input type="date" id="filterStartDate" class="form-input" style="width: auto; padding: 4px 8px; font-size: 12px;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <label for="filterEndDate" style="font-size: 11.5px; color: var(--p-color-text-subdued);">To</label>
+              <input type="date" id="filterEndDate" class="form-input" style="width: auto; padding: 4px 8px; font-size: 12px;">
+            </div>
+            <button class="Polaris-Button Polaris-Button--dark Polaris-Button--slim" onclick="applyCustomDateFilter()">
+              Apply Range
+            </button>
+          </div>
+
+          <!-- CAMPAIGN FILTER ROW -->
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px dashed var(--p-color-border);">
+            <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Sequence:</span>
+            <div class="Polaris-FilterPills" id="conversionCampaignPills">
+              <button class="Polaris-FilterPill active" onclick="setConversionCampaign('all', this)">All Campaigns</button>
+              <button class="Polaris-FilterPill" onclick="setConversionCampaign('water_flosser', this)">Water Flosser</button>
+              <button class="Polaris-FilterPill" onclick="setConversionCampaign('bogof_cup', this)">Mouthwash Cup</button>
+              <button class="Polaris-FilterPill" onclick="setConversionCampaign('bogof_spray', this)">Ozomist Spray</button>
+              <button class="Polaris-FilterPill" onclick="setConversionCampaign('ebook_50', this)">All E-Books 50%</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERIOD MINI METRICS BAR -->
+        <div class="period-kpi-grid">
+          <div class="period-kpi-card">
+            <div class="period-kpi-header">Revenue</div>
+            <div class="period-kpi-value" id="periodKpiRevenue">&pound;0.00</div>
+            <div class="period-kpi-sub">Within selected range</div>
+          </div>
+          <div class="period-kpi-card">
+            <div class="period-kpi-header">Orders</div>
+            <div class="period-kpi-value" id="periodKpiOrders">0</div>
+            <div class="period-kpi-sub"><span id="periodKpiClients">0</span> customers</div>
+          </div>
+          <div class="period-kpi-card">
+            <div class="period-kpi-header">Average Order Value</div>
+            <div class="period-kpi-value" id="periodKpiAov">&pound;0.00</div>
+            <div class="period-kpi-sub">Per attributed order</div>
+          </div>
+          <div class="period-kpi-card">
+            <div class="period-kpi-header">Conversion Rate</div>
+            <div class="period-kpi-value" id="periodKpiProofRate">0.0%</div>
+            <div class="period-kpi-sub">Orders per click</div>
+          </div>
+        </div>
+
+        <div class="table-responsive-wrapper">
+          <table class="Polaris-DataTable">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Sequence</th>
+                <th>Template</th>
+                <th>Timeline</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Attribution details</th>
+              </tr>
+            </thead>
+            <tbody id="conversionsTableBody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: var(--p-color-text-subdued);">
+                  No attributed orders in this period.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 4: ACTIVITY LOG
+         ======================================================== -->
+    <div id="tab-dispatches" class="Polaris-TabContent">
+      <div class="Polaris-Card">
+        <div class="Polaris-Card__Header">
+          <div>
+            <div class="Polaris-Card__Title">Activity</div>
+            <p class="Polaris-Card__Subtitle">
+              History of sent follow-up emails and delivery status.
+            </p>
+          </div>
+        </div>
+
+        <div class="Polaris-TableControls" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <!-- STATUS FILTER ROW -->
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Status:</span>
+            <div class="Polaris-FilterPills" id="dispatchStatusPills">
+              <button class="Polaris-FilterPill active" onclick="setDispatchStatus('all', this)">All Activity</button>
+              <button class="Polaris-FilterPill" onclick="setDispatchStatus('sent', this)">Delivered</button>
+              <button class="Polaris-FilterPill" onclick="setDispatchStatus('failed', this)">Failed (<span id="dispatchFailedCount">0</span>)</button>
+            </div>
+          </div>
+
+          <!-- CAMPAIGN FILTER ROW -->
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px dashed var(--p-color-border);">
+            <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Sequence:</span>
+            <div class="Polaris-FilterPills" id="dispatchCampaignPills">
+              <button class="Polaris-FilterPill active" onclick="setDispatchCampaign('all', this)">All Campaigns</button>
+              <button class="Polaris-FilterPill" onclick="setDispatchCampaign('water_flosser', this)">Water Flosser</button>
+              <button class="Polaris-FilterPill" onclick="setDispatchCampaign('bogof_cup', this)">Mouthwash Cup</button>
+              <button class="Polaris-FilterPill" onclick="setDispatchCampaign('bogof_spray', this)">Ozomist Spray</button>
+              <button class="Polaris-FilterPill" onclick="setDispatchCampaign('ebook_50', this)">All E-Books 50%</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive-wrapper">
+          <table class="Polaris-DataTable">
+            <thead>
+              <tr>
+                <th>Sent Date</th>
+                <th>Recipient</th>
+                <th>Sequence</th>
+                <th>Template</th>
+                <th>Subject</th>
+                <th>Discount</th>
+                <th>Delivery</th>
+                <th>Clicks</th>
+                <th>Order</th>
+              </tr>
+            </thead>
+            <tbody id="dispatchesTableBody">
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: var(--p-color-text-subdued);">
+                  No emails sent yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         TAB 5: SETTINGS
+         ======================================================== -->
+    <div id="tab-settings" class="Polaris-TabContent">
+      <div class="Polaris-Card" style="max-width: 740px; margin: 0 auto;">
+        <div class="Polaris-Card__Header">
+          <div>
+            <div class="Polaris-Card__Title">Settings</div>
+            <p class="Polaris-Card__Subtitle">
+              Email sender identity, API keys, and store integration.
+            </p>
+          </div>
+        </div>
+
+        <div class="Polaris-Card__Body">
+          <form id="settingsForm" onsubmit="saveSettings(event)">
+            <div class="form-group">
+              <label class="form-label">Sender Name</label>
+              <input type="text" id="settingSenderName" class="form-input" value="Dr. Marc Mortiboys | The Dental Shaman">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label class="form-label">Sender Email</label>
+                <input type="email" id="settingSenderEmail" class="form-input" value="shop@thedentalshaman.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reply-To Email</label>
+                <input type="email" id="settingReplyTo" class="form-input" value="shop@thedentalshaman.com">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Resend API Key</label>
+              <input type="password" id="settingResendApiKey" class="form-input" placeholder="re_...">
+              <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
+                Used for sending transactional follow-up emails via Resend.
+              </p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Default Discount Code</label>
+              <input type="text" id="settingDefaultPromo" class="form-input" value="HOLISTIC10">
+            </div>
+
+            <button type="submit" class="Polaris-Button Polaris-Button--dark">Save Settings</button>
+          </form>
+
+          <hr style="margin: 28px 0; border: none; border-top: 1px solid var(--p-color-border);">
+
+          <h3 style="font-size: 14.5px; font-weight: 700; color: var(--p-color-text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
+            Send Test Email
+          </h3>
+          <p style="font-size: 12.5px; color: var(--p-color-text-subdued); margin-bottom: 14px;">
+            Send a sample follow-up email to your inbox to check the layout and links.
+          </p>
+
+          <div style="display: flex; gap: 10px;">
+            <input type="email" id="diagnosticTestEmail" class="form-input" placeholder="your-email@gmail.com" style="flex: 1;">
+            <button class="Polaris-Button Polaris-Button--primary" onclick="sendDiagnosticTestEmail()">
+              Send Test Email
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================
+       TEMPLATE STUDIO & HTML CODE EDITOR MODAL
+       ======================================================== -->
+  <div id="templateEditorModal" class="modal-overlay">
+    <div class="modal-card modal-card--editor">
+      <div class="modal-header">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 class="modal-title" id="editorModalTitle">
+              Template Studio &amp; Code Editor
+            </h2>
+            <span class="stage-pill stage-1" id="editorStageBadge">Stage 1</span>
+          </div>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued);" id="editorCampaignBadge">
+            Campaign: Loading...
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closeTemplateEditor()">&times; Close</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Metadata Settings Form -->
+        <div style="display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 14px; margin-bottom: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Template Display Name</label>
+            <input type="text" id="tplEditorName" class="form-input">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Email Subject Line</label>
+            <input type="text" id="tplEditorSubject" class="form-input" oninput="updateEditorLivePreview()">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 14px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Default Promo Code</label>
+            <input type="text" id="tplEditorPromoCode" class="form-input" style="text-transform: uppercase;" placeholder="e.g. NONE or BOGOF-CUP" oninput="updateEditorLivePreview()">
+            <span style="font-size: 10.5px; color: var(--p-color-text-subdued);">Leave empty or 'NONE' for 0% guidance (zero impact on live site prices).</span>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Discount Value (%)</label>
+            <input type="number" id="tplEditorDiscountPercent" class="form-input" min="0" max="100" placeholder="0" oninput="updateEditorLivePreview()">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Clinical Objective / Description</label>
+            <input type="text" id="tplEditorDescription" class="form-input">
+          </div>
+        </div>
+
+        <!-- Split Grid: HTML Code on Left, Live Preview on Right -->
+        <div class="editor-split-grid">
+          <div class="code-editor-wrapper">
+            <div class="code-editor-header">
+              <span><strong>HTML SOURCE CODE</strong> (Disk Template File)</span>
+              <span style="font-size: 11px; color: #89b4fa;">Supports {{first_name}}, {{discount_block}}, {{shop_url}}</span>
+            </div>
+            <textarea id="tplEditorHtml" class="code-editor-textarea" spellcheck="false" oninput="updateEditorLivePreview()"></textarea>
+          </div>
+
+          <div class="preview-container">
+            <div class="preview-toolbar">
+              <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text-subdued);">
+                Instant Live Preview
+              </span>
+              <div style="display: flex; gap: 6px;">
+                <button class="Polaris-FilterPill active" onclick="setEditorPreviewDevice('desktop', this)">Desktop</button>
+                <button class="Polaris-FilterPill" onclick="setEditorPreviewDevice('mobile', this)">Mobile</button>
+              </div>
+            </div>
+            <div id="tplEditorPreviewFrame" class="preview-frame">
+              <!-- Rendered preview HTML injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="Polaris-Button" onclick="sendEditorTestEmail()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
+          Send Test to Me
+        </button>
+        <button class="Polaris-Button" onclick="closeTemplateEditor()">Cancel</button>
+        <button id="btnSaveTemplateEdits" class="Polaris-Button Polaris-Button--dark" onclick="saveTemplateEdits()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Changes Permanently
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       FOLLOW-UP COMPOSER & CUSTOMIZER MODAL
+       ======================================================== -->
+  <div id="composerModal" class="modal-overlay">
+    <div class="modal-card modal-card--wide">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">
+            Compose Customer Follow-Up
+          </h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued);" id="composerCustomerBadge">
+            Targeting: Loading...
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closeComposerModal()">&times; Close</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 1. CAMPAIGN SILO SELECTOR -->
+        <div class="composer-campaign-bar">
+          <div class="composer-section-label">Campaign:</div>
+          <div class="composer-camp-tabs" id="composerCampTabs">
+            <button type="button" class="composer-camp-tab active" data-camp="water_flosser" onclick="selectComposerCampaign('water_flosser')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              <span>Water Flosser</span>
+            </button>
+            <button type="button" class="composer-camp-tab" data-camp="bogof_cup" onclick="selectComposerCampaign('bogof_cup')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l-1.5 16a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8L6 3z"/><line x1="6" y1="8" x2="18" y2="8"/></svg>
+              <span>Mouthwash Cup</span>
+            </button>
+            <button type="button" class="composer-camp-tab" data-camp="bogof_spray" onclick="selectComposerCampaign('bogof_spray')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="10" height="12" rx="2"/><path d="M12 10V6"/><path d="M9 6h6"/><path d="M9 3h3v3"/><line x1="18" y1="5" x2="21" y2="5"/><line x1="18" y1="3" x2="20" y2="2"/><line x1="18" y1="7" x2="20" y2="8"/></svg>
+              <span>Ozomist Spray</span>
+            </button>
+            <button type="button" class="composer-camp-tab" data-camp="ebook_50" onclick="selectComposerCampaign('ebook_50')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+              <span>All E-Books 50%</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. STAGE STEPPER (1 TO 5) -->
+        <div class="composer-stage-bar">
+          <div class="composer-stage-strip" id="composerStageStrip">
+            <!-- Dynamically populated 5 stage pills -->
+          </div>
+          <div class="composer-stage-title-pill" id="composerStageTitlePill">
+            <span id="composerStageActiveName">Loading Stage...</span>
+            <span id="composerStageActiveTiming" style="font-size: 11px; color: var(--p-color-text-subdued);">Day 1</span>
+          </div>
+        </div>
+
+        <!-- Hidden compatibility controls -->
+        <select id="composerCampaignSelect" style="display: none;"></select>
+        <select id="composerTemplateSelect" style="display: none;"></select>
+
+        <div class="composer-grid">
+
+          <!-- Left: Customization Controls -->
+          <div>
+            <div class="form-group">
+              <label class="form-label" for="composerSubject">Subject Line</label>
+              <input type="text" id="composerSubject" class="form-input" oninput="updateLivePreview()">
+            </div>
+
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0;">Discount Code</label>
+                <label style="font-size: 11.5px; color: var(--p-color-text-subdued); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                  <input type="checkbox" id="composerNoDiscountToggle" onchange="toggleComposerDiscount(this)">
+                  <span>Zero Discount (Full Price Care)</span>
+                </label>
+              </div>
+              <div style="display: flex; gap: 8px;" id="composerDiscountInputGroup">
+                <input type="text" id="composerDiscountCode" class="form-input" style="text-transform: uppercase;" oninput="updateLivePreview()">
+                <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="generateUniqueCode()">
+                  Generate
+                </button>
+              </div>
+              <p style="font-size: 11px; color: var(--p-color-text-subdued); margin-top: 4px;" id="composerDiscountHelpText">
+                Safe: Custom code applies at checkout. If Zero Discount is checked, store public pricing is untouched.
+              </p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="margin-bottom: 0;">Email HTML Body</label>
+                <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="toggleComposerHtmlView(this)" id="btnToggleComposerHtml">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit HTML Code
+                </button>
+              </div>
+              <div id="composerHtmlEditorWrap" style="display: none;">
+                <textarea id="composerBody" class="form-textarea" style="font-family: monospace; font-size: 11px; min-height: 180px;" oninput="updateLivePreview()"></textarea>
+                <p style="font-size: 11px; color: var(--p-color-text-subdued); margin-top: 4px;">
+                  Tags: <code>{{first_name}}</code>, <code>{{customer_name}}</code>, <code>{{discount_code}}</code>, <code>{{shop_url}}</code>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Live Preview -->
+          <div class="preview-container">
+            <div class="preview-toolbar">
+              <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text-subdued);">
+                Live Preview (Tracked &amp; Personalised)
+              </span>
+              <div style="display: flex; gap: 6px;">
+                <button class="Polaris-FilterPill active" onclick="setPreviewDevice('desktop', this)">Desktop</button>
+                <button class="Polaris-FilterPill" onclick="setPreviewDevice('mobile', this)">Mobile</button>
+              </div>
+            </div>
+            <div id="composerPreviewFrame" class="preview-frame">
+              <!-- Rendered preview HTML injected here -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="Polaris-Button" onclick="sendComposerTest()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
+          Send Test to Me
+        </button>
+        <button class="Polaris-Button" onclick="closeComposerModal()">Cancel</button>
+        <button id="btnDispatchCustomerEmail" class="Polaris-Button Polaris-Button--primary" onclick="dispatchCustomerEmail()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send Official Follow-Up
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <script src="app.js?v=12.0"></script>
+</body>
+</html>

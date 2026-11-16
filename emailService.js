@@ -1,0 +1,309 @@
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const nodemailer = require('nodemailer');
+const db = require('./database');
+const trackingEngine = require('./trackingEngine');
+require('dotenv').config();
+
+class EmailService {
+  constructor() {
+    this.templatesDir = path.join(__dirname, 'templates');
+  }
+
+  getTransporter() {
+    const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
+    const port = parseInt(process.env.SMTP_PORT || '465', 10);
+    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+    const user = process.env.SMTP_USER || 'shop@thedentalshaman.com';
+    const pass = process.env.SMTP_PASS;
+
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 8000
+    });
+  }
+
+  getTemplateHtml(filename) {
+    const filePath = path.join(this.templatesDir, filename);
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, 'utf8');
+    }
+    // Fallback minimal template
+    return `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #111827; background: #ffffff;">
+        <h2 style="color: #744B6F;">The Dental Shaman</h2>
+        <p>Dear {{first_name}},</p>
+        <p>Thank you for being a valued client of The Dental Shaman.</p>
+        <div style="margin: 24px 0; padding: 16px; background: #fbf7fa; border: 1px solid #eadce6; border-radius: 8px;">
+          <p style="margin: 0; font-weight: 600;">Use promo code: <span style="color: #744B6F;">{{discount_code}}</span></p>
+        </div>
+        <p><a href="{{shop_url}}" style="display: inline-block; padding: 12px 24px; background: #744B6F; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Visit Our Holistic Store</a></p>
+      </div>
+    `;
+  }
+
+  renderTemplate(templateId, customer = {}, customSubject = null, customDiscountCode = null, customBody = null) {
+    const tpl = db.getTemplateById(templateId) || db.getTemplates()[0];
+    const rawHtml = customBody || (tpl.htmlContent || this.getTemplateHtml(tpl.file));
+
+    const firstName = customer.first_name ? customer.first_name.trim() : (customer.name ? customer.name.split(' ')[0] : 'there');
+    const fullName = customer.name || firstName;
+    const email = customer.email || '';
+    
+    // Determine promo code & percentage
+    let discountCode = '';
+    let discountPercent = tpl.discountPercent !== undefined ? tpl.discountPercent : 10;
+
+    if (customDiscountCode !== undefined && customDiscountCode !== null) {
+      discountCode = String(customDiscountCode).trim();
+    } else {
+      discountCode = tpl.discountCode ? String(tpl.discountCode).trim() : '';
+    }
+
+    const hasDiscount = discountCode && discountCode.toUpperCase() !== 'NONE' && discountCode !== '0';
+
+    let discountBlock = '';
+    if (hasDiscount) {
+      discountBlock = `
+        <div style="background:linear-gradient(135deg, #fdf9fc 0%, #f7edf5 100%); border:1px dashed #744B6F; border-radius:8px; padding:20px; text-align:center; margin:28px 0;">
+          <p style="color:#744B6F; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px 0; font-family:Arial,sans-serif; font-weight:bold;">
+            Courtesy Benefit Extended To Your Account
+          </p>
+          <div style="font-family:Arial,sans-serif; font-size:26px; font-weight:bold; color:#0d0820; letter-spacing:2px; margin:8px 0;">
+            ${discountCode}
+          </div>
+          <p style="font-family:Arial,sans-serif; font-size:13px; color:#6b6b6b; margin:4px 0 0 0;">
+            Enjoy ${discountPercent > 0 ? `<strong>${discountPercent}% off</strong>` : 'special courtesy privilege'} on your order. Applied automatically when clicking below.
+          </p>
+        </div>
+      `;
+    } else {
+      discountBlock = `
+        <div style="background-color:#fbf7fa; border-left:4px solid #744B6F; padding:16px 20px; margin:24px 0; border-radius:0 6px 6px 0;">
+          <p style="color:#744B6F; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px 0; font-family:Arial,sans-serif; font-weight:bold;">
+            Clinical Patient Care Notice
+          </p>
+          <p style="font-family:Arial,sans-serif; font-size:13.5px; color:#4a4a4a; margin:0; line-height:1.5;">
+            This guidance is extended to support your everyday oral biology and systemic health. Full price clinical care — no coupon required.
+          </p>
+        </div>
+      `;
+    }
+
+    const shopName = 'The Dental Shaman';
+    const shopUrl = process.env.SHOPIFY_SHOP ? `https://${process.env.SHOPIFY_SHOP}` : 'https://shop.thedentalshaman.com';
+
+    let subject = customSubject || tpl.subject;
+    subject = subject
+      .replace(/\{\{first_name\}\}/gi, firstName)
+      .replace(/\{\{customer_name\}\}/gi, fullName)
+      .replace(/\{\{discount_code\}\}/gi, hasDiscount ? discountCode : '')
+      .replace(/\{\{shop_name\}\}/gi, shopName);
+
+    let html = rawHtml
+      .replace(/\{\{discount_block\}\}/gi, discountBlock)
+      .replace(/\{\{first_name\}\}/gi, firstName)
+      .replace(/\{\{customer_name\}\}/gi, fullName)
+      .replace(/\{\{customer_email\}\}/gi, email)
+      .replace(/\{\{discount_code\}\}/gi, hasDiscount ? discountCode : '')
+      .replace(/\{\{discount_percent\}\}/gi, String(discountPercent))
+      .replace(/\{\{shop_name\}\}/gi, shopName)
+      .replace(/\{\{shop_url\}\}/gi, shopUrl)
+      .replace(/\{\{total_spent\}\}/gi, customer.total_spent ? `£${customer.total_spent}` : '£0.00')
+      .replace(/\{\{orders_count\}\}/gi, String(customer.orders_count || 0));
+
+    return {
+      template: tpl,
+      subject,
+      html,
+      discountCode: hasDiscount ? discountCode : ''
+    };
+  }
+
+  /**
+   * Universal sub-second email dispatcher
+   * Resend API Port 443 -> SMTP Fallback
+   */
+  async sendFollowUpEmail({
+    to,
+    customer = {},
+    templateId = 'water_flosser_1',
+    customSubject = null,
+    customDiscountCode = null,
+    customBody = null,
+    mode = 'manual'
+  }) {
+    const rawTo = (to || customer.email || '').trim();
+    const settings = db.getSettings();
+    const fromName = settings.senderName || 'Dr. Marc Mortiboys | The Dental Shaman';
+    const fromEmail = settings.senderEmail || 'shop@thedentalshaman.com';
+    const replyTo = settings.replyTo || fromEmail;
+
+    // 1. Render template & personalization
+    let rendered;
+    try {
+      rendered = this.renderTemplate(templateId, customer, customSubject, customDiscountCode, customBody);
+    } catch (e) {
+      rendered = {
+        template: { name: 'Care Follow-Up', campaignId: 'water_flosser', campaignName: 'Water Flosser Routine & Care', stage: 1, stageLabel: 'Stage 1' },
+        subject: customSubject || 'Follow-Up from Dr. Marc Mortiboys',
+        discountCode: customDiscountCode || 'NONE',
+        html: customBody || '<p>Care follow-up</p>'
+      };
+    }
+
+    // 2. Pre-generate dispatch record in database to obtain dispatchId
+    const dispatch = db.addDispatch({
+      customerEmail: rawTo.toLowerCase(),
+      customerName: customer.name || (rawTo ? rawTo.split('@')[0] : 'Valued Customer'),
+      customerId: customer.id || null,
+      templateId,
+      templateName: rendered.template.name,
+      campaignId: rendered.template.campaignId || 'water_flosser',
+      campaignName: rendered.template.campaignName || 'Water Flosser Routine & Care',
+      stage: rendered.template.stage || 1,
+      stageLabel: rendered.template.stageLabel || 'Stage 1',
+      discountCode: rendered.discountCode,
+      subject: rendered.subject,
+      mode,
+      status: 'sending'
+    });
+
+    if (!rawTo || !rawTo.includes('@')) {
+      const errMsg = `Invalid recipient email address: "${rawTo || 'none'}"`;
+      db.updateDispatch(dispatch.id, {
+        status: 'failed',
+        error: errMsg
+      });
+      if (customer.id) {
+        db.updateCustomer(customer.id, {
+          lastFollowUpAt: new Date().toISOString(),
+          lastFollowUpStatus: 'failed',
+          lastFollowUpError: errMsg
+        });
+      }
+      throw new Error(errMsg);
+    }
+
+    // 3. Wrap email links with Click & Conversion tracking gateway
+    const trackedHtml = trackingEngine.wrapEmailHtmlWithTracking(rendered.html, dispatch.id, rendered.discountCode);
+
+    try {
+      let messageId = null;
+      let usedProtocol = 'Resend REST API (HTTPS Port 443)';
+
+      const resendKey = settings.resendApiKey || process.env.RESEND_API_KEY;
+
+      if (resendKey && resendKey.trim()) {
+        const payload = {
+          from: `${fromName} <${fromEmail}>`,
+          to: [rawTo],
+          reply_to: replyTo,
+          subject: rendered.subject,
+          html: trackedHtml
+        };
+
+        const res = await axios.post('https://api.resend.com/emails', payload, {
+          headers: {
+            Authorization: `Bearer ${resendKey.trim()}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        });
+
+        messageId = res.data?.id || `resend_${Date.now()}`;
+      } else {
+        // Fallback to SMTP
+        usedProtocol = 'Hostinger SMTP';
+        const transporter = this.getTransporter();
+        const info = await transporter.sendMail({
+          from: `"${fromName}" <${fromEmail}>`,
+          to: rawTo,
+          replyTo,
+          subject: rendered.subject,
+          html: trackedHtml
+        });
+        messageId = info.messageId;
+      }
+
+      // 4. Update dispatch record as sent
+      db.updateDispatch(dispatch.id, {
+        status: 'sent',
+        messageId,
+        usedProtocol
+      });
+
+      // 5. Update customer record follow-up history
+      if (customer.id) {
+        db.updateCustomer(customer.id, {
+          lastFollowUpAt: new Date().toISOString(),
+          lastTemplateSent: rendered.template.name,
+          lastFollowUpStatus: 'sent',
+          lastFollowUpError: null,
+          followUpCount: (customer.followUpCount || 0) + 1
+        });
+      }
+
+      console.log(`[EmailService] Follow-up successfully delivered to ${rawTo} via ${usedProtocol} (ID: ${messageId})`);
+
+      return {
+        success: true,
+        dispatchId: dispatch.id,
+        messageId,
+        usedProtocol,
+        subject: rendered.subject
+      };
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message;
+      console.error(`[EmailService] Failed to send email to ${rawTo}:`, errMsg);
+
+      db.updateDispatch(dispatch.id, {
+        status: 'failed',
+        error: errMsg
+      });
+
+      if (customer.id) {
+        db.updateCustomer(customer.id, {
+          lastFollowUpAt: new Date().toISOString(),
+          lastFollowUpStatus: 'failed',
+          lastFollowUpError: errMsg
+        });
+      }
+
+      throw new Error(errMsg);
+    }
+  }
+
+  /**
+   * Quick test preview sender
+   */
+  async sendTestPreview(targetEmail, templateId = 'post_purchase_care', customSubject = null, customDiscountCode = null, customBody = null) {
+    const dummyCustomer = {
+      id: 'test_preview',
+      first_name: 'Dr. Marc',
+      name: 'Dr. Marc Mortiboys',
+      email: targetEmail,
+      total_spent: '149.00',
+      orders_count: 3
+    };
+
+    return await this.sendFollowUpEmail({
+      to: targetEmail,
+      customer: dummyCustomer,
+      templateId,
+      customSubject: customSubject ? `[TEST] ${customSubject}` : null,
+      customDiscountCode,
+      customBody,
+      mode: 'test'
+    });
+  }
+}
+
+module.exports = new EmailService();

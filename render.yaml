@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: tds-followup-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_URL
+        value: https://tds-followup-app.onrender.com
+      - key: SHOPIFY_SHOP
+        value: shop.thedentalshaman.com
+      - key: SHOPIFY_MYSHOPIFY_DOMAIN
+        value: myjrue-ku.myshopify.com
+      - key: SHOPIFY_ADMIN_ACCESS_TOKEN
+        sync: false
+      - key: API_VERSION
+        value: 2024-01
+      - key: MASTER_ACCESS_CODE
+        value: TDS-FLW#8E92B1C4-6A47D0F1-03B52E89
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_NAME
+        value: Dr. Marc Mortiboys | The Dental Shaman
+      - key: DEFAULT_FROM_EMAIL
+        value: shop@thedentalshaman.com
+      - key: DEFAULT_REPLY_TO
+        value: shop@thedentalshaman.com
+      - key: SMTP_HOST
+        value: smtp.hostinger.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        value: shop@thedentalshaman.com
+      - key: SMTP_PASS
+        sync: false
