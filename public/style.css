@@ -114,46 +114,19 @@ html, body {
 .Polaris-Page {
   max-width: 1360px;
   margin: 0 auto;
-  padding: 20px 24px 60px;
+  padding: 16px 24px 60px;
 }
 
-/* Polaris Breadcrumb & Header */
-.is-embedded-shopify .Polaris-Breadcrumbs {
-  display: none !important;
-}
-.is-embedded-shopify .Polaris-Page {
-  padding-top: 12px;
-}
-
+/* Polaris Modern Header & Actions Toolbar */
 .Polaris-Page-Header {
-  margin-bottom: 20px;
-}
-
-.Polaris-Breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--p-color-text-subdued);
-  margin-bottom: 8px;
-}
-
-.Polaris-Breadcrumbs a {
-  color: var(--p-color-text-subdued);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.Polaris-Breadcrumbs a:hover {
-  text-decoration: underline;
-  color: var(--p-color-text);
+  margin-bottom: 16px;
 }
 
 .Polaris-Page-Header__Row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
