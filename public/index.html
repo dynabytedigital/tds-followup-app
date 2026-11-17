@@ -6,7 +6,7 @@
   <title>RetentionFlow &middot; The Dental Shaman</title>
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <link rel="stylesheet" href="style.css?v=13.0">
+  <link rel="stylesheet" href="style.css?v=16.0">
 </head>
 <body>
 
@@ -135,9 +135,77 @@
             <button class="Polaris-FilterPill active" onclick="setCustomerFilter('all', this)">All</button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('never_followed', this)">Never Followed Up</button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('repeat_buyers', this)">Repeat Buyers (2+)</button>
-            <button class="Polaris-FilterPill" onclick="setCustomerFilter('vip', this)">High Spenders (&gt;&pound;100)</button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('converted', this)">Converted</button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('failed', this)">Delivery Failed</button>
+          </div>
+        </div>
+
+        <!-- DEDICATED PROFESSIONAL SPEND FILTER BAR -->
+        <div class="Polaris-SpendFilterBar">
+          <div class="spend-filter-inner">
+            <div class="spend-filter-label-group">
+              <span class="spend-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+              <span class="spend-title">Total Spent:</span>
+            </div>
+
+            <div class="spend-pills-row" id="spendPillsRow">
+              <button class="Polaris-FilterPill spend-pill active" onclick="setSpendFilter(0, null, 'Any', this)">Any Amount</button>
+              <button class="Polaris-FilterPill spend-pill" onclick="setSpendFilter(150, null, '≥ £150', this)">≥ £150 <span class="spend-badge" id="badgeSpend150">133</span></button>
+              <button class="Polaris-FilterPill spend-pill" onclick="setSpendFilter(250, null, '≥ £250', this)">≥ £250 <span class="spend-badge" id="badgeSpend250">28</span></button>
+              <button class="Polaris-FilterPill spend-pill" onclick="setSpendFilter(350, null, '≥ £350', this)">≥ £350 <span class="spend-badge" id="badgeSpend350">9</span></button>
+              <button class="Polaris-FilterPill spend-pill" onclick="setSpendFilter(400, null, '≥ £400', this)">≥ £400 <span class="spend-badge" id="badgeSpend400">7</span></button>
+              <button class="Polaris-FilterPill spend-pill" onclick="setSpendFilter(500, null, '≥ £500', this)">≥ £500 <span class="spend-badge" id="badgeSpend500">1</span></button>
+
+              <div class="spend-custom-dropdown-wrap">
+                <button class="Polaris-FilterPill spend-pill spend-custom-btn" id="btnCustomSpendPopover" onclick="toggleSpendPopover(event)">
+                  <span id="customSpendBtnLabel">Custom Range...</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+
+                <!-- Polaris Popover Card -->
+                <div id="spendPopover" class="spend-popover" style="display: none;" onclick="event.stopPropagation()">
+                  <div class="spend-popover-header">
+                    <span>Custom Spend Range</span>
+                    <button type="button" class="spend-popover-close" onclick="closeSpendPopover()">&times;</button>
+                  </div>
+                  <div class="spend-popover-body">
+                    <div style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-bottom: 8px;">Filter customers between amounts:</div>
+                    <div class="spend-range-row">
+                      <div class="spend-input-box">
+                        <span class="currency-symbol">&pound;</span>
+                        <input type="number" id="inputSpendMin" placeholder="Min (e.g. 150)" min="0" step="10" class="Polaris-TextField__Input">
+                      </div>
+                      <span class="range-separator">&ndash;</span>
+                      <div class="spend-input-box">
+                        <span class="currency-symbol">&pound;</span>
+                        <input type="number" id="inputSpendMax" placeholder="Max (e.g. 400)" min="0" step="10" class="Polaris-TextField__Input">
+                      </div>
+                    </div>
+                    <div class="spend-popover-actions">
+                      <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="clearCustomSpend()">Reset</button>
+                      <button type="button" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="applyCustomSpend()">Apply Range</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Filter Clear Tag -->
+              <span id="activeSpendTag" class="active-spend-tag" style="display: none;">
+                <span id="activeSpendTagText">≥ £150</span>
+                <button type="button" class="active-spend-tag-close" onclick="resetSpendFilter()">&times;</button>
+              </span>
+            </div>
+
+            <!-- Sort Order Control -->
+            <div class="spend-sort-group">
+              <span style="font-size: 12px; color: var(--p-color-text-subdued); font-weight: 500;">Sort Spend:</span>
+              <button type="button" class="spend-sort-btn" id="btnSortSpend" onclick="toggleSpendSort()" title="Toggle sort by total spent">
+                <span id="spendSortLabel">Default</span>
+                <svg id="spendSortSvg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -148,7 +216,7 @@
                 <th>Customer</th>
                 <th>Email</th>
                 <th>Orders</th>
-                <th>Total Spent</th>
+                <th onclick="toggleSpendSort()" style="cursor: pointer; user-select: none;" title="Click to sort by Total Spent">Total Spent <span id="thSpendSortIcon" style="opacity: 0.5; font-size: 11px;">&#8597;</span></th>
                 <th>Segment</th>
                 <th>Last Follow-Up</th>
                 <th style="text-align: right;">Action</th>
@@ -182,14 +250,22 @@
         </div>
 
         <div class="Polaris-TableControls" style="border-bottom: none;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Sequence:</span>
-            <div class="Polaris-FilterPills" id="templateCampaignPills">
-              <button class="Polaris-FilterPill active" onclick="setTemplateCampaign('all', this)">All Sequences (20)</button>
-              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('water_flosser', this)">Water Flosser (5)</button>
-              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_cup', this)">Mouthwash Cup (5)</button>
-              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_spray', this)">Ozomist Spray (5)</button>
-              <button class="Polaris-FilterPill" onclick="setTemplateCampaign('ebook_50', this)">All E-Books 50% (5)</button>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Sequence:</span>
+              <div class="Polaris-FilterPills" id="templateCampaignPills">
+                <button class="Polaris-FilterPill active" onclick="setTemplateCampaign('all', this)">All Sequences (20)</button>
+                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('water_flosser', this)">Water Flosser (5)</button>
+                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_cup', this)">Mouthwash Cup (5)</button>
+                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_spray', this)">Ozomist Spray (5)</button>
+                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('ebook_50', this)">All E-Books 50% (5)</button>
+              </div>
+            </div>
+            <div>
+              <button type="button" class="Polaris-Button Polaris-Button--slim" id="btnToggleAllSilos" onclick="toggleAllSilos()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                <span id="btnToggleAllSilosText">Collapse All</span>
+              </button>
             </div>
           </div>
         </div>
@@ -685,6 +761,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=13.0"></script>
+  <script src="app.js?v=16.0"></script>
 </body>
 </html>

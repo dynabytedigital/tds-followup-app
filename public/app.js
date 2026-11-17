@@ -226,6 +226,7 @@ async function loadCustomers() {
     if (data.success) {
       customersList = data.customers || [];
       if (statusEl) statusEl.innerText = `${customersList.length.toLocaleString()} Customers Synced`;
+      updateSpendFilterCounts();
       filterCustomers();
       if (data.stats) updateKpiCards(data.stats);
     } else {
@@ -273,6 +274,176 @@ function setCustomerFilter(filterType, el) {
   filterCustomers();
 }
 
+/* ========================================================
+   PROFESSIONAL CUSTOMER SPEND FILTER & SORT ENGINE
+   ======================================================== */
+let spendFilterMin = null;
+let spendFilterMax = null;
+let spendFilterLabel = 'Any';
+let spendSortOrder = 'none'; // 'none' | 'desc' | 'asc'
+
+function updateSpendFilterCounts() {
+  if (!customersList || customersList.length === 0) return;
+  const c150 = customersList.filter(c => parseFloat(c.total_spent || 0) >= 150).length;
+  const c250 = customersList.filter(c => parseFloat(c.total_spent || 0) >= 250).length;
+  const c350 = customersList.filter(c => parseFloat(c.total_spent || 0) >= 350).length;
+  const c400 = customersList.filter(c => parseFloat(c.total_spent || 0) >= 400).length;
+  const c500 = customersList.filter(c => parseFloat(c.total_spent || 0) >= 500).length;
+
+  const b150 = document.getElementById('badgeSpend150'); if (b150) b150.innerText = c150;
+  const b250 = document.getElementById('badgeSpend250'); if (b250) b250.innerText = c250;
+  const b350 = document.getElementById('badgeSpend350'); if (b350) b350.innerText = c350;
+  const b400 = document.getElementById('badgeSpend400'); if (b400) b400.innerText = c400;
+  const b500 = document.getElementById('badgeSpend500'); if (b500) b500.innerText = c500;
+}
+
+function setSpendFilter(min, max, label, btnEl) {
+  spendFilterMin = (min !== null && min !== undefined && min > 0) ? min : null;
+  spendFilterMax = (max !== null && max !== undefined && max > 0) ? max : null;
+  spendFilterLabel = label || 'Any';
+
+  document.querySelectorAll('#spendPillsRow .spend-pill').forEach(p => p.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const minInput = document.getElementById('inputSpendMin');
+  const maxInput = document.getElementById('inputSpendMax');
+  if (minInput) minInput.value = '';
+  if (maxInput) maxInput.value = '';
+
+  updateActiveSpendTag();
+  currentPage = 1;
+  filterCustomers();
+  closeSpendPopover();
+}
+
+function updateActiveSpendTag() {
+  const tagEl = document.getElementById('activeSpendTag');
+  const tagText = document.getElementById('activeSpendTagText');
+  const customBtnLabel = document.getElementById('customSpendBtnLabel');
+
+  if (spendFilterMin !== null || spendFilterMax !== null) {
+    if (tagEl) tagEl.style.display = 'inline-flex';
+    let text = '';
+    if (spendFilterMin !== null && spendFilterMax !== null) {
+      text = `£${spendFilterMin} – £${spendFilterMax}`;
+    } else if (spendFilterMin !== null) {
+      text = `≥ £${spendFilterMin}`;
+    } else if (spendFilterMax !== null) {
+      text = `≤ £${spendFilterMax}`;
+    }
+    if (tagText) tagText.innerText = `Spend: ${text}`;
+    if (customBtnLabel) customBtnLabel.innerText = text;
+  } else {
+    if (tagEl) tagEl.style.display = 'none';
+    if (customBtnLabel) customBtnLabel.innerText = 'Custom Range...';
+  }
+}
+
+function resetSpendFilter() {
+  spendFilterMin = null;
+  spendFilterMax = null;
+  spendFilterLabel = 'Any';
+
+  document.querySelectorAll('#spendPillsRow .spend-pill').forEach(p => p.classList.remove('active'));
+  const anyBtn = document.querySelector('#spendPillsRow .spend-pill');
+  if (anyBtn) anyBtn.classList.add('active');
+
+  const minInput = document.getElementById('inputSpendMin');
+  const maxInput = document.getElementById('inputSpendMax');
+  if (minInput) minInput.value = '';
+  if (maxInput) maxInput.value = '';
+
+  updateActiveSpendTag();
+  currentPage = 1;
+  filterCustomers();
+  closeSpendPopover();
+}
+
+function applyCustomSpend() {
+  const minVal = parseFloat(document.getElementById('inputSpendMin')?.value);
+  const maxVal = parseFloat(document.getElementById('inputSpendMax')?.value);
+
+  const min = (!isNaN(minVal) && minVal > 0) ? minVal : null;
+  const max = (!isNaN(maxVal) && maxVal > 0) ? maxVal : null;
+
+  if (min === null && max === null) {
+    showToast('Please enter a minimum or maximum spend amount.', 'error');
+    return;
+  }
+
+  if (min !== null && max !== null && min > max) {
+    showToast('Minimum spend cannot be greater than maximum spend.', 'error');
+    return;
+  }
+
+  document.querySelectorAll('#spendPillsRow .spend-pill').forEach(p => p.classList.remove('active'));
+  const customBtn = document.getElementById('btnCustomSpendPopover');
+  if (customBtn) customBtn.classList.add('active');
+
+  let label = '';
+  if (min !== null && max !== null) label = `£${min} – £${max}`;
+  else if (min !== null) label = `≥ £${min}`;
+  else label = `≤ £${max}`;
+
+  spendFilterMin = min;
+  spendFilterMax = max;
+  spendFilterLabel = label;
+
+  updateActiveSpendTag();
+  currentPage = 1;
+  filterCustomers();
+  closeSpendPopover();
+  showToast(`Filtering customers with spend: ${label}`, 'info');
+}
+
+function clearCustomSpend() {
+  const minInput = document.getElementById('inputSpendMin');
+  const maxInput = document.getElementById('inputSpendMax');
+  if (minInput) minInput.value = '';
+  if (maxInput) maxInput.value = '';
+  resetSpendFilter();
+}
+
+function toggleSpendPopover(event) {
+  if (event) event.stopPropagation();
+  const popover = document.getElementById('spendPopover');
+  if (!popover) return;
+  const isOpen = popover.style.display !== 'none';
+  popover.style.display = isOpen ? 'none' : 'block';
+}
+
+function closeSpendPopover() {
+  const popover = document.getElementById('spendPopover');
+  if (popover) popover.style.display = 'none';
+}
+
+function toggleSpendSort() {
+  if (spendSortOrder === 'none') {
+    spendSortOrder = 'desc';
+  } else if (spendSortOrder === 'desc') {
+    spendSortOrder = 'asc';
+  } else {
+    spendSortOrder = 'none';
+  }
+  updateSpendSortUI();
+  filterCustomers();
+}
+
+function updateSpendSortUI() {
+  const label = document.getElementById('spendSortLabel');
+  const icon = document.getElementById('thSpendSortIcon');
+  if (spendSortOrder === 'desc') {
+    if (label) label.innerText = 'High → Low';
+    if (icon) { icon.innerHTML = '&darr;'; icon.style.opacity = '1'; icon.style.color = '#008060'; }
+  } else if (spendSortOrder === 'asc') {
+    if (label) label.innerText = 'Low → High';
+    if (icon) { icon.innerHTML = '&uarr;'; icon.style.opacity = '1'; icon.style.color = '#008060'; }
+  } else {
+    if (label) label.innerText = 'Default';
+    if (icon) { icon.innerHTML = '&#8597;'; icon.style.opacity = '0.5'; icon.style.color = 'inherit'; }
+  }
+}
+
 function filterCustomers() {
   try {
     const query = (document.getElementById('customerSearchInput')?.value || '').toLowerCase().trim();
@@ -298,22 +469,33 @@ function filterCustomers() {
 
       // Segment filter match
       if (currentFilter === 'never_followed') {
-        return !c.lastFollowUpAt && (!c.followUpCount || c.followUpCount === 0);
+        if (c.lastFollowUpAt || (c.followUpCount && c.followUpCount > 0)) return false;
+      } else if (currentFilter === 'repeat_buyers') {
+        if ((parseInt(c.orders_count, 10) || 0) < 2) return false;
+      } else if (currentFilter === 'converted') {
+        if (c.conversionStatus !== 'converted' && !(parseFloat(c.convertedRevenue || 0) > 0)) return false;
+      } else if (currentFilter === 'failed') {
+        if (c.lastFollowUpStatus !== 'failed' && !c.lastFollowUpError) return false;
       }
-      if (currentFilter === 'repeat_buyers') {
-        return (parseInt(c.orders_count, 10) || 0) >= 2;
+
+      // Customer Spend Filter (Min / Max range or preset)
+      const totalSpent = parseFloat(c.total_spent || 0);
+      if (spendFilterMin !== null && totalSpent < spendFilterMin) {
+        return false;
       }
-      if (currentFilter === 'vip') {
-        return parseFloat(c.total_spent || 0) >= 100;
+      if (spendFilterMax !== null && totalSpent > spendFilterMax) {
+        return false;
       }
-      if (currentFilter === 'converted') {
-        return c.conversionStatus === 'converted' || parseFloat(c.convertedRevenue || 0) > 0;
-      }
-      if (currentFilter === 'failed') {
-        return c.lastFollowUpStatus === 'failed' || Boolean(c.lastFollowUpError);
-      }
+
       return true;
     });
+
+    // Customer Sorting by Spend
+    if (spendSortOrder === 'desc') {
+      filteredCustomers.sort((a, b) => parseFloat(b.total_spent || 0) - parseFloat(a.total_spent || 0));
+    } else if (spendSortOrder === 'asc') {
+      filteredCustomers.sort((a, b) => parseFloat(a.total_spent || 0) - parseFloat(b.total_spent || 0));
+    }
 
     renderCustomersTable();
   } catch (err) {
@@ -1217,6 +1399,38 @@ function getSiloIconSvg(id) {
   }
 }
 
+let siloCollapseState = {};
+let allSilosCollapsed = false;
+
+function toggleSiloSection(campaignId) {
+  const isCollapsed = Boolean(siloCollapseState[campaignId]);
+  siloCollapseState[campaignId] = !isCollapsed;
+
+  const sectionEl = document.getElementById(`silo-${campaignId}`);
+  if (sectionEl) {
+    if (siloCollapseState[campaignId]) {
+      sectionEl.classList.add('collapsed');
+    } else {
+      sectionEl.classList.remove('collapsed');
+    }
+  }
+}
+
+function toggleAllSilos() {
+  allSilosCollapsed = !allSilosCollapsed;
+  campaignsList.forEach(c => {
+    siloCollapseState[c.id] = allSilosCollapsed;
+    const el = document.getElementById(`silo-${c.id}`);
+    if (el) {
+      if (allSilosCollapsed) el.classList.add('collapsed');
+      else el.classList.remove('collapsed');
+    }
+  });
+
+  const txt = document.getElementById('btnToggleAllSilosText');
+  if (txt) txt.innerText = allSilosCollapsed ? 'Expand All' : 'Collapse All';
+}
+
 function renderTemplateCards() {
   const container = document.getElementById('templateCardsContainer');
   if (!container) return;
@@ -1236,34 +1450,35 @@ function renderTemplateCards() {
 
   container.innerHTML = campaignsToRender.map(camp => {
     const siloTemplates = templatesList.filter(t => t.campaignId === camp.id).sort((a, b) => (a.stage || 1) - (b.stage || 1));
+    const isCollapsed = Boolean(siloCollapseState[camp.id]);
 
     const sequenceRowsHtml = siloTemplates.map(t => {
       const stageNum = t.stage || 1;
       const stageLabel = t.stageLabel || `Stage ${stageNum}`;
       const hasDiscount = t.discountCode && t.discountCode !== 'NONE' && t.discountCode !== '0' && (t.discountPercent > 0);
       const offerBadge = hasDiscount
-        ? `<span style="font-size:11.5px; color:var(--p-color-text-subdued);">Discount: <strong>${escapeHtml(t.discountCode)}</strong> (${t.discountPercent}% off)</span>`
-        : `<span style="font-size:11.5px; color:var(--p-color-text-subdued);">No discount included</span>`;
+        ? `<span class="sequence-offer-badge">Discount: <strong>${escapeHtml(t.discountCode)}</strong> (${t.discountPercent}% off)</span>`
+        : `<span class="sequence-offer-none">No discount included</span>`;
 
       return `
         <div class="sequence-row">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 140px;">
+          <div class="sequence-col sequence-col-stage">
             <span class="stage-pill stage-${stageNum}">
               ${escapeHtml(stageLabel)}
             </span>
           </div>
 
-          <div class="sequence-info">
+          <div class="sequence-col sequence-col-info">
             <div class="sequence-name">${escapeHtml(t.name)}</div>
             <div class="sequence-desc">${escapeHtml(t.description || 'Clinical guidance and follow-up.')}</div>
           </div>
 
-          <div class="sequence-meta">
-            <div><strong>Subject:</strong> ${escapeHtml(t.subject)}</div>
-            <div style="margin-top: 3px;">${offerBadge}</div>
+          <div class="sequence-col sequence-col-meta">
+            <div class="sequence-subject" title="${escapeHtml(t.subject)}"><strong>Subject:</strong> ${escapeHtml(t.subject)}</div>
+            <div class="sequence-offer">${offerBadge}</div>
           </div>
 
-          <div class="sequence-actions">
+          <div class="sequence-col sequence-col-actions">
             <button class="Polaris-Button Polaris-Button--slim" onclick="openTemplateEditor('${t.id}')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Edit Code &amp; Settings
@@ -1280,23 +1495,26 @@ function renderTemplateCards() {
     const iconHtml = camp.iconSvg || getSiloIconSvg(camp.id);
 
     return `
-      <div class="silo-section">
-        <div class="silo-header">
+      <div class="silo-section ${isCollapsed ? 'collapsed' : ''}" id="silo-${camp.id}">
+        <div class="silo-header" onclick="toggleSiloSection('${camp.id}')">
           <div class="silo-header__left">
             <div class="silo-icon">${iconHtml}</div>
             <div>
               <div class="silo-title">${escapeHtml(camp.name)}</div>
-              <div class="silo-subtitle">${siloTemplates.length} follow-up stages in this sequence</div>
+              <div class="silo-subtitle">${siloTemplates.length} clinical follow-up stages in this sequence</div>
             </div>
           </div>
-          <div>
+          <div class="silo-header__right" onclick="event.stopPropagation()">
             <button class="Polaris-Button Polaris-Button--slim" onclick="openComposerWithTemplate('${siloTemplates[0]?.id || ''}')">
               Send Stage 1 &rarr;
+            </button>
+            <button type="button" class="silo-toggle-chevron-btn" onclick="toggleSiloSection('${camp.id}')" title="Expand / Collapse Sequence">
+              <svg class="silo-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
           </div>
         </div>
 
-        <div>
+        <div class="silo-body" id="silo-body-${camp.id}">
           ${sequenceRowsHtml}
         </div>
       </div>
@@ -1612,3 +1830,14 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+// Close popovers on click outside
+document.addEventListener('click', (e) => {
+  const popover = document.getElementById('spendPopover');
+  const btn = document.getElementById('btnCustomSpendPopover');
+  if (popover && popover.style.display !== 'none') {
+    if (!popover.contains(e.target) && (!btn || !btn.contains(e.target))) {
+      popover.style.display = 'none';
+    }
+  }
+});
