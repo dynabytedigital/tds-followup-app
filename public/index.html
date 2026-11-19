@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.5">
+  <link rel="stylesheet" href="style.css?v=18.6">
 </head>
 <body>
 
@@ -700,15 +700,13 @@
     <div class="modal-card modal-card--wide">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title" id="composerModalTitle">
-            Compose Customer Follow-Up
-          </h2>
-          <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+          <h2 class="modal-title" id="composerModalTitle">Send Follow-Up</h2>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
             <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;" id="composerCustomerBadge">
-              Targeting: Loading...
+              Loading recipients...
             </p>
             <button type="button" id="btnToggleRecipientsList" class="Polaris-Button--plain" style="font-size: 11.5px; display: none;" onclick="toggleRecipientsList()">
-              Show Recipients &#9662;
+              View Recipients &#9662;
             </button>
           </div>
         </div>
@@ -717,11 +715,9 @@
 
       <div class="modal-body">
         <!-- Expandable Multi-Recipient Chips Drawer -->
-        <div id="composerRecipientsBox" class="composer-recipients-box" style="display: none;">
-          <!-- Dynamically populated customer recipient chips with remove buttons -->
-        </div>
+        <div id="composerRecipientsBox" class="composer-recipients-box" style="display: none;"></div>
 
-        <!-- 1. CAMPAIGN SILO SELECTOR -->
+        <!-- 1. CAMPAIGN SILO SELECTOR (PLAYGROUND STRIP) -->
         <div class="composer-campaign-bar">
           <div class="composer-section-label">Campaign:</div>
           <div class="composer-camp-tabs" id="composerCampTabs">
@@ -729,26 +725,26 @@
           </div>
         </div>
 
-        <!-- 2. STAGE STEPPER (1 TO 5+) WITH IN-LINE PRESET SAVER -->
-        <div class="composer-stage-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <div class="composer-stage-strip" id="composerStageStrip">
-              <!-- Dynamically populated stage pills -->
-            </div>
-            <div class="composer-stage-title-pill" id="composerStageTitlePill">
-              <span id="composerStageActiveName">Loading Stage...</span>
-              <span id="composerStageActiveTiming" style="font-size: 11px; color: var(--p-color-text-subdued);">Day 1</span>
-            </div>
+        <!-- 2. STAGE STEPPER (CLEAN SINGLE-LINE TOUCH STRIP) -->
+        <div class="composer-stage-bar">
+          <div class="composer-stage-strip" id="composerStageStrip">
+            <!-- Dynamically populated stage pills -->
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openSavePresetDialog()" title="Save customized subject, discount, and body as a template preset">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Save as Preset
-            </button>
-            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openNewPresetModal(composerActiveCampaign)" title="Add a new stage or preset to this campaign">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Stage
-            </button>
+          <div class="composer-stage-bar-sub">
+            <div class="composer-stage-title-pill" id="composerStageTitlePill">
+              <span id="composerStageActiveName">Stage 1</span>
+              <span id="composerStageActiveTiming">Day 1</span>
+            </div>
+            <div class="composer-stage-actions">
+              <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openSavePresetDialog()" title="Save preset">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Preset
+              </button>
+              <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openNewPresetModal(composerActiveCampaign)" title="Add stage">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Stage
+              </button>
+            </div>
           </div>
         </div>
 
@@ -758,44 +754,42 @@
 
         <div class="composer-grid">
 
-          <!-- Left: Customization Controls -->
-          <div>
+          <!-- Left: Direct Playground Controls -->
+          <div class="composer-controls-pane">
             <div class="form-group">
-              <label class="form-label" for="composerSubject">Subject Line</label>
-              <input type="text" id="composerSubject" class="form-input" oninput="updateLivePreview()">
+              <label class="form-label" for="composerSubject">Subject</label>
+              <input type="text" id="composerSubject" class="form-input" oninput="updateLivePreview()" placeholder="Email subject">
             </div>
 
             <div class="form-group">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <label class="form-label" style="margin-bottom: 0;">Discount Code</label>
-                <label style="font-size: 11.5px; color: var(--p-color-text-subdued); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <label style="font-size: 11px; color: var(--p-color-text-subdued); cursor: pointer; display: flex; align-items: center; gap: 4px;">
                   <input type="checkbox" id="composerNoDiscountToggle" onchange="toggleComposerDiscount(this)">
-                  <span>Zero Discount (Full Price Care)</span>
+                  <span>No Discount</span>
                 </label>
               </div>
-              <div style="display: flex; gap: 8px;" id="composerDiscountInputGroup">
-                <input type="text" id="composerDiscountCode" class="form-input" style="text-transform: uppercase;" oninput="updateLivePreview()">
+              <div style="display: flex; gap: 6px;" id="composerDiscountInputGroup">
+                <input type="text" id="composerDiscountCode" class="form-input" style="text-transform: uppercase;" oninput="updateLivePreview()" placeholder="e.g. HOLISTIC10">
                 <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="generateUniqueCode()">
                   Generate
                 </button>
               </div>
-              <p style="font-size: 11px; color: var(--p-color-text-subdued); margin-top: 4px;" id="composerDiscountHelpText">
-                Safe: Custom code applies at checkout. If Zero Discount is checked, store public pricing is untouched.
-              </p>
+              <span id="composerDiscountHelpText" style="display: none;"></span>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <label class="form-label" style="margin-bottom: 0;">Email HTML Body</label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label class="form-label" style="margin-bottom: 0;">Email HTML</label>
                 <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="toggleComposerHtmlView(this)" id="btnToggleComposerHtml">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit HTML Code
                 </button>
               </div>
               <div id="composerHtmlEditorWrap" style="display: none;">
-                <textarea id="composerBody" class="form-textarea" style="font-family: monospace; font-size: 11px; min-height: 180px;" oninput="updateLivePreview()"></textarea>
-                <p style="font-size: 11px; color: var(--p-color-text-subdued); margin-top: 4px;">
-                  Tags: <code>{{first_name}}</code>, <code>{{customer_name}}</code>, <code>{{discount_code}}</code>, <code>{{shop_url}}</code>
+                <textarea id="composerBody" class="form-textarea" style="font-family: monospace; font-size: 11px; min-height: 160px;" oninput="updateLivePreview()"></textarea>
+                <p style="font-size: 10.5px; color: var(--p-color-text-subdued); margin-top: 3px;">
+                  Tags: <code>{{first_name}}</code>, <code>{{discount_code}}</code>, <code>{{shop_url}}</code>
                 </p>
               </div>
             </div>
@@ -804,32 +798,32 @@
           <!-- Right: Interactive Live Preview -->
           <div class="preview-container">
             <div class="preview-toolbar">
-              <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text-subdued);">
-                Live Preview (Tracked &amp; Personalised)
+              <span style="font-size: 11.5px; font-weight: 600; color: var(--p-color-text-subdued);">
+                Live Preview
               </span>
-              <div style="display: flex; gap: 6px;">
-                <button class="Polaris-FilterPill active" onclick="setPreviewDevice('desktop', this)">Desktop</button>
-                <button class="Polaris-FilterPill" onclick="setPreviewDevice('mobile', this)">Mobile</button>
+              <div style="display: flex; gap: 4px;">
+                <button type="button" class="Polaris-FilterPill active" onclick="setPreviewDevice('desktop', this)">Desktop</button>
+                <button type="button" class="Polaris-FilterPill" onclick="setPreviewDevice('mobile', this)">Mobile</button>
               </div>
             </div>
-            <div id="composerPreviewFrame" class="preview-frame">
-              <!-- Rendered preview HTML injected here -->
-            </div>
+            <div id="composerPreviewFrame" class="preview-frame"></div>
           </div>
 
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="Polaris-Button" onclick="sendComposerTest()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
-          Send Test to Me
-        </button>
-        <button class="Polaris-Button" onclick="closeComposerModal()">Cancel</button>
         <button id="btnDispatchCustomerEmail" class="Polaris-Button Polaris-Button--primary" onclick="dispatchCustomerEmail()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          <span id="btnDispatchCustomerEmailText">Send Official Follow-Up</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span id="btnDispatchCustomerEmailText">Send Follow-Up</span>
         </button>
+        <div class="modal-footer-secondary">
+          <button type="button" class="Polaris-Button" onclick="sendComposerTest()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
+            Send Test
+          </button>
+          <button type="button" class="Polaris-Button" onclick="closeComposerModal()">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1063,6 +1057,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.5"></script>
+  <script src="app.js?v=18.6"></script>
 </body>
 </html>

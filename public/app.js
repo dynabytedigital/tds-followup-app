@@ -982,11 +982,10 @@ function selectComposerStage(templateId) {
 function updateComposerStageTitle(tpl) {
   const nameEl = document.getElementById('composerStageActiveName');
   const timingEl = document.getElementById('composerStageActiveTiming');
-  if (nameEl) nameEl.innerText = `Stage ${tpl.stage || 1}: ${tpl.name || 'Follow-Up Sequence'}`;
+  if (nameEl) nameEl.innerText = `Stage ${tpl.stage || 1}: ${tpl.name || 'Follow-Up'}`;
   if (timingEl) {
     const hasDiscount = tpl.discountCode && tpl.discountCode !== 'NONE' && tpl.discountPercent > 0;
-    const discountText = hasDiscount ? `· Offer: ${tpl.discountCode} (${tpl.discountPercent}% off)` : '· Guidance Only (No Discount)';
-    timingEl.innerText = `${tpl.timing || 'Day 1'} ${discountText}`;
+    timingEl.innerText = hasDiscount ? `(${tpl.timing || 'Day 1'} · ${tpl.discountPercent}% OFF)` : `(${tpl.timing || 'Day 1'})`;
   }
 }
 
@@ -996,7 +995,7 @@ function toggleComposerHtmlView(btn) {
   const isHidden = wrap.style.display === 'none';
   if (isHidden) {
     wrap.style.display = 'block';
-    if (btn) btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Collapse HTML`;
+    if (btn) btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Close Code`;
   } else {
     wrap.style.display = 'none';
     if (btn) btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit HTML Code`;
@@ -1005,18 +1004,15 @@ function toggleComposerHtmlView(btn) {
 
 function toggleComposerDiscount(cb) {
   const codeInput = document.getElementById('composerDiscountCode');
-  const helpText = document.getElementById('composerDiscountHelpText');
   if (cb.checked) {
     codeInput.value = 'NONE';
     codeInput.disabled = true;
-    helpText.innerText = 'Zero discount selected. Store public prices remain 100% untouched.';
   } else {
     codeInput.disabled = false;
     const tplId = composerActiveTemplateId || document.getElementById('composerTemplateSelect')?.value;
     const tpl = templatesList.find(t => t.id === tplId);
-    const prefix = tpl?.discountCode || 'HOLISTIC10';
+    const prefix = tpl?.discountCode && tpl.discountCode !== 'NONE' ? tpl.discountCode : 'HOLISTIC10';
     codeInput.value = `${prefix}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    helpText.innerText = 'Safe: Custom code applies at checkout. If Zero Discount is checked, store public pricing is untouched.';
   }
   updateLivePreview();
 }
@@ -1030,23 +1026,23 @@ function openComposer(customer, preselectedTemplateId = null, isBulk = false) {
   const dispatchBtnText = document.getElementById('btnDispatchCustomerEmailText');
 
   if (isBulk && composerTargetCustomers && composerTargetCustomers.length > 1) {
-    if (titleEl) titleEl.innerText = `Compose Follow-Up Batch (${composerTargetCustomers.length} Recipients)`;
-    if (badgeEl) badgeEl.innerText = `Targeting: ${composerTargetCustomers.length} Selected Customers`;
+    if (titleEl) titleEl.innerText = `Send to ${composerTargetCustomers.length} Customers`;
+    if (badgeEl) badgeEl.innerText = `${composerTargetCustomers.length} recipients selected`;
     if (toggleBtn) {
       toggleBtn.style.display = 'inline-block';
-      toggleBtn.innerHTML = 'Show Recipients &#9662;';
+      toggleBtn.innerHTML = 'View Recipients &#9662;';
     }
     renderComposerRecipientChips();
-    if (dispatchBtnText) dispatchBtnText.innerText = `Send to ${composerTargetCustomers.length} Customers \u2192`;
+    if (dispatchBtnText) dispatchBtnText.innerText = `Send to ${composerTargetCustomers.length} Customers`;
   } else {
     composerTargetCustomers = [activeCustomer];
-    const fullName = `${activeCustomer.first_name || ''} ${activeCustomer.last_name || ''}`.trim() || activeCustomer.name || 'Valued Customer';
-    if (titleEl) titleEl.innerText = 'Compose Customer Follow-Up';
-    if (badgeEl) badgeEl.innerText = `Target: ${fullName} (${activeCustomer.email || 'No email'}) · ${activeCustomer.orders_count || 0} orders · £${activeCustomer.total_spent || '0.00'}`;
+    const fullName = `${activeCustomer.first_name || ''} ${activeCustomer.last_name || ''}`.trim() || activeCustomer.name || 'Customer';
+    if (titleEl) titleEl.innerText = 'Send Follow-Up';
+    if (badgeEl) badgeEl.innerText = `${fullName} (${activeCustomer.email || 'No email'})`;
     if (toggleBtn) toggleBtn.style.display = 'none';
     const recBox = document.getElementById('composerRecipientsBox');
     if (recBox) recBox.style.display = 'none';
-    if (dispatchBtnText) dispatchBtnText.innerText = 'Send Official Follow-Up';
+    if (dispatchBtnText) dispatchBtnText.innerText = 'Send Follow-Up';
   }
 
   // Reset HTML collapse view
@@ -1073,11 +1069,13 @@ function openComposer(customer, preselectedTemplateId = null, isBulk = false) {
 
   selectComposerCampaign(targetCampaign, preselectedTemplateId);
 
-  // Open modal
+  // Open modal & lock background scroll
+  document.body.classList.add('modal-open');
   document.getElementById('composerModal').classList.add('active');
 }
 
 function closeComposerModal() {
+  document.body.classList.remove('modal-open');
   document.getElementById('composerModal').classList.remove('active');
   activeCustomer = null;
 }
