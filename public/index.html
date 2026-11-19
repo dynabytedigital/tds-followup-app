@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.22">
+  <link rel="stylesheet" href="style.css?v=18.23">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -438,9 +438,9 @@
 
           <!-- Status Filter (Active for Sent Follow-Ups) -->
           <div id="dispatchStatusFilterWrap" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11px; font-weight: 600; color: var(--p-color-text-subdued);">Session:</span>
-              <select id="analyticsSessionFilter" class="form-input" style="height: 30px; font-size: 11.5px; padding: 2px 8px; width: auto; max-width: 220px;" onchange="onAnalyticsSessionFilterChange(this.value)">
+            <div class="session-filter-box" style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--p-color-text-subdued); flex-shrink: 0;">Session:</span>
+              <select id="analyticsSessionFilter" class="form-input" style="min-height: 32px; font-size: 12px; padding: 4px 8px; width: 100%; max-width: 240px;" onchange="onAnalyticsSessionFilterChange(this.value)">
                 <option value="all">All Sessions &amp; Sequences</option>
               </select>
             </div>
@@ -1465,6 +1465,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.22"></script>
+  <script src="app.js?v=18.23"></script>
 </body>
 </html>

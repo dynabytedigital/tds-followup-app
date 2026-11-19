@@ -3144,17 +3144,23 @@ html.device-unauthenticated #authGateModal.active {
   /* When in Mobile Mode: Toggle Edit vs Preview panes */
   #composerModal.mode-preview .composer-campaign-bar,
   #composerModal.mode-preview .composer-stage-bar,
-  #composerModal.mode-preview .composer-controls-pane {
+  #composerModal.mode-preview .composer-controls-pane,
+  #freshSequenceModal.mode-preview .fresh-recipients-container,
+  #freshSequenceModal.mode-preview .fresh-preset-bar,
+  #freshSequenceModal.mode-preview .fresh-stage-stepper-wrap,
+  #freshSequenceModal.mode-preview #freshControlsPane {
     display: none !important;
   }
 
-  #composerModal.mode-preview .preview-container {
+  #composerModal.mode-preview .preview-container,
+  #freshSequenceModal.mode-preview .preview-container {
     display: flex !important;
     width: 100% !important;
     flex: 1 1 auto !important;
   }
 
-  #composerModal:not(.mode-preview) .preview-container {
+  #composerModal:not(.mode-preview) .preview-container,
+  #freshSequenceModal:not(.mode-preview) .preview-container {
     display: none !important;
   }
 
@@ -3213,10 +3219,55 @@ html.device-unauthenticated #authGateModal.active {
 
   #dispatchStatusFilterWrap {
     width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  #dispatchStatusFilterWrap .session-filter-box {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
   }
 
   #dispatchStatusFilterWrap .Polaris-FilterPills {
     width: 100% !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding-bottom: 4px !important;
+  }
+
+  .fresh-preset-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .fresh-preset-bar select,
+  #freshPresetSelect,
+  #analyticsSessionFilter {
+    min-height: 38px !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    font-size: 13.5px !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .fresh-stage-stepper-wrap {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #freshSequenceModal .modal-body {
+    overflow-x: hidden !important;
   }
 
   /* iOS Safari Auto-Zoom Fix & Touch Optimization */

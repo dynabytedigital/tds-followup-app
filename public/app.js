@@ -3685,22 +3685,20 @@ function openFreshSequenceComposer() {
 }
 
 function setFreshComposerMode(mode) {
-  const controls = document.getElementById('freshControlsPane');
-  const preview = document.getElementById('freshPreviewPane');
+  const modal = document.getElementById('freshSequenceModal');
   const btnEdit = document.getElementById('btnFreshModeEdit');
   const btnPrev = document.getElementById('btnFreshModePreview');
+  if (!modal) return;
 
   if (mode === 'preview') {
-    if (controls) controls.classList.add('composer-pane-hidden');
-    if (preview) preview.classList.remove('composer-pane-hidden');
-    if (btnPrev) btnPrev.classList.add('active');
     if (btnEdit) btnEdit.classList.remove('active');
+    if (btnPrev) btnPrev.classList.add('active');
+    modal.classList.add('mode-preview');
     updateFreshPreview();
   } else {
-    if (controls) controls.classList.remove('composer-pane-hidden');
-    if (preview) preview.classList.add('composer-pane-hidden');
     if (btnEdit) btnEdit.classList.add('active');
     if (btnPrev) btnPrev.classList.remove('active');
+    modal.classList.remove('mode-preview');
   }
 }
 
