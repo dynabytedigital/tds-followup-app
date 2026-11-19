@@ -1973,20 +1973,45 @@ function setConversionCampaign(campaignId, btn) {
 }
 
 function setConversionPeriod(period, btn) {
-  conversionPeriod = period;
-  document.querySelectorAll('#conversionPeriodPills .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  // If clicking the already selected period (and it's not 'all'), toggle back to 'all'
+  if (conversionPeriod === period && period !== 'all') {
+    conversionPeriod = 'all';
+    document.querySelectorAll('#analyticsPeriodPills .Polaris-FilterPill, #conversionPeriodPills .Polaris-FilterPill').forEach(p => {
+      p.classList.remove('active');
+      if (p.textContent.trim().toLowerCase().includes('all time')) {
+        p.classList.add('active');
+      }
+    });
+  } else {
+    conversionPeriod = period;
+    document.querySelectorAll('#analyticsPeriodPills .Polaris-FilterPill, #conversionPeriodPills .Polaris-FilterPill').forEach(p => {
+      p.classList.remove('active');
+    });
+    if (btn) btn.classList.add('active');
+  }
+
   const customBox = document.getElementById('customDateRangeBox');
   if (customBox) customBox.style.display = 'none';
 
   loadConversions();
+  loadDispatches();
 }
 
 function toggleCustomDateInputs(btn) {
-  document.querySelectorAll('#conversionPeriodPills .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
+  const customBox = document.getElementById('customDateRangeBox');
+  const isCurrentlyOpen = customBox && customBox.style.display === 'flex';
+
+  if (isCurrentlyOpen) {
+    customBox.style.display = 'none';
+    setConversionPeriod('all');
+    return;
+  }
+
+  document.querySelectorAll('#analyticsPeriodPills .Polaris-FilterPill, #conversionPeriodPills .Polaris-FilterPill').forEach(p => {
+    p.classList.remove('active');
+  });
   if (btn) btn.classList.add('active');
 
-  const customBox = document.getElementById('customDateRangeBox');
   if (customBox) {
     customBox.style.display = 'flex';
   }
