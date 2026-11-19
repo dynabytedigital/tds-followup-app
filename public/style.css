@@ -377,7 +377,8 @@ html, body {
 
 @media (max-width: 540px) {
   .Polaris-KpiGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 }
 
@@ -1640,13 +1641,15 @@ html, body {
   font-size: 12px;
   color: var(--p-color-text);
   background: #f6f6f7;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 4px;
   border-left: 3px solid #008060;
   font-weight: 500;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 /* Split Grid for Email Composer */
@@ -1822,4 +1825,437 @@ html, body {
   font-size: 11px;
   color: var(--p-color-text-subdued);
   margin-top: 3px;
+}
+
+/* ========================================================
+   COMPREHENSIVE POLARIS MOBILE & HANDHELD UX (<= 767px)
+   ======================================================== */
+@media (max-width: 767px) {
+  /* 1. Page Shell & Container Padding */
+  .Polaris-Page {
+    padding: 10px 10px 60px !important;
+  }
+  
+  .Polaris-Page-Header {
+    margin-bottom: 12px;
+  }
+  
+  .Polaris-Page-Header__Row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .Polaris-Page-Header__TitleGroup {
+    justify-content: flex-start;
+  }
+  
+  .Polaris-Header-Logo img {
+    height: 36px;
+  }
+  
+  .Polaris-Page-Header__Title {
+    font-size: 18px;
+  }
+
+  .Polaris-ButtonGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .Polaris-ButtonGroup .Polaris-Button {
+    flex: 1 1 calc(50% - 6px);
+    font-size: 11.5px;
+    padding: 6px 8px;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  /* 2. Compact 2x2 Metric Strip */
+  .Polaris-KpiGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .Polaris-KpiCard {
+    padding: 10px 12px !important;
+    border-radius: var(--p-radius-sm) !important;
+  }
+
+  .Polaris-KpiCard__Header {
+    font-size: 11px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .Polaris-KpiCard__Value {
+    font-size: 19px !important;
+  }
+
+  .Polaris-KpiCard__Sub {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+  }
+
+  /* 3. Underline Navigation Tabs (Smooth Touch Scroll, Zero Cutoff) */
+  .Polaris-Tabs-Wrapper {
+    margin-bottom: 12px;
+    padding: 0 4px;
+    border-radius: var(--p-radius-sm) var(--p-radius-sm) 0 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .Polaris-Tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 2px;
+    padding-right: 14px;
+  }
+
+  .Polaris-Tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .Polaris-Tab {
+    padding: 10px 12px;
+    font-size: 12.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .Polaris-TabBadge {
+    padding: 1px 5px;
+    font-size: 10px;
+  }
+
+  /* 4. Customer Header & Search + Filters */
+  .Polaris-Card__Header {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .Polaris-Card__Title {
+    font-size: 15px;
+  }
+
+  .Polaris-TableControls {
+    padding: 10px 12px;
+    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .Polaris-SearchContainer {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .Polaris-SearchInput {
+    font-size: 12.5px;
+    padding: 7px 10px 7px 30px;
+  }
+
+  .Polaris-FilterPills {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .Polaris-FilterPills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .Polaris-FilterPill {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+
+  /* 5. Dedicated Spend Filter Bar (Grid Layout) */
+  .Polaris-SpendFilterBar {
+    padding: 8px 12px;
+  }
+
+  .spend-filter-inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label sort"
+      "pills pills";
+    gap: 8px 10px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .spend-filter-label-group {
+    grid-area: label;
+    font-size: 12px;
+  }
+
+  .spend-sort-group {
+    grid-area: sort;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .spend-sort-btn {
+    padding: 3px 8px;
+    font-size: 11.5px;
+  }
+
+  .spend-pills-row {
+    grid-area: pills;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    width: 100%;
+    padding-bottom: 3px;
+  }
+
+  .spend-pills-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .spend-pill {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 3px 9px;
+    height: 26px;
+    white-space: nowrap;
+  }
+
+  .spend-custom-dropdown-wrap {
+    flex-shrink: 0;
+  }
+
+  .spend-popover {
+    left: auto;
+    right: 0;
+    max-width: calc(100vw - 24px);
+  }
+
+  .active-spend-tag {
+    flex-shrink: 0;
+    height: 26px;
+    font-size: 11px;
+  }
+
+  /* 6. Polaris Bulk Actions Bar */
+  .Polaris-BulkActionsBar {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .bulk-actions-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    font-size: 12.5px;
+    width: 100%;
+  }
+
+  .bulk-selected-label {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .bulk-context-badge {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .Polaris-Button--plain {
+    font-size: 12px !important;
+    padding: 2px 4px !important;
+    white-space: nowrap;
+  }
+
+  .bulk-actions-btns {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .bulk-actions-btns #btnBulkFollowUp {
+    flex: 2;
+    min-height: 40px;
+    font-size: 12.5px;
+    font-weight: 600;
+    justify-content: center;
+  }
+
+  .bulk-actions-btns .Polaris-Button:not(#btnBulkFollowUp) {
+    flex: 1;
+    min-height: 40px;
+    font-size: 11.5px;
+    justify-content: center;
+  }
+
+  /* 7. Responsive Table */
+  .table-responsive-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .Polaris-DataTable th,
+  .Polaris-DataTable td {
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* 8. Sequence Silos & Cards in Campaigns Tab */
+  .silo-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+  }
+
+  .silo-header__left {
+    width: 100% !important;
+  }
+
+  .silo-title-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .silo-title {
+    font-size: 14px !important;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .silo-header__right {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding-left: 48px;
+  }
+
+  .silo-header__right .Polaris-Button {
+    flex: 1 1 auto;
+    font-size: 11.5px;
+    padding: 4px 8px;
+    justify-content: center;
+  }
+
+  .sequence-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .sequence-card-header .Polaris-ButtonGroup {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .sequence-row {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .sequence-col-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sequence-col-actions .Polaris-Button {
+    flex: 1 1 auto;
+    min-height: 36px;
+  }
+
+  /* 9. Modals & Sheet Behavior */
+  .modal-overlay {
+    padding: 6px;
+    align-items: flex-end;
+  }
+
+  .modal-card,
+  .modal-card--wide,
+  .modal-card--editor {
+    max-width: 100%;
+    max-height: 94vh;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .modal-header {
+    padding: 12px 14px;
+  }
+
+  .modal-title {
+    font-size: 15px;
+  }
+
+  .modal-body {
+    padding: 12px 14px;
+  }
+
+  .modal-footer {
+    padding: 10px 14px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-footer .Polaris-Button {
+    width: 100%;
+    min-height: 40px;
+    justify-content: center;
+  }
+
+  .composer-grid,
+  .editor-split-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .composer-campaign-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .composer-camp-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .composer-camp-tab {
+    flex-shrink: 0;
+  }
+
+  .composer-stage-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
