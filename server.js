@@ -121,8 +121,9 @@ app.post('/api/auth/access', (req, res) => {
 
   clearFailedAttempts(clientIp);
   const token = db.createSession('Authorized Operator');
-  console.log(`[Security] Master access granted successfully to ${clientIp}`);
-  res.json({ success: true, token });
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+  console.log(`[Security] Master access granted successfully to ${clientIp} (30-day session)`);
+  res.json({ success: true, token, expiresInDays: 30, expiresAt });
 });
 
 app.get('/api/auth/verify', (req, res) => {
@@ -132,9 +133,12 @@ app.get('/api/auth/verify', (req, res) => {
     token = authHeader.substring(7);
   } else if (req.query && req.query.token) {
     token = req.query.token;
+  } else if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|;\s*)tds_operator_key=([^;]+)/);
+    if (match) token = decodeURIComponent(match[1]);
   }
   if (db.validateSession(token)) {
-    return res.json({ success: true });
+    return res.json({ success: true, validForDays: 30 });
   }
   return res.status(401).json({ success: false, error: 'Invalid or expired session.' });
 });
@@ -159,6 +163,9 @@ app.use('/api', (req, res, next) => {
     token = authHeader.substring(7);
   } else if (req.query && req.query.token) {
     token = req.query.token;
+  } else if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|;\s*)tds_operator_key=([^;]+)/);
+    if (match) token = decodeURIComponent(match[1]);
   }
 
   if (!db.validateSession(token)) {

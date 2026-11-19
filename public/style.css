@@ -1458,6 +1458,15 @@ html, body {
   display: flex;
 }
 
+/* 30-Day Device Persistent Authentication Gate Rules */
+html.device-authenticated #authGateModal {
+  display: none !important;
+}
+
+html.device-unauthenticated #authGateModal.active {
+  display: flex !important;
+}
+
 @keyframes modalFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

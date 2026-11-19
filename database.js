@@ -172,29 +172,71 @@ class Database {
   }
 
   createSession(user = 'Authorized Operator') {
-    const token = 'tok_' + crypto.randomBytes(32).toString('hex');
+    const secret = process.env.MASTER_ACCESS_CODE || MASTER_ACCESS_CODE;
+    const expiresAtMs = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+    const payload = JSON.stringify({
+      user,
+      iat: Date.now(),
+      exp: expiresAtMs
+    });
+    const b64 = Buffer.from(payload).toString('base64url');
+    const sig = crypto.createHmac('sha256', secret).update(b64).digest('hex');
+    const token = 'tok_h_' + b64 + '.' + sig;
+
+    if (!this.data.sessions) this.data.sessions = {};
     this.data.sessions[token] = {
       user,
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      expiresAt: new Date(expiresAtMs).toISOString()
     };
     this.save();
     return token;
   }
 
   validateSession(token) {
-    if (!token || !this.data.sessions[token]) return false;
-    const session = this.data.sessions[token];
-    if (new Date(session.expiresAt) < new Date()) {
-      delete this.data.sessions[token];
-      this.save();
-      return false;
+    if (!token) return false;
+
+    // 1. Direct Master Access Code check (e.g. bearer contains key directly)
+    if (this.verifyMasterAccessCode(token)) return true;
+
+    // 2. Cryptographic HMAC 30-Day Token check (resilient across server redeploys and cold starts)
+    if (typeof token === 'string' && token.startsWith('tok_h_')) {
+      try {
+        const parts = token.slice(6).split('.');
+        if (parts.length === 2) {
+          const [b64, sig] = parts;
+          const secret = process.env.MASTER_ACCESS_CODE || MASTER_ACCESS_CODE;
+          const expectedSig = crypto.createHmac('sha256', secret).update(b64).digest('hex');
+          
+          const sigBuf = Buffer.from(sig, 'hex');
+          const expBuf = Buffer.from(expectedSig, 'hex');
+          if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+            const payload = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
+            if (payload && payload.exp && Date.now() < payload.exp) {
+              return true;
+            }
+          }
+        }
+      } catch (err) {
+        // Fall through to memory check
+      }
     }
-    return true;
+
+    // 3. In-memory / db.json sessions check
+    if (this.data && this.data.sessions && this.data.sessions[token]) {
+      const session = this.data.sessions[token];
+      if (new Date(session.expiresAt) < new Date()) {
+        delete this.data.sessions[token];
+        this.save();
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 
   deleteSession(token) {
-    if (this.data.sessions[token]) {
+    if (this.data && this.data.sessions && this.data.sessions[token]) {
       delete this.data.sessions[token];
       this.save();
     }

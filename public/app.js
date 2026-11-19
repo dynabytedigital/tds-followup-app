@@ -2,7 +2,73 @@
 // Customer Care Follow-Up & Verifiable Conversion Attribution Engine
 
 const API_BASE = '';
-let authToken = localStorage.getItem('tds_followup_token') || '';
+
+/* ========================================================
+   PERSISTENT 30-DAY DEVICE AUTHENTICATION
+   ======================================================== */
+const AUTH_TOKEN_KEY = 'tds_followup_token';
+const AUTH_KEY_STORED = 'tds_operator_key';
+const AUTH_EXPIRY_KEY = 'tds_operator_key_exp';
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function getStoredDeviceAuth() {
+  try {
+    const exp = localStorage.getItem(AUTH_EXPIRY_KEY);
+    const key = localStorage.getItem(AUTH_KEY_STORED);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+    // If 30-day window expired, clear device storage
+    if (exp && Date.now() > Number(exp)) {
+      clearDeviceAuth();
+      return { isRemembered: false, isExpired: true };
+    }
+
+    // Cookie fallback for cross-domain / iframe storage
+    let cookieKey = '';
+    const match = document.cookie.match(/(?:^|;\s*)tds_operator_key=([^;]+)/);
+    if (match) cookieKey = decodeURIComponent(match[1]);
+
+    const activeKey = key || cookieKey || '';
+    const isRemembered = Boolean((activeKey || token) && (!exp || Date.now() < Number(exp)));
+
+    return {
+      key: activeKey,
+      token: token || '',
+      exp: exp ? Number(exp) : null,
+      isRemembered
+    };
+  } catch (e) {
+    return { isRemembered: false };
+  }
+}
+
+function saveDeviceAuth(key, token) {
+  try {
+    const expiresAt = Date.now() + THIRTY_DAYS_MS;
+    if (key) localStorage.setItem(AUTH_KEY_STORED, key);
+    if (token) localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(AUTH_EXPIRY_KEY, String(expiresAt));
+    document.documentElement.classList.add('device-authenticated');
+    document.documentElement.classList.remove('device-unauthenticated');
+
+    if (key) {
+      document.cookie = `tds_operator_key=${encodeURIComponent(key)}; max-age=${30 * 86400}; path=/; SameSite=Lax`;
+    }
+  } catch (e) {}
+}
+
+function clearDeviceAuth() {
+  try {
+    localStorage.removeItem(AUTH_KEY_STORED);
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_EXPIRY_KEY);
+    document.documentElement.classList.remove('device-authenticated');
+    document.documentElement.classList.add('device-unauthenticated');
+    document.cookie = 'tds_operator_key=; max-age=0; path=/;';
+  } catch (e) {}
+}
+
+let authToken = localStorage.getItem(AUTH_TOKEN_KEY) || '';
 let customersList = [];
 let filteredCustomers = [];
 let campaignsList = [];
@@ -22,27 +88,77 @@ let currentEditingTemplate = null;
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', async () => {
-  if (authToken) {
-    const isValid = await verifyAuthToken(authToken);
-    if (isValid) {
-      const modal = document.getElementById('authGateModal');
-      if (modal) modal.classList.remove('active');
-      initDashboard();
-      return;
-    }
-  }
-
   // Detect if running embedded inside Shopify Admin
   if (window.self !== window.top) {
     document.body.classList.add('is-embedded-shopify');
   }
 
-  // Show Master Operator Security Gate
-  const modal = document.getElementById('authGateModal');
-  if (modal) modal.classList.add('active');
-  const keyInput = document.getElementById('masterAccessKey');
-  if (keyInput) keyInput.focus();
+  const auth = getStoredDeviceAuth();
+
+  // If this device is remembered (stored key or token < 30 days old):
+  if (auth.isRemembered) {
+    // Hide auth modal immediately - never ask existing user again
+    const modal = document.getElementById('authGateModal');
+    if (modal) modal.classList.remove('active');
+    document.documentElement.classList.add('device-authenticated');
+
+    // 1. If we have a token, verify it
+    if (auth.token) {
+      authToken = auth.token;
+      const isValid = await verifyAuthToken(authToken);
+      if (isValid) {
+        initDashboard();
+        return;
+      }
+    }
+
+    // 2. If token expired or server cold-started, use stored key to silently re-authenticate
+    if (auth.key) {
+      const refreshed = await attemptSilentKeyAuth(auth.key);
+      if (refreshed) {
+        initDashboard();
+        return;
+      }
+    }
+  }
+
+  // If new user or 30 days expired, prompt for key
+  promptForAuthGate();
 });
+
+function promptForAuthGate() {
+  document.documentElement.classList.remove('device-authenticated');
+  document.documentElement.classList.add('device-unauthenticated');
+  const modal = document.getElementById('authGateModal');
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
+  const keyInput = document.getElementById('masterAccessKey');
+  if (keyInput) {
+    keyInput.value = '';
+    keyInput.focus();
+  }
+}
+
+async function attemptSilentKeyAuth(key) {
+  try {
+    const res = await fetch('/api/auth/access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessKey: key })
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      authToken = data.token;
+      saveDeviceAuth(key, data.token);
+      return true;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
 
 /* ========================================================
    AUTHENTICATION & API HELPER
@@ -54,12 +170,24 @@ async function authFetch(url, options = {}) {
   }
   options.headers = headers;
 
-  const res = await fetch(url, options);
+  let res = await fetch(url, options);
   if (res.status === 401) {
-    // Session expired or invalid
+    // Attempt silent recovery if device has stored key (< 30 days)
+    const auth = getStoredDeviceAuth();
+    if (auth.isRemembered && auth.key) {
+      const refreshed = await attemptSilentKeyAuth(auth.key);
+      if (refreshed) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        options.headers = headers;
+        res = await fetch(url, options);
+        if (res.status !== 401) return res;
+      }
+    }
+
+    // Session genuinely expired and recovery failed
     authToken = '';
-    localStorage.removeItem('tds_followup_token');
-    document.getElementById('authGateModal').classList.add('active');
+    clearDeviceAuth();
+    promptForAuthGate();
     showToast('Session expired. Please re-enter your Master Operator Key.', 'error');
     throw new Error('Unauthorized');
   }
@@ -83,6 +211,8 @@ async function handleAuthSubmit(event) {
   const input = document.getElementById('masterAccessKey');
   const btn = document.getElementById('btnAuthSubmit');
   const errDiv = document.getElementById('authErrorMsg');
+  const rememberCheckbox = document.getElementById('authRememberDevice');
+  const shouldRemember = rememberCheckbox ? rememberCheckbox.checked : true;
   const key = input.value.trim();
 
   if (!key) return;
@@ -101,9 +231,16 @@ async function handleAuthSubmit(event) {
 
     if (data.success && data.token) {
       authToken = data.token;
-      localStorage.setItem('tds_followup_token', data.token);
-      document.getElementById('authGateModal').classList.remove('active');
-      showToast('Master Operator Access Granted', 'success');
+      if (shouldRemember) {
+        saveDeviceAuth(key, data.token);
+      } else {
+        sessionStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      }
+
+      const modal = document.getElementById('authGateModal');
+      if (modal) modal.classList.remove('active');
+      document.documentElement.classList.add('device-authenticated');
+      showToast('Master Operator Access Granted (Device Remembered for 30 Days)', 'success');
       initDashboard();
     } else {
       errDiv.innerText = data.error || 'Access Denied: Invalid Master Operator Key';
@@ -128,15 +265,9 @@ async function lockConsole() {
     } catch (e) {}
   }
   authToken = '';
-  localStorage.removeItem('tds_followup_token');
-  const modal = document.getElementById('authGateModal');
-  if (modal) modal.classList.add('active');
-  const keyInput = document.getElementById('masterAccessKey');
-  if (keyInput) {
-    keyInput.value = '';
-    keyInput.focus();
-  }
-  showToast('Console locked. Master Operator Key required.', 'info');
+  clearDeviceAuth();
+  promptForAuthGate();
+  showToast('Console locked and device authorization cleared.', 'info');
 }
 
 /* ========================================================
@@ -2793,6 +2924,19 @@ async function loadSettings() {
       if (document.getElementById('settingEmailProvider')) document.getElementById('settingEmailProvider').value = s.emailProvider || 'google_workspace';
       if (document.getElementById('settingSmtpPass') && s.smtpPass) document.getElementById('settingSmtpPass').value = s.smtpPass;
       toggleProviderSettingsFields();
+    }
+
+    // Render Device Security info in Settings
+    const auth = getStoredDeviceAuth();
+    const deviceStatusEl = document.getElementById('deviceAuthStatusText');
+    if (deviceStatusEl) {
+      if (auth.isRemembered && auth.exp) {
+        const daysLeft = Math.max(1, Math.round((auth.exp - Date.now()) / (24 * 60 * 60 * 1000)));
+        const expDateStr = new Date(auth.exp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        deviceStatusEl.innerHTML = `<span style="color: #166534; font-weight: 600;">&check; Authorized &bull; 30-Day Device Trust Active</span><br><span style="font-size: 11.5px; color: var(--p-color-text-subdued);">${daysLeft} days remaining on this device (valid until ${expDateStr}).</span>`;
+      } else {
+        deviceStatusEl.innerText = 'Session-only access (device not remembered).';
+      }
     }
   } catch (e) {
     console.error('Failed to load settings:', e);
