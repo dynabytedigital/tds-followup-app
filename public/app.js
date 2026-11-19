@@ -942,8 +942,9 @@ function renderComposerStages(campaignId, preselectedTplId = null) {
   composerActiveTemplateId = activeTpl.id;
   if (tplSelect) tplSelect.value = activeTpl.id;
 
-  // Render clean Stage buttons
-  container.innerHTML = siloTemplates.map((t, idx) => {
+  // Render clean Stage buttons + 6th "+ Stage" tab at the end
+  const nextStageNum = siloTemplates.length + 1;
+  const stageBtnsHtml = siloTemplates.map((t, idx) => {
     const stageNum = t.stage || (idx + 1);
     const timing = t.timing || `Day ${stageNum === 1 ? 1 : stageNum === 2 ? 3 : stageNum === 3 ? 7 : stageNum === 4 ? 14 : 21}`;
     const isActive = t.id === activeTpl.id;
@@ -954,6 +955,15 @@ function renderComposerStages(campaignId, preselectedTplId = null) {
       </button>
     `;
   }).join('');
+
+  const addStageTabHtml = `
+    <button type="button" class="composer-stage-btn composer-stage-btn--add" onclick="openNewPresetModal('${campaignId}')" title="Add Stage ${nextStageNum}">
+      <span>+ Stage</span>
+      <span class="stage-timing">Add</span>
+    </button>
+  `;
+
+  container.innerHTML = stageBtnsHtml + addStageTabHtml;
 
   updateComposerStageTitle(activeTpl);
   onTemplateChange();
