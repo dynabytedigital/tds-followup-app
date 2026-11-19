@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.25">
+  <link rel="stylesheet" href="style.css?v=18.27">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -115,7 +115,7 @@
             <div class="Polaris-Card__Title">Customers</div>
           </div>
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openFreshSequenceComposer()" style="font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            <button type="button" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openFreshSequenceComposer()" style="font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Start Fresh Sequence
             </button>
@@ -202,11 +202,17 @@
             </div>
 
             <!-- Sort Order Control -->
-            <div class="spend-sort-group">
-              <span style="font-size: 12px; color: var(--p-color-text-subdued); font-weight: 500;">Sort Spend:</span>
-              <button type="button" class="spend-sort-btn" id="btnSortSpend" onclick="toggleSpendSort()" title="Toggle sort by total spent">
-                <span id="spendSortLabel">Default</span>
-                <svg id="spendSortSvg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+              <div class="spend-sort-group">
+                <span style="font-size: 12px; color: var(--p-color-text-subdued); font-weight: 500;">Sort Spend:</span>
+                <button type="button" class="spend-sort-btn" id="btnSortSpend" onclick="toggleSpendSort()" title="Toggle sort by total spent">
+                  <span id="spendSortLabel">Default</span>
+                  <svg id="spendSortSvg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                </button>
+              </div>
+              <button type="button" class="Polaris-Button Polaris-Button--slim btn-bar-start-fresh" onclick="openFreshSequenceComposer()" style="background: #ffffff; border-color: var(--p-color-border-dark); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 2px 10px; font-size: 12px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Start Fresh
               </button>
             </div>
           </div>
@@ -1558,9 +1564,18 @@
     </div>
   </div>
 
+  
+  <!-- STICKY ALIGNED DASHBOARD ACTION: START FRESH (ALWAYS VISIBLE & CLICKABLE) -->
+  <button type="button" id="stickyStartFreshBtn" class="sticky-start-fresh-btn" onclick="openFreshSequenceComposer()" aria-label="Start Fresh Sequence">
+    <span class="sticky-start-fresh-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </span>
+    <span class="sticky-start-fresh-label">Start Fresh</span>
+  </button>
+
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.25"></script>
+  <script src="app.js?v=18.27"></script>
 </body>
 </html>
