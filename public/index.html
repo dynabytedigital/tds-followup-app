@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.7">
+  <link rel="stylesheet" href="style.css?v=18.8">
 </head>
 <body>
 
@@ -717,6 +717,18 @@
         <!-- Expandable Multi-Recipient Chips Drawer -->
         <div id="composerRecipientsBox" class="composer-recipients-box" style="display: none;"></div>
 
+        <!-- Mobile Mode Switcher: Edit vs Full-Screen Preview (Phones Only) -->
+        <div class="composer-mode-bar" id="composerModeBar">
+          <button type="button" class="composer-mode-btn active" id="btnComposerModeEdit" onclick="setComposerMode('edit')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Sequence
+          </button>
+          <button type="button" class="composer-mode-btn" id="btnComposerModePreview" onclick="setComposerMode('preview')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Live Preview
+          </button>
+        </div>
+
         <!-- 1. CAMPAIGN SILO SELECTOR (PLAYGROUND STRIP) -->
         <div class="composer-campaign-bar">
           <div class="composer-section-label">Campaign:</div>
@@ -787,20 +799,33 @@
                 </p>
               </div>
             </div>
+
+            <div class="composer-preview-jump-wrap">
+              <button type="button" class="Polaris-Button composer-preview-jump-btn" onclick="setComposerMode('preview')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Full Preview (Desktop &amp; Mobile) &rarr;
+              </button>
+            </div>
           </div>
 
-          <!-- Right: Interactive Live Preview -->
+          <!-- Right: Interactive Live Preview (Filled Edge-to-Edge) -->
           <div class="preview-container">
             <div class="preview-toolbar">
               <span style="font-size: 11.5px; font-weight: 600; color: var(--p-color-text-subdued);">
                 Live Preview
               </span>
               <div style="display: flex; gap: 4px;">
-                <button type="button" class="Polaris-FilterPill active" onclick="setPreviewDevice('desktop', this)">Desktop</button>
-                <button type="button" class="Polaris-FilterPill" onclick="setPreviewDevice('mobile', this)">Mobile</button>
+                <button type="button" class="Polaris-FilterPill active" id="btnPreviewDesktop" onclick="setPreviewDevice('desktop', this)">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  Desktop
+                </button>
+                <button type="button" class="Polaris-FilterPill" id="btnPreviewMobile" onclick="setPreviewDevice('mobile', this)">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                  Mobile
+                </button>
               </div>
             </div>
-            <div id="composerPreviewFrame" class="preview-frame"></div>
+            <div id="composerPreviewFrame" class="preview-frame device-desktop"></div>
           </div>
 
         </div>
@@ -1051,6 +1076,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.7"></script>
+  <script src="app.js?v=18.8"></script>
 </body>
 </html>

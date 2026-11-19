@@ -1079,6 +1079,10 @@ function openComposer(customer, preselectedTemplateId = null, isBulk = false) {
 
   selectComposerCampaign(targetCampaign, preselectedTemplateId);
 
+  // Initialize mobile composer mode to edit
+  setComposerMode('edit');
+  setPreviewDevice('desktop', document.getElementById('btnPreviewDesktop'));
+
   // Open modal & lock background scroll
   document.body.classList.add('modal-open');
   document.getElementById('composerModal').classList.add('active');
@@ -1367,22 +1371,66 @@ function updateLivePreview() {
   }, 300);
 }
 
+let composerActiveMode = 'edit';
+
+function setComposerMode(mode) {
+  composerActiveMode = mode;
+  const editBtn = document.getElementById('btnComposerModeEdit');
+  const prevBtn = document.getElementById('btnComposerModePreview');
+  const modal = document.getElementById('composerModal');
+  if (!modal) return;
+
+  if (mode === 'preview') {
+    if (editBtn) editBtn.classList.remove('active');
+    if (prevBtn) prevBtn.classList.add('active');
+    modal.classList.add('mode-preview');
+    updateLivePreview();
+  } else {
+    if (editBtn) editBtn.classList.add('active');
+    if (prevBtn) prevBtn.classList.remove('active');
+    modal.classList.remove('mode-preview');
+  }
+}
+
+let currentPreviewDevice = 'desktop';
+
 function setPreviewDevice(device, btn) {
+  currentPreviewDevice = device;
   const container = document.getElementById('composerPreviewFrame');
+  if (!container) return;
   document.querySelectorAll('.preview-toolbar .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
+  const isPhoneScreen = window.innerWidth <= 767;
+
   if (device === 'mobile') {
-    container.style.maxWidth = '375px';
-    container.style.margin = '0 auto';
-    container.style.border = '1px solid #d1d5db';
-    container.style.borderRadius = '12px';
-    container.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
+    container.classList.remove('device-desktop');
+    container.classList.add('device-mobile');
+    if (!isPhoneScreen) {
+      container.style.maxWidth = '375px';
+      container.style.margin = '0 auto';
+      container.style.border = '1px solid #d1d5db';
+      container.style.borderRadius = '16px';
+      container.style.boxShadow = '0 10px 30px rgba(0,0,0,0.12)';
+      container.style.overflow = 'hidden';
+    } else {
+      container.style.maxWidth = '100%';
+      container.style.margin = '0';
+      container.style.border = 'none';
+      container.style.borderRadius = '8px';
+      container.style.boxShadow = 'none';
+      container.style.overflow = 'visible';
+    }
   } else {
+    // Desktop View: Filled edge-to-edge!
+    container.classList.remove('device-mobile');
+    container.classList.add('device-desktop');
     container.style.maxWidth = '100%';
     container.style.margin = '0';
     container.style.border = 'none';
+    container.style.borderRadius = '8px';
     container.style.boxShadow = 'none';
+    container.style.overflow = isPhoneScreen ? 'visible' : 'auto';
   }
 }
 

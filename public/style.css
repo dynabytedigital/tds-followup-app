@@ -1790,6 +1790,15 @@ html, body {
   }
 }
 
+/* Mode Bar & Preview Jump (Hidden on desktop) */
+.composer-mode-bar {
+  display: none;
+}
+
+.composer-preview-jump-wrap {
+  display: none;
+}
+
 .preview-container {
   background: #f7f8f9;
   border: 1px solid var(--p-color-border);
@@ -1815,6 +1824,67 @@ html, body {
   border-radius: var(--p-radius-sm);
   overflow-y: auto;
   max-height: 480px;
+  transition: all 0.2s ease;
+}
+
+/* Ensure email inside preview fills width */
+.preview-frame > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix tables & images so they are filled and never crushed */
+.preview-frame table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+.preview-frame td {
+  overflow: hidden !important;
+  word-break: break-word !important;
+}
+
+.preview-frame img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+}
+
+/* Hero image strip in desktop view */
+.preview-frame.device-desktop table img {
+  height: 120px !important;
+  width: 100% !important;
+  object-fit: cover !important;
+}
+
+/* In mobile view mode (device-mobile): Stack images & full-width buttons */
+.preview-frame.device-mobile table tr {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+.preview-frame.device-mobile table td {
+  width: 100% !important;
+  display: block !important;
+  padding: 0 0 2px 0 !important;
+}
+
+.preview-frame.device-mobile table td img {
+  height: 130px !important;
+  width: 100% !important;
+  object-fit: cover !important;
+}
+
+.preview-frame.device-mobile a[href*="products"] {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  padding: 13px 16px !important;
 }
 
 /* Template Studio Code Editor */
@@ -2475,5 +2545,104 @@ html, body {
   .composer-stage-bar-sub .Polaris-Button {
     flex-shrink: 0 !important;
     white-space: nowrap !important;
+  }
+
+  /* Mobile Mode Switcher: Edit vs Preview */
+  .composer-mode-bar {
+    display: flex !important;
+    gap: 4px;
+    background: #eef0f2;
+    padding: 3px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+
+  .composer-mode-btn {
+    flex: 1;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--p-color-text-subdued);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .composer-mode-btn.active {
+    background: #ffffff;
+    color: var(--p-color-text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+
+  .composer-preview-jump-wrap {
+    display: block !important;
+    margin-top: 14px;
+    text-align: center;
+    padding-top: 10px;
+    border-top: 1px dashed var(--p-color-border);
+  }
+
+  .composer-preview-jump-btn {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #008060 !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* When in Mobile Mode: Toggle Edit vs Preview panes */
+  #composerModal.mode-preview .composer-campaign-bar,
+  #composerModal.mode-preview .composer-stage-bar,
+  #composerModal.mode-preview .composer-controls-pane {
+    display: none !important;
+  }
+
+  #composerModal.mode-preview .preview-container {
+    display: flex !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+
+  #composerModal:not(.mode-preview) .preview-container {
+    display: none !important;
+  }
+
+  /* Edge-to-Edge Filled Preview on Phones */
+  .preview-container {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .preview-toolbar {
+    padding: 0 0 8px 0 !important;
+    border-bottom: 1px solid var(--p-color-border) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .preview-frame {
+    border: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .preview-frame > div {
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
