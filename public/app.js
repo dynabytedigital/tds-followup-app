@@ -904,40 +904,294 @@ function openBulkComposer() {
   openComposer(targets[0], null, true);
 }
 
-function toggleRecipientsList() {
-  const box = document.getElementById('composerRecipientsBox');
-  const btn = document.getElementById('btnToggleRecipientsList');
-  if (!box || !btn) return;
-  const isHidden = box.style.display === 'none';
-  box.style.display = isHidden ? 'flex' : 'none';
-  btn.innerHTML = isHidden ? 'Hide Recipients &#9652;' : 'Show Recipients &#9662;';
+function updateComposerRecipientsUI() {
+  const count = composerTargetCustomers ? composerTargetCustomers.length : 0;
+  const titleEl = document.getElementById('composerModalTitle');
+  const badgeEl = document.getElementById('composerCustomerBadge');
+  const countBadge = document.getElementById('composerRecipientsBadgeCount');
+  const btnToggle = document.getElementById('btnToggleRecipientsList');
+  const btnToggleText = document.getElementById('btnToggleRecipientsListText');
+  const drawer = document.getElementById('composerRecipientsDrawer');
+  const isDrawerOpen = drawer && drawer.style.display !== 'none';
+  const dispatchBtn = document.getElementById('btnDispatchCustomerEmail');
+  const dispatchBtnText = document.getElementById('btnDispatchCustomerEmailText');
+
+  activeCustomer = count > 0 ? composerTargetCustomers[0] : null;
+
+  if (count === 0) {
+    if (titleEl) titleEl.innerText = 'Send Follow-Up';
+    if (badgeEl) badgeEl.innerText = 'No recipients selected (Add at least 1)';
+    if (countBadge) countBadge.innerText = '0 Selected';
+    if (btnToggleText) btnToggleText.innerHTML = `Edit Recipients (0) ${isDrawerOpen ? '&#9652;' : '&#9662;'}`;
+    if (dispatchBtnText) dispatchBtnText.innerText = 'Add a Recipient to Send';
+    if (dispatchBtn) dispatchBtn.disabled = true;
+  } else if (count === 1) {
+    const cust = composerTargetCustomers[0];
+    const fullName = `${cust.first_name || ''} ${cust.last_name || ''}`.trim() || cust.name || 'Recipient';
+    if (titleEl) titleEl.innerText = 'Send Follow-Up';
+    if (badgeEl) badgeEl.innerText = `${fullName} (${cust.email || 'No email'})`;
+    if (countBadge) countBadge.innerText = '1 Selected';
+    if (btnToggleText) btnToggleText.innerHTML = `Edit Recipients (1) ${isDrawerOpen ? '&#9652;' : '&#9662;'}`;
+    if (dispatchBtnText) dispatchBtnText.innerText = 'Send Follow-Up \u2192';
+    if (dispatchBtn) dispatchBtn.disabled = false;
+  } else {
+    if (titleEl) titleEl.innerText = `Send to ${count} Customers`;
+    if (badgeEl) badgeEl.innerText = `${count} recipients selected`;
+    if (countBadge) countBadge.innerText = `${count} Selected`;
+    if (btnToggleText) btnToggleText.innerHTML = `Edit Recipients (${count}) ${isDrawerOpen ? '&#9652;' : '&#9662;'}`;
+    if (dispatchBtnText) dispatchBtnText.innerText = `Send to ${count} Customers \u2192`;
+    if (dispatchBtn) dispatchBtn.disabled = false;
+  }
+
+  if (btnToggle) btnToggle.style.display = 'inline-flex';
+
+  renderComposerRecipientChips();
+  updateLivePreview();
+}
+
+function toggleRecipientsList(forceOpen = null) {
+  const drawer = document.getElementById('composerRecipientsDrawer');
+  const btnToggleText = document.getElementById('btnToggleRecipientsListText');
+  if (!drawer) return;
+  const isCurrentlyOpen = drawer.style.display !== 'none';
+  const shouldOpen = forceOpen !== null ? Boolean(forceOpen) : !isCurrentlyOpen;
+  drawer.style.display = shouldOpen ? 'block' : 'none';
+  if (btnToggleText) {
+    const count = composerTargetCustomers ? composerTargetCustomers.length : 0;
+    btnToggleText.innerHTML = `Edit Recipients (${count}) ${shouldOpen ? '&#9652;' : '&#9662;'}`;
+  }
+  if (shouldOpen) {
+    const input = document.getElementById('composerAddRecipientInput');
+    if (input) setTimeout(() => input.focus(), 50);
+  }
 }
 
 function renderComposerRecipientChips() {
   const box = document.getElementById('composerRecipientsBox');
   if (!box) return;
-  box.innerHTML = composerTargetCustomers.map(c => `
-    <span class="recipient-chip">
-      <span>${escapeHtml(c.first_name || c.name || 'Customer')} (${escapeHtml(c.email || 'No email')})</span>
-      <span class="recipient-chip-remove" onclick="removeRecipientFromBatch('${c.id}')">&times;</span>
-    </span>
-  `).join('');
-}
-
-function removeRecipientFromBatch(id) {
-  const strId = String(id);
-  selectedCustomerIds.delete(strId);
-  composerTargetCustomers = composerTargetCustomers.filter(c => String(c.id) !== strId);
-  if (composerTargetCustomers.length === 0) {
-    closeComposerModal();
-    renderCustomersTable();
+  if (!composerTargetCustomers || composerTargetCustomers.length === 0) {
+    box.innerHTML = `<div style="font-size: 12px; color: var(--p-color-text-subdued); padding: 6px 2px;">No recipients selected. Type a name or email address above to add.</div>`;
     return;
   }
-  document.getElementById('composerCustomerBadge').innerText = `Targeting: ${composerTargetCustomers.length} Selected Customers`;
-  document.getElementById('btnDispatchCustomerEmailText').innerText = `Send to ${composerTargetCustomers.length} Customers \u2192`;
-  renderComposerRecipientChips();
+  box.innerHTML = composerTargetCustomers.map(c => {
+    const dispName = escapeHtml(c.first_name || c.name || 'Recipient');
+    const dispEmail = escapeHtml(c.email || 'No email');
+    const customBadge = c.isCustom ? `<span class="recipient-chip-badge">Custom</span>` : '';
+    const removeKey = escapeHtml(String(c.id || c.email));
+    return `
+      <span class="recipient-chip ${c.isCustom ? 'is-custom' : ''}">
+        <span><strong>${dispName}</strong> (${dispEmail})</span>
+        ${customBadge}
+        <span class="recipient-chip-remove" onclick="removeRecipientFromBatch('${removeKey}')" title="Remove recipient">&times;</span>
+      </span>
+    `;
+  }).join('');
+}
+
+function removeRecipientFromBatch(idOrEmail) {
+  const key = String(idOrEmail).toLowerCase();
+  selectedCustomerIds.delete(String(idOrEmail));
+  composerTargetCustomers = composerTargetCustomers.filter(c => 
+    String(c.id).toLowerCase() !== key && (c.email || '').toLowerCase() !== key
+  );
+  updateComposerRecipientsUI();
   updateBulkActionsBar();
   syncMasterCheckboxState();
+  renderCustomersTable();
+}
+
+function composerAddCustomEmail(rawEmail, name = '') {
+  if (!rawEmail) return;
+  const cleanEmail = rawEmail.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+    showToast(`"${rawEmail}" is not a valid email address.`, 'warning');
+    return;
+  }
+
+  if (composerTargetCustomers.some(c => (c.email || '').toLowerCase() === cleanEmail)) {
+    showToast(`${cleanEmail} is already in the recipient list.`, 'info');
+    return;
+  }
+
+  const existing = customersList.find(c => (c.email || '').toLowerCase() === cleanEmail);
+  if (existing) {
+    composerTargetCustomers.push(existing);
+    selectedCustomerIds.add(String(existing.id));
+  } else {
+    const customObj = {
+      id: 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      email: cleanEmail,
+      name: name || cleanEmail,
+      first_name: name ? name.split(' ')[0] : cleanEmail.split('@')[0],
+      isCustom: true,
+      orders_count: 0,
+      total_spent: '0.00'
+    };
+    composerTargetCustomers.push(customObj);
+  }
+
+  updateComposerRecipientsUI();
+  updateBulkActionsBar();
+  syncMasterCheckboxState();
+  renderCustomersTable();
+  showToast(`Added ${cleanEmail} to recipients.`, 'success');
+}
+
+function composerAddCustomEmailFromInput() {
+  clearTimeout(composerAcDebounce);
+  const input = document.getElementById('composerAddRecipientInput');
+  const ac = document.getElementById('composerRecipientAutocomplete');
+  if (ac) {
+    ac.style.display = 'none';
+    ac.innerHTML = '';
+  }
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+
+  const emails = val.split(/[,;\s]+/).filter(Boolean);
+  let addedCount = 0;
+  emails.forEach(e => {
+    if (e.includes('@')) {
+      composerAddCustomEmail(e);
+      addedCount++;
+    }
+  });
+
+  if (addedCount === 0 && val) {
+    composerAddCustomEmail(val);
+  }
+
+  input.value = '';
+}
+
+function onComposerRecipientKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    composerAddCustomEmailFromInput();
+  } else if (e.key === 'Escape') {
+    clearTimeout(composerAcDebounce);
+    const ac = document.getElementById('composerRecipientAutocomplete');
+    if (ac) {
+      ac.style.display = 'none';
+      ac.innerHTML = '';
+    }
+  }
+}
+
+let composerAcDebounce = null;
+function onComposerRecipientInput(val) {
+  clearTimeout(composerAcDebounce);
+  const ac = document.getElementById('composerRecipientAutocomplete');
+  if (!ac) return;
+
+  const query = (val || '').trim().toLowerCase();
+  if (query.length < 2) {
+    ac.style.display = 'none';
+    ac.innerHTML = '';
+    return;
+  }
+
+  composerAcDebounce = setTimeout(() => {
+    // If input was cleared while timer was pending, abort
+    const curVal = (document.getElementById('composerAddRecipientInput')?.value || '').trim();
+    if (curVal.length < 2) {
+      ac.style.display = 'none';
+      ac.innerHTML = '';
+      return;
+    }
+
+    const matches = customersList.filter(c => {
+      const email = (c.email || '').toLowerCase();
+      const name = (c.name || `${c.first_name || ''} ${c.last_name || ''}`).toLowerCase();
+      const id = String(c.id || '');
+      return email.includes(query) || name.includes(query) || id.includes(query);
+    }).slice(0, 6);
+
+    let html = '';
+    if (matches.length > 0) {
+      html += matches.map(m => {
+        const name = escapeHtml(m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Customer');
+        const email = escapeHtml(m.email || 'No email');
+        const spent = m.total_spent ? `£${Number(m.total_spent).toFixed(2)}` : '0 orders';
+        return `
+          <div class="composer-autocomplete-item" onclick="composerAddCustomerById('${m.id}')">
+            <div>
+              <span style="font-weight:600;">${name}</span>
+              <span style="color:var(--p-color-text-subdued); margin-left:6px; font-size:11.5px;">${email}</span>
+            </div>
+            <span style="font-size:11px; color:var(--p-color-text-subdued);">${spent}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (query.includes('@')) {
+      html += `
+        <div class="composer-autocomplete-item" style="color:var(--p-color-brand); font-weight:600;" onclick="composerAddCustomEmail('${escapeHtml(query)}')">
+          + Add custom recipient "${escapeHtml(query)}"
+        </div>
+      `;
+    }
+
+    if (!html) {
+      html = `<div style="padding:8px 12px; font-size:12px; color:var(--p-color-text-subdued);">No store customers match "${escapeHtml(query)}". Press Enter or "+ Add Email" to add as custom recipient.</div>`;
+    }
+
+    ac.innerHTML = html;
+    ac.style.display = 'block';
+  }, 120);
+}
+
+function composerAddCustomerById(id) {
+  clearTimeout(composerAcDebounce);
+  const found = customersList.find(c => String(c.id) === String(id));
+  if (found) {
+    if (!composerTargetCustomers.some(c => String(c.id) === String(found.id))) {
+      composerTargetCustomers.push(found);
+      selectedCustomerIds.add(String(found.id));
+      updateComposerRecipientsUI();
+      updateBulkActionsBar();
+      syncMasterCheckboxState();
+      renderCustomersTable();
+      showToast(`Added ${found.name || found.email} to recipients.`, 'success');
+    } else {
+      showToast(`${found.name || found.email} is already in the recipient list.`, 'info');
+    }
+  }
+  const input = document.getElementById('composerAddRecipientInput');
+  if (input) input.value = '';
+  const ac = document.getElementById('composerRecipientAutocomplete');
+  if (ac) {
+    ac.style.display = 'none';
+    ac.innerHTML = '';
+  }
+}
+
+function composerClearAllRecipients() {
+  if (!composerTargetCustomers || composerTargetCustomers.length === 0) return;
+  composerTargetCustomers = [];
+  selectedCustomerIds.clear();
+  updateComposerRecipientsUI();
+  updateBulkActionsBar();
+  syncMasterCheckboxState();
+  renderCustomersTable();
+  showToast('Recipient list cleared.', 'info');
+}
+
+function composerSelectAllFilteredCustomers() {
+  if (!filteredCustomers || filteredCustomers.length === 0) return;
+  filteredCustomers.forEach(c => {
+    if (!composerTargetCustomers.some(tc => String(tc.id) === String(c.id))) {
+      composerTargetCustomers.push(c);
+      selectedCustomerIds.add(String(c.id));
+    }
+  });
+  updateComposerRecipientsUI();
+  updateBulkActionsBar();
+  syncMasterCheckboxState();
+  renderCustomersTable();
+  showToast(`Added all ${filteredCustomers.length} matching customers to recipients.`, 'success');
 }
 
 function renderCustomersTable() {
@@ -1233,32 +1487,26 @@ function toggleComposerDiscount(cb) {
 }
 
 function openComposer(customer, preselectedTemplateId = null, isBulk = false) {
-  activeCustomer = customer || { first_name: 'Valued', name: 'Valued Customer', email: 'shop@thedentalshaman.com' };
-  
-  const titleEl = document.getElementById('composerModalTitle');
-  const badgeEl = document.getElementById('composerCustomerBadge');
-  const toggleBtn = document.getElementById('btnToggleRecipientsList');
-  const dispatchBtnText = document.getElementById('btnDispatchCustomerEmailText');
-
-  if (isBulk && composerTargetCustomers && composerTargetCustomers.length > 1) {
-    if (titleEl) titleEl.innerText = `Send to ${composerTargetCustomers.length} Customers`;
-    if (badgeEl) badgeEl.innerText = `${composerTargetCustomers.length} recipients selected`;
-    if (toggleBtn) {
-      toggleBtn.style.display = 'inline-block';
-      toggleBtn.innerHTML = 'View Recipients &#9662;';
-    }
-    renderComposerRecipientChips();
-    if (dispatchBtnText) dispatchBtnText.innerText = `Send to ${composerTargetCustomers.length} Customers`;
+  // Dynamic Recipient Initialization based on current selections
+  if (selectedCustomerIds.size > 0 && (isBulk || !customer || selectedCustomerIds.has(String(customer?.id)))) {
+    composerTargetCustomers = customersList.filter(c => selectedCustomerIds.has(String(c.id)));
+  } else if (customer) {
+    composerTargetCustomers = [customer];
+  } else if (selectedCustomerIds.size > 0) {
+    composerTargetCustomers = customersList.filter(c => selectedCustomerIds.has(String(c.id)));
   } else {
-    composerTargetCustomers = [activeCustomer];
-    const fullName = `${activeCustomer.first_name || ''} ${activeCustomer.last_name || ''}`.trim() || activeCustomer.name || 'Customer';
-    if (titleEl) titleEl.innerText = 'Send Follow-Up';
-    if (badgeEl) badgeEl.innerText = `${fullName} (${activeCustomer.email || 'No email'})`;
-    if (toggleBtn) toggleBtn.style.display = 'none';
-    const recBox = document.getElementById('composerRecipientsBox');
-    if (recBox) recBox.style.display = 'none';
-    if (dispatchBtnText) dispatchBtnText.innerText = 'Send Follow-Up';
+    composerTargetCustomers = [customersList[0] || { first_name: 'Valued', name: 'Valued Customer', email: 'shop@thedentalshaman.com' }];
   }
+
+  activeCustomer = composerTargetCustomers[0];
+
+  // If multiple recipients, show drawer open so user sees all of them
+  const drawer = document.getElementById('composerRecipientsDrawer');
+  if (drawer) {
+    drawer.style.display = composerTargetCustomers.length > 1 ? 'block' : 'none';
+  }
+
+  updateComposerRecipientsUI();
 
   // Reset HTML collapse view
   const htmlWrap = document.getElementById('composerHtmlEditorWrap');
@@ -1378,15 +1626,15 @@ async function openSavePresetDialog() {
 }
 
 async function dispatchCustomerEmail() {
-  const isBulk = composerTargetCustomers && composerTargetCustomers.length > 1;
+  const count = composerTargetCustomers ? composerTargetCustomers.length : 0;
 
-  if (!isBulk) {
-    if (!activeCustomer || !activeCustomer.email) {
-      showToast('Cannot dispatch: Customer has no valid email address.', 'error');
-      return;
-    }
+  if (count === 0) {
+    showToast('Cannot dispatch: Please add at least one recipient.', 'warning');
+    toggleRecipientsList(true);
+    return;
   }
 
+  const isBulk = count > 1;
   const btn = document.getElementById('btnDispatchCustomerEmail');
   const tplId = document.getElementById('composerTemplateSelect').value;
   const customSubject = document.getElementById('composerSubject').value;
@@ -1395,14 +1643,20 @@ async function dispatchCustomerEmail() {
 
   if (isBulk) {
     closeComposerModal();
-    openBatchProgressModal(composerTargetCustomers.length);
+    openBatchProgressModal(count);
 
     try {
       const res = await authFetch('/api/followup/batch-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerIds: composerTargetCustomers.map(c => c.id),
+          recipients: composerTargetCustomers.map(c => ({
+            id: c.id,
+            email: c.email,
+            name: c.name || c.first_name || c.email,
+            first_name: c.first_name || c.name || c.email.split('@')[0]
+          })),
+          customerIds: composerTargetCustomers.filter(c => !c.isCustom).map(c => c.id),
           templateId: tplId,
           customSubject,
           customDiscountCode,
@@ -1425,17 +1679,25 @@ async function dispatchCustomerEmail() {
     return;
   }
 
-  // Single customer send
+  // Single recipient send
+  const target = composerTargetCustomers[0];
+  if (!target || !target.email) {
+    showToast('Cannot dispatch: Recipient has no valid email address.', 'error');
+    return;
+  }
+
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Delivering via Resend...`;
+  btn.innerHTML = `<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Delivering...`;
 
   try {
     const res = await authFetch('/api/followup/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        customerId: activeCustomer.id,
-        customerEmail: activeCustomer.email,
+        customerId: target.id,
+        customerEmail: target.email,
+        recipientName: target.name || target.first_name || target.email,
+        recipientFirstName: target.first_name || target.name || target.email.split('@')[0],
         templateId: tplId,
         customSubject,
         customDiscountCode,
@@ -1444,8 +1706,9 @@ async function dispatchCustomerEmail() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`Official clinical follow-up sent to ${activeCustomer.email}.`, 'success');
+      showToast(`Official clinical follow-up sent to ${target.email}.`, 'success');
       closeComposerModal();
+      clearCustomerSelection();
       await Promise.all([loadStats(), loadCustomers(), loadDispatches()]);
     } else {
       showToast(data.error || 'Dispatch failed', 'error');
@@ -1454,7 +1717,7 @@ async function dispatchCustomerEmail() {
     showToast('Network error while dispatching follow-up', 'error');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="btnDispatchCustomerEmailText">Send Official Follow-Up</span>`;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="btnDispatchCustomerEmailText">Send Follow-Up &rarr;</span>`;
   }
 }
 
@@ -2749,16 +3012,21 @@ async function runRuleNow(id) {
 }
 
 function openComposerWithTemplate(templateId = null) {
-  const customer = customersList[0] || {
-    id: 'demo_patient',
-    first_name: 'Dr. Marc',
-    last_name: 'Mortiboys',
-    name: 'Dr. Marc Mortiboys',
-    email: 'shop@thedentalshaman.com',
-    orders_count: 3,
-    total_spent: '149.00'
-  };
-  openComposer(customer, templateId);
+  if (selectedCustomerIds.size > 0) {
+    const targets = customersList.filter(c => selectedCustomerIds.has(String(c.id)));
+    openComposer(targets[0], templateId, targets.length > 1);
+  } else {
+    const customer = customersList[0] || {
+      id: 'demo_patient',
+      first_name: 'Dr. Marc',
+      last_name: 'Mortiboys',
+      name: 'Dr. Marc Mortiboys',
+      email: 'shop@thedentalshaman.com',
+      orders_count: 3,
+      total_spent: '149.00'
+    };
+    openComposer(customer, templateId, false);
+  }
 }
 
 /* ========================================================

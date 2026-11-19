@@ -464,6 +464,8 @@ app.post('/api/followup/send', async (req, res) => {
     const {
       customerId,
       customerEmail,
+      recipientName,
+      recipientFirstName,
       templateId,
       customSubject,
       customDiscountCode,
@@ -474,14 +476,24 @@ app.post('/api/followup/send', async (req, res) => {
       return res.status(400).json({ error: 'Customer email address is required.' });
     }
 
-    const customer = customerId
-      ? db.getCustomers().find(c => String(c.id) === String(customerId)) || { email: customerEmail }
-      : { email: customerEmail };
+    const email = customerEmail.trim().toLowerCase();
+    const allCustomers = db.getCustomers();
+    let customer = customerId ? allCustomers.find(c => String(c.id) === String(customerId)) : null;
+    if (!customer) {
+      customer = allCustomers.find(c => (c.email || '').toLowerCase() === email) || {
+        id: customerId || ('custom_' + Date.now()),
+        email: email,
+        name: recipientName || email,
+        first_name: recipientFirstName || (recipientName ? recipientName.split(' ')[0] : email.split('@')[0]),
+        orders_count: 0,
+        total_spent: '0.00'
+      };
+    }
 
     const result = await emailService.sendFollowUpEmail({
       to: customerEmail,
       customer,
-      templateId: templateId || 'post_purchase_care',
+      templateId: templateId || 'water_flosser_1',
       customSubject,
       customDiscountCode,
       customBody,
@@ -504,23 +516,53 @@ app.post('/api/followup/batch-send', async (req, res) => {
   try {
     const {
       customerIds,
+      recipients,
       templateId,
       customSubject,
       customDiscountCode,
       customBody
     } = req.body;
 
-    if (!Array.isArray(customerIds) || customerIds.length === 0) {
-      return res.status(400).json({ success: false, error: 'At least one customer must be selected.' });
+    const allCustomers = db.getCustomers();
+    let targetCustomers = [];
+
+    if (Array.isArray(recipients) && recipients.length > 0) {
+      targetCustomers = recipients.map(r => {
+        if (typeof r === 'string') {
+          const email = r.trim().toLowerCase();
+          const found = allCustomers.find(c => (c.email || '').toLowerCase() === email);
+          if (found) return found;
+          return {
+            id: 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            email: email,
+            first_name: email.split('@')[0],
+            name: email,
+            orders_count: 0,
+            total_spent: '0.00'
+          };
+        }
+        if (r.id) {
+          const found = allCustomers.find(c => String(c.id) === String(r.id));
+          if (found) return found;
+        }
+        const email = (r.email || '').trim().toLowerCase();
+        return {
+          id: r.id || ('custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+          email: email,
+          first_name: r.first_name || (r.name ? r.name.split(' ')[0] : (email ? email.split('@')[0] : 'Valued')),
+          name: r.name || email || 'Valued Customer',
+          orders_count: r.orders_count || 0,
+          total_spent: r.total_spent || '0.00'
+        };
+      }).filter(c => c.email && c.email.includes('@'));
+    } else if (Array.isArray(customerIds) && customerIds.length > 0) {
+      targetCustomers = customerIds
+        .map(id => allCustomers.find(c => String(c.id) === String(id)))
+        .filter(Boolean);
     }
 
-    const allCustomers = db.getCustomers();
-    const targetCustomers = customerIds
-      .map(id => allCustomers.find(c => String(c.id) === String(id)))
-      .filter(Boolean);
-
     if (targetCustomers.length === 0) {
-      return res.status(400).json({ success: false, error: 'None of the selected customer IDs could be found.' });
+      return res.status(400).json({ success: false, error: 'At least one valid recipient must be provided.' });
     }
 
     const successes = [];
