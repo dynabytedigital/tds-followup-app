@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.21">
+  <link rel="stylesheet" href="style.css?v=18.22">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -1195,7 +1195,7 @@
        MODAL: START FRESH SEQUENCE BUILDER
        ======================================================== -->
   <div id="freshSequenceModal" class="modal-overlay">
-    <div class="modal-card composer-modal-card">
+    <div class="modal-card modal-card--wide composer-modal-card" style="max-width: 1180px; width: 95%;">
       <div class="modal-header">
         <div style="min-width: 0; flex: 1;">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -1277,10 +1277,22 @@
           </div>
         </div>
 
+        <!-- Mobile Mode Switcher: Edit vs Full-Screen Preview (Phones Only) -->
+        <div class="composer-mode-bar" id="freshComposerModeBar">
+          <button type="button" class="composer-mode-btn active" id="btnFreshModeEdit" onclick="setFreshComposerMode('edit')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Sequence
+          </button>
+          <button type="button" class="composer-mode-btn" id="btnFreshModePreview" onclick="setFreshComposerMode('preview')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Live Preview
+          </button>
+        </div>
+
         <!-- ACTIVE STAGE CONFIGURATION GRID -->
         <div class="composer-grid" style="margin-top: 14px;">
           <!-- Left: Controls -->
-          <div class="composer-controls-pane">
+          <div class="composer-controls-pane" id="freshControlsPane">
             <!-- Stage Timing & Delay -->
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -1346,7 +1358,7 @@
           </div>
 
           <!-- Right: Live Responsive Preview -->
-          <div class="composer-preview-pane">
+          <div class="composer-preview-pane" id="freshPreviewPane">
             <div class="preview-container">
               <div class="preview-toolbar">
                 <div style="display: flex; align-items: center; gap: 6px;">
@@ -1453,6 +1465,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.21"></script>
+  <script src="app.js?v=18.22"></script>
 </body>
 </html>

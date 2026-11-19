@@ -3675,12 +3675,33 @@ function openFreshSequenceComposer() {
   renderFreshStageStrip();
   loadFreshStageToEditor(0);
   loadFreshPresets();
+  setFreshComposerMode('edit');
 
   const countBadge = document.getElementById('freshSelectedCustomerCount');
   if (countBadge) countBadge.textContent = selectedCustomerIds ? selectedCustomerIds.size : 0;
 
   const modal = document.getElementById('freshSequenceModal');
   if (modal) modal.classList.add('active');
+}
+
+function setFreshComposerMode(mode) {
+  const controls = document.getElementById('freshControlsPane');
+  const preview = document.getElementById('freshPreviewPane');
+  const btnEdit = document.getElementById('btnFreshModeEdit');
+  const btnPrev = document.getElementById('btnFreshModePreview');
+
+  if (mode === 'preview') {
+    if (controls) controls.classList.add('composer-pane-hidden');
+    if (preview) preview.classList.remove('composer-pane-hidden');
+    if (btnPrev) btnPrev.classList.add('active');
+    if (btnEdit) btnEdit.classList.remove('active');
+    updateFreshPreview();
+  } else {
+    if (controls) controls.classList.remove('composer-pane-hidden');
+    if (preview) preview.classList.add('composer-pane-hidden');
+    if (btnEdit) btnEdit.classList.add('active');
+    if (btnPrev) btnPrev.classList.remove('active');
+  }
 }
 
 function closeFreshSequenceModal() {

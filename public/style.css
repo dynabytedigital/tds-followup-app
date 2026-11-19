@@ -3289,6 +3289,11 @@ html.device-unauthenticated #authGateModal.active {
   margin-bottom: 14px;
 }
 
+.composer-modal-card {
+  max-width: 1180px !important;
+  width: 95% !important;
+}
+
 .fresh-paste-wrap {
   position: relative;
 }
