@@ -886,66 +886,108 @@ html, body {
 }
 
 /* ========================================================
-   PROFESSIONAL RANK BADGES SYSTEM
+   PROFESSIONAL POLARIS BADGES & STAGE LABELS
    ======================================================== */
-.rank-badge {
-  padding: 1px 5px;
+.stage-label-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 5px 9px;
+  font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-size: 11px;
   font-weight: 600;
-  font-family: 'Open Sans', Arial, sans-serif;
-  display: inline-block;
-  background: #ccc;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background-color: #f1f2f4;
+  color: #202223;
+  border: 1px solid #d2d5d8;
+  border-radius: 4px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  width: 100%;
+  max-width: 140px;
+  box-sizing: border-box;
+  transition: all var(--p-motion-duration-fast);
+}
+
+.sequence-row:hover .stage-label-badge {
+  background-color: #e4e5e7;
+  border-color: #c9cccf;
+}
+
+.rank-badge {
+  padding: 2px 7px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f2f4;
+  color: #202223;
   font-size: 11px;
   text-transform: uppercase;
-  border-radius: 2px;
-  line-height: 15px;
+  border-radius: 4px;
+  line-height: 14px;
   vertical-align: middle;
   letter-spacing: 0.3px;
   margin: 1px 2px;
+  border: 1px solid #d2d5d8;
 }
 
 .rank-badge-admin, .rank-badge-owner {
-  background-color: #bc4141;
-  color: #fff;
+  background-color: #fed3d1;
+  color: #8c1010;
+  border-color: #f99;
 }
 
 .rank-badge-mod {
-  background-color: #BF8000;
-  color: #fff;
+  background-color: #fff5ea;
+  color: #7a5400;
+  border-color: #ffea8a;
 }
 
 .rank-badge-helper, .rank-badge-jrhelper {
-  background-color: #2E2F8B;
-  color: #fff;
+  background-color: #f1f2f4;
+  color: #202223;
+  border-color: #d2d5d8;
 }
 
 .rank-badge-dev {
-  background-color: #98cd7c;
-  color: #203f10;
+  background-color: #e4f7e6;
+  color: #0f6635;
+  border-color: #b7ecc1;
 }
 
 .rank-badge-yt, .rank-badge-yt_plus {
-  background-color: #ECA1A1;
-  color: #3D0A0A;
+  background-color: #fce8e6;
+  color: #b71c1c;
+  border-color: #fbc0bc;
 }
 
 .rank-badge-builder {
-  background-color: #D1A1EC;
-  color: #30103F;
+  background-color: #f5f0fd;
+  color: #5c3b99;
+  border-color: #e3d3fa;
 }
 
 .rank-badge-svip {
-  background-color: #a1e8ec;
-  color: #0a3a3d;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
 }
 
 .rank-badge-vip_plus {
-  background-color: #B9ECA1;
-  color: #123D0A;
+  background-color: #e4f7e6;
+  color: #0f6635;
+  border-color: #b7ecc1;
 }
 
 .rank-badge-vip {
-  background-color: #C9CD7C;
-  color: #3F3E10;
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
 }
 
 /* Official Polaris Tags */

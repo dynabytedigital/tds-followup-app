@@ -2164,6 +2164,9 @@ function setTemplateCampaign(campaignId, btn) {
   activeTemplateCampaign = campaignId;
   document.querySelectorAll('#templateCampaignPills .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  if (campaignId !== 'all') {
+    siloCollapseState[campaignId] = false;
+  }
   renderTemplateCards();
 }
 
@@ -2218,11 +2221,13 @@ function getSiloIconSvg(id) {
 }
 
 let siloCollapseState = {};
-let allSilosCollapsed = false;
+let allSilosCollapsed = true;
 
 function toggleSiloSection(campaignId) {
-  const isCollapsed = Boolean(siloCollapseState[campaignId]);
-  siloCollapseState[campaignId] = !isCollapsed;
+  const currentCollapsed = siloCollapseState[campaignId] !== undefined 
+    ? Boolean(siloCollapseState[campaignId]) 
+    : allSilosCollapsed;
+  siloCollapseState[campaignId] = !currentCollapsed;
 
   const sectionEl = document.getElementById(`silo-${campaignId}`);
   if (sectionEl) {
@@ -2269,7 +2274,9 @@ function renderTemplateCards() {
 
   container.innerHTML = campaignsToRender.map(camp => {
     const siloTemplates = templatesList.filter(t => t.campaignId === camp.id).sort((a, b) => (a.stage || 1) - (b.stage || 1));
-    const isCollapsed = Boolean(siloCollapseState[camp.id]);
+    const isCollapsed = siloCollapseState[camp.id] !== undefined 
+      ? Boolean(siloCollapseState[camp.id]) 
+      : allSilosCollapsed;
 
     const sequenceRowsHtml = siloTemplates.length === 0
       ? `<div style="padding: 24px; text-align: center; color: var(--p-color-text-subdued); font-size: 13px;">
@@ -2285,7 +2292,7 @@ function renderTemplateCards() {
           return `
             <div class="sequence-row">
               <div class="sequence-col sequence-col-stage">
-                <span class="rank-badge rank-badge-helper">
+                <span class="stage-label-badge">
                   ${escapeHtml(stageLabel)}
                 </span>
               </div>
@@ -2354,6 +2361,11 @@ function renderTemplateCards() {
       </div>
     `;
   }).join('');
+
+  const btnTxt = document.getElementById('btnToggleAllSilosText');
+  if (btnTxt) {
+    btnTxt.innerText = allSilosCollapsed ? 'Expand All' : 'Collapse All';
+  }
 }
 
 /* ========================================================
