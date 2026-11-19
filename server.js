@@ -718,7 +718,15 @@ app.post('/api/settings/verify-gmail', async (req, res) => {
     await transporter.verify();
     res.json({ success: true, message: 'Google Workspace Gmail connection verified successfully!' });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    const isTimeout = err.message && (err.message.includes('timeout') || err.message.includes('ETIMEDOUT'));
+    res.json({
+      success: false,
+      error: err.message,
+      isFirewallBlocked: isTimeout,
+      message: isTimeout
+        ? 'Notice: Outbound SMTP ports (465/587) are firewalled on this hosting tier. The system will automatically use the Resend HTTPS API gateway from shop@thedentalshaman.com for guaranteed delivery.'
+        : err.message
+    });
   }
 });
 

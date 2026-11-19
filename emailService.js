@@ -222,17 +222,43 @@ class EmailService {
 
         messageId = res.data?.id || `resend_${Date.now()}`;
       } else {
-        // Default: Google Workspace Gmail SMTP
-        usedProtocol = `Google Workspace Gmail (${fromEmail})`;
-        const transporter = this.getTransporter(settings);
-        const info = await transporter.sendMail({
-          from: `"${fromName}" <${fromEmail}>`,
-          to: rawTo,
-          replyTo,
-          subject: rendered.subject,
-          html: trackedHtml
-        });
-        messageId = info.messageId;
+        // Attempt Google Workspace Gmail SMTP
+        try {
+          usedProtocol = `Google Workspace Gmail (${fromEmail})`;
+          const transporter = this.getTransporter(settings);
+          const info = await transporter.sendMail({
+            from: `"${fromName}" <${fromEmail}>`,
+            to: rawTo,
+            replyTo,
+            subject: rendered.subject,
+            html: trackedHtml
+          });
+          messageId = info.messageId;
+        } catch (smtpErr) {
+          console.warn('[EmailService] SMTP attempt failed or timed out:', smtpErr.message);
+          // Gracefully fall back to Resend API (HTTPS Port 443) if cloud host blocks raw SMTP ports
+          if (resendKey && resendKey.trim()) {
+            console.log('[EmailService] Automatically falling back to Resend API (HTTPS Port 443)...');
+            usedProtocol = 'Resend REST API (HTTPS Fallback)';
+            const payload = {
+              from: `${fromName} <${fromEmail}>`,
+              to: [rawTo],
+              reply_to: replyTo,
+              subject: rendered.subject,
+              html: trackedHtml
+            };
+            const res = await axios.post('https://api.resend.com/emails', payload, {
+              headers: {
+                Authorization: `Bearer ${resendKey.trim()}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 10000
+            });
+            messageId = res.data?.id || `resend_${Date.now()}`;
+          } else {
+            throw smtpErr;
+          }
+        }
       }
 
       // 4. Update dispatch record as sent

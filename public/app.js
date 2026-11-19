@@ -2653,6 +2653,8 @@ async function testGoogleWorkspaceConnection() {
     const data = await res.json();
     if (data.success) {
       showToast('Google Workspace Gmail connection verified successfully!', 'success');
+    } else if (data.isFirewallBlocked) {
+      showToast('Cloud host blocks raw SMTP ports. System will use HTTPS gateway from shop@thedentalshaman.com.', 'warning');
     } else {
       showToast('Google Workspace connection failed: ' + (data.error || 'Unknown error'), 'error');
     }
