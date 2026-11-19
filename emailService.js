@@ -124,7 +124,11 @@ class EmailService {
     customSubject = null,
     customDiscountCode = null,
     customBody = null,
-    mode = 'manual'
+    mode = 'manual',
+    sessionId = null,
+    stage = null,
+    stageLabel = null,
+    existingDispatchId = null
   }) {
     const rawTo = (to || customer.email || '').trim();
     const settings = db.getSettings();
@@ -145,22 +149,44 @@ class EmailService {
       };
     }
 
-    // 2. Pre-generate dispatch record in database to obtain dispatchId
-    const dispatch = db.addDispatch({
-      customerEmail: rawTo.toLowerCase(),
-      customerName: customer.name || (rawTo ? rawTo.split('@')[0] : 'Valued Customer'),
-      customerId: customer.id || null,
-      templateId,
-      templateName: rendered.template.name,
-      campaignId: rendered.template.campaignId || 'water_flosser',
-      campaignName: rendered.template.campaignName || 'Water Flosser Routine & Care',
-      stage: rendered.template.stage || 1,
-      stageLabel: rendered.template.stageLabel || 'Stage 1',
-      discountCode: rendered.discountCode,
-      subject: rendered.subject,
-      mode,
-      status: 'sending'
-    });
+    // 2. Pre-generate or retrieve dispatch record in database to obtain dispatchId
+    let dispatch = null;
+    if (existingDispatchId) {
+      dispatch = db.getDispatchById(existingDispatchId);
+      if (dispatch) {
+        db.updateDispatch(dispatch.id, {
+          status: 'sending',
+          sessionId: sessionId || dispatch.sessionId || null,
+          templateId,
+          templateName: rendered.template?.name || dispatch.templateName,
+          campaignId: rendered.template?.campaignId || dispatch.campaignId,
+          campaignName: rendered.template?.campaignName || dispatch.campaignName,
+          stage: stage || rendered.template?.stage || dispatch.stage || 1,
+          stageLabel: stageLabel || rendered.template?.stageLabel || dispatch.stageLabel || 'Stage 1',
+          discountCode: rendered.discountCode,
+          subject: rendered.subject,
+          mode
+        });
+      }
+    }
+    if (!dispatch) {
+      dispatch = db.addDispatch({
+        customerEmail: rawTo.toLowerCase(),
+        customerName: customer.name || (rawTo ? rawTo.split('@')[0] : 'Valued Customer'),
+        customerId: customer.id || null,
+        templateId,
+        templateName: rendered.template?.name || 'Care Follow-Up',
+        campaignId: rendered.template?.campaignId || 'water_flosser',
+        campaignName: rendered.template?.campaignName || 'Water Flosser Routine & Care',
+        stage: stage || rendered.template?.stage || 1,
+        stageLabel: stageLabel || rendered.template?.stageLabel || 'Stage 1',
+        discountCode: rendered.discountCode,
+        subject: rendered.subject,
+        mode,
+        status: 'sending',
+        sessionId: sessionId || null
+      });
+    }
 
     if (!rawTo || !rawTo.includes('@')) {
       const errMsg = `Invalid recipient email address: "${rawTo || 'none'}"`;
@@ -250,8 +276,10 @@ class EmailService {
       // 4. Update dispatch record as sent
       db.updateDispatch(dispatch.id, {
         status: 'sent',
+        sentAt: new Date().toISOString(),
         messageId,
-        usedProtocol
+        usedProtocol,
+        error: null
       });
 
       // 5. Update customer record follow-up history

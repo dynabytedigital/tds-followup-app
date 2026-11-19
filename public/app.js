@@ -379,7 +379,8 @@ async function loadAnalytics() {
   await Promise.all([
     loadStats(),
     loadConversions(),
-    loadDispatches()
+    loadDispatches(),
+    loadActivitySessions()
   ]);
 }
 
@@ -415,14 +416,23 @@ function setAnalyticsSubView(view, btn) {
 
   const dispatchesPane = document.getElementById('analyticsDispatchesPane');
   const conversionsPane = document.getElementById('analyticsConversionsPane');
+  const sessionsPane = document.getElementById('analyticsSessionsPane');
   const statusFilterWrap = document.getElementById('dispatchStatusFilterWrap');
 
-  if (view === 'conversions') {
+  if (view === 'sessions') {
+    if (sessionsPane) sessionsPane.style.display = 'block';
+    if (dispatchesPane) dispatchesPane.style.display = 'none';
+    if (conversionsPane) conversionsPane.style.display = 'none';
+    if (statusFilterWrap) statusFilterWrap.style.display = 'none';
+    loadActivitySessions();
+  } else if (view === 'conversions') {
+    if (sessionsPane) sessionsPane.style.display = 'none';
     if (dispatchesPane) dispatchesPane.style.display = 'none';
     if (conversionsPane) conversionsPane.style.display = 'block';
     if (statusFilterWrap) statusFilterWrap.style.display = 'none';
     loadConversions();
   } else {
+    if (sessionsPane) sessionsPane.style.display = 'none';
     if (dispatchesPane) dispatchesPane.style.display = 'block';
     if (conversionsPane) conversionsPane.style.display = 'none';
     if (statusFilterWrap) statusFilterWrap.style.display = 'flex';
@@ -1634,87 +1644,58 @@ async function dispatchCustomerEmail() {
     return;
   }
 
-  const isBulk = count > 1;
   const btn = document.getElementById('btnDispatchCustomerEmail');
-  const tplId = document.getElementById('composerTemplateSelect').value;
-  const customSubject = document.getElementById('composerSubject').value;
-  const customDiscountCode = document.getElementById('composerDiscountCode').value;
-  const customBody = document.getElementById('composerBody').value;
-
-  if (isBulk) {
-    closeComposerModal();
-    openBatchProgressModal(count);
-
-    try {
-      const res = await authFetch('/api/followup/batch-send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipients: composerTargetCustomers.map(c => ({
-            id: c.id,
-            email: c.email,
-            name: c.name || c.first_name || c.email,
-            first_name: c.first_name || c.name || c.email.split('@')[0]
-          })),
-          customerIds: composerTargetCustomers.filter(c => !c.isCustom).map(c => c.id),
-          templateId: tplId,
-          customSubject,
-          customDiscountCode,
-          customBody
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        finishBatchProgressModal(data);
-        clearCustomerSelection();
-        await Promise.all([loadStats(), loadCustomers(), loadDispatches()]);
-      } else {
-        logBatchProgress(`[Error] Batch failed: ${data.error || 'Unknown error'}`);
-        document.getElementById('btnBatchDone').style.display = 'inline-block';
-      }
-    } catch (err) {
-      logBatchProgress(`[Network Error] Failed to complete batch.`);
-      document.getElementById('btnBatchDone').style.display = 'inline-block';
-    }
-    return;
-  }
-
-  // Single recipient send
-  const target = composerTargetCustomers[0];
-  if (!target || !target.email) {
-    showToast('Cannot dispatch: Recipient has no valid email address.', 'error');
-    return;
-  }
+  const tplSelect = document.getElementById('composerTemplateSelect');
+  const tplId = tplSelect ? tplSelect.value : (composerActiveTemplateId || 'water_flosser_1');
+  const customSubject = document.getElementById('composerSubject')?.value || '';
+  const customDiscountCode = document.getElementById('composerDiscountCode')?.value || 'TDS-CARE';
+  const customBody = document.getElementById('composerBody')?.value || '';
+  const scheduleFullSequence = document.getElementById('composerScheduleFullSequence')?.checked ?? true;
+  const campaignId = composerActiveCampaignId || 'water_flosser';
+  const currentCamp = campaignsList.find(c => c.id === campaignId);
+  const campaignName = currentCamp ? (currentCamp.shortName || currentCamp.name) : 'Follow-Up Sequence';
+  const sessionName = `${campaignName} • ${count} Recipient${count > 1 ? 's' : ''}`;
 
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Delivering...`;
+  btn.innerHTML = `<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Starting Activity Session...`;
 
   try {
-    const res = await authFetch('/api/followup/send', {
+    const res = await authFetch('/api/followup/batch-send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        customerId: target.id,
-        customerEmail: target.email,
-        recipientName: target.name || target.first_name || target.email,
-        recipientFirstName: target.first_name || target.name || target.email.split('@')[0],
+        recipients: composerTargetCustomers.map(c => ({
+          id: c.id,
+          email: c.email,
+          name: c.name || c.first_name || c.email,
+          first_name: c.first_name || c.name || c.email.split('@')[0]
+        })),
+        customerIds: composerTargetCustomers.filter(c => !c.isCustom).map(c => c.id),
         templateId: tplId,
+        campaignId,
+        campaignName,
+        sessionName,
         customSubject,
         customDiscountCode,
-        customBody
+        customBody,
+        scheduleFullSequence
       })
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`Official clinical follow-up sent to ${target.email}.`, 'success');
+      showToast(`Activity Session started! ${data.sentCount} delivered, ${data.scheduledCount} scheduled.`, 'success');
       closeComposerModal();
       clearCustomerSelection();
-      await Promise.all([loadStats(), loadCustomers(), loadDispatches()]);
+      await Promise.all([loadStats(), loadCustomers(), loadDispatches(), loadActivitySessions()]);
+
+      // Automatically switch to Analytics Sessions view so user can track and inspect their session!
+      switchTab('analytics');
+      setAnalyticsSubView('sessions', document.getElementById('btnViewSessions'));
     } else {
-      showToast(data.error || 'Dispatch failed', 'error');
+      showToast(data.error || 'Failed to dispatch follow-up.', 'critical');
     }
   } catch (err) {
-    showToast('Network error while dispatching follow-up', 'error');
+    showToast('Network error while dispatching follow-up.', 'critical');
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="btnDispatchCustomerEmailText">Send Follow-Up &rarr;</span>`;
@@ -1959,51 +1940,6 @@ async function sendComposerTest() {
     }
   } catch (err) {
     showToast('Failed to send test preview email', 'error');
-  }
-}
-
-async function dispatchCustomerEmail() {
-  if (!activeCustomer || !activeCustomer.email) {
-    showToast('Cannot dispatch: Customer has no valid email address.', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('btnDispatchCustomerEmail');
-  const tplId = document.getElementById('composerTemplateSelect').value;
-  const customSubject = document.getElementById('composerSubject').value;
-  const customDiscountCode = document.getElementById('composerDiscountCode').value;
-  const customBody = document.getElementById('composerBody').value;
-
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Delivering via Resend...`;
-
-  try {
-    const res = await authFetch('/api/followup/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customerId: activeCustomer.id,
-        customerEmail: activeCustomer.email,
-        templateId: tplId,
-        customSubject,
-        customDiscountCode,
-        customBody
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast(`Official clinical follow-up sent to ${activeCustomer.email}.`, 'success');
-      closeComposerModal();
-      // Reload stats and tables
-      await Promise.all([loadStats(), loadCustomers(), loadDispatches()]);
-    } else {
-      showToast(data.error || 'Dispatch failed', 'error');
-    }
-  } catch (err) {
-    showToast('Network error while dispatching follow-up', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Official Follow-Up`;
   }
 }
 
@@ -2435,6 +2371,12 @@ function renderDispatchesTable() {
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="sendScheduledDispatchNow('${d.id}')" title="Send immediately">⚡ Send Now</button>
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="openRescheduleModal('${d.id}')" title="Reschedule date & time">🕒 Reschedule</button>
           <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="cancelScheduledDispatch('${d.id}')" title="Cancel">✕</button>
+        </div>
+      `;
+    } else if (d.status === 'failed') {
+      actionsHtml = `
+        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+          <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px; color: #b91c1c; border-color: #fca5a5;" onclick="retryFailedDispatch('${d.id}')" title="Retry Delivery">⚡ Retry</button>
         </div>
       `;
     } else {
@@ -4340,8 +4282,337 @@ async function cancelScheduledDispatch(dispatchId) {
     if (data.success) {
       showToast('Scheduled email cancelled.', 'info');
       loadDispatches();
+      if (activeInspectedSessionId) {
+        openSessionInspector(activeInspectedSessionId);
+      }
     } else {
       showToast(data.error || 'Failed to cancel.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+/* ========================================================
+   ACTIVITY SESSIONS ("SEASONS") & CUSTOMER PROGRESSION TRACKER
+   ======================================================== */
+let activitySessionsList = [];
+let activeInspectedSessionId = null;
+
+async function loadActivitySessions() {
+  try {
+    const res = await authFetch('/api/activity-sessions');
+    const data = await res.json();
+    if (data.success) {
+      activitySessionsList = data.sessions || [];
+      const badge = document.getElementById('analyticsSessionsCount');
+      if (badge) badge.innerText = activitySessionsList.length;
+
+      renderActivitySessions(activitySessionsList);
+      renderActiveSessionsChips(activitySessionsList);
+    }
+  } catch (err) {
+    console.error('Failed to load activity sessions:', err);
+  }
+}
+
+function renderActivitySessions(sessions) {
+  const container = document.getElementById('sessionsListContainer');
+  if (!container) return;
+
+  if (!sessions || sessions.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 48px; color: var(--p-color-text-subdued); grid-column: 1 / -1; background: #fafbfc; border: 1px dashed var(--p-color-border); border-radius: 8px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 8px; color: #94a3b8;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div style="font-weight: 600; font-size: 13.5px; color: var(--p-color-text);">No Activity Sessions Active</div>
+        <p style="font-size: 12px; margin-top: 4px;">Launch a follow-up sequence using the green Follow Up button or Start Fresh Sequence to start tracking here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = sessions.map(s => {
+    const isCompleted = s.status === 'completed';
+    const statusBadge = isCompleted
+      ? `<span class="rank-badge" style="background:#f1f5f9; color:#64748b; border-color:#cbd5e1;">COMPLETED</span>`
+      : `<span class="rank-badge rank-badge-dev">ACTIVE</span>`;
+
+    const startedDate = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Recently';
+
+    return `
+      <div class="session-card" onclick="openSessionInspector('${s.id}')">
+        <div class="session-card-header">
+          <div>
+            <div class="session-card-title">${escapeHtml(s.name || 'Follow-Up Sequence')}</div>
+            <div class="session-card-subtitle">${escapeHtml(s.campaignName || 'Campaign')} &bull; ${s.recipientCount || (s.recipients || []).length} Recipient${(s.recipientCount || (s.recipients || []).length) > 1 ? 's' : ''}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            ${statusBadge}
+            <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 11px; padding: 2px 6px;" onclick="deleteActivitySession('${s.id}', event)" title="Delete session and cancel all pending scheduled emails">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="session-card-metrics">
+          <span class="session-metric-chip" style="color: #16a34a;">✉️ ${s.sentCount || 0} Sent</span>
+          <span class="session-metric-chip" style="color: #0284c7;">🕒 ${s.scheduledCount || 0} Scheduled</span>
+          ${s.failedCount > 0 ? `<span class="session-metric-chip" style="color: #dc2626;">⚠️ ${s.failedCount} Failed</span>` : ''}
+          ${s.convertedCount > 0 ? `<span class="session-metric-chip" style="color: #008060;">💰 ${s.convertedCount} Converted</span>` : ''}
+        </div>
+
+        <div class="session-card-footer">
+          <span>Started: ${startedDate}</span>
+          <span style="font-weight: 600; color: #008060; display: flex; align-items: center; gap: 4px;">
+            Track Activity &rarr;
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderActiveSessionsChips(sessions) {
+  const container = document.getElementById('activeSessionsChips');
+  if (!container) return;
+
+  if (!sessions || sessions.length === 0) {
+    container.innerHTML = '<span style="font-size: 11.5px; color: var(--p-color-text-subdued);">None yet</span>';
+    return;
+  }
+
+  container.innerHTML = sessions.slice(0, 4).map(s => `
+    <button type="button" class="Polaris-FilterPill" style="font-size: 11px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px;" onclick="openSessionInspector('${s.id}')">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: ${s.status === 'completed' ? '#94a3b8' : '#16a34a'};"></span>
+      ${escapeHtml(s.name || 'Sequence')} (${s.sentCount || 0} sent, ${s.scheduledCount || 0} sch)
+    </button>
+  `).join('');
+}
+
+async function openSessionInspector(sessionId) {
+  activeInspectedSessionId = sessionId;
+  const modal = document.getElementById('sessionInspectorModal');
+  if (modal) modal.classList.add('active');
+
+  const titleEl = document.getElementById('inspectorSessionTitle');
+  const badgeEl = document.getElementById('inspectorSessionStatusBadge');
+  const subEl = document.getElementById('inspectorSessionSubtitle');
+  const ribbonEl = document.getElementById('inspectorMetricsRibbon');
+  const listEl = document.getElementById('inspectorCustomersList');
+
+  if (titleEl) titleEl.innerText = 'Loading Activity Session...';
+  if (listEl) listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--p-color-text-subdued);">Loading customer stage breakdown...</div>';
+
+  try {
+    const res = await authFetch(`/api/activity-sessions/${encodeURIComponent(sessionId)}`);
+    const data = await res.json();
+    if (!data.success || !data.session) {
+      showToast('Session not found.', 'critical');
+      closeSessionInspector();
+      return;
+    }
+
+    const s = data.session;
+    const dispatches = s.dispatches || [];
+    const isCompleted = s.status === 'completed';
+
+    if (titleEl) titleEl.innerText = s.name || 'Activity Session';
+    if (badgeEl) {
+      badgeEl.className = isCompleted ? 'rank-badge' : 'rank-badge rank-badge-dev';
+      badgeEl.innerText = isCompleted ? 'COMPLETED' : 'ACTIVE';
+    }
+    const startedDate = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    if (subEl) {
+      subEl.innerText = `${s.campaignName || 'Campaign'} • Started ${startedDate} • ${(s.recipients || []).length} Recipient${(s.recipients || []).length > 1 ? 's' : ''}`;
+    }
+
+    const sentCount = dispatches.filter(d => d.status === 'sent').length;
+    const schCount = dispatches.filter(d => d.status === 'scheduled').length;
+    const failCount = dispatches.filter(d => d.status === 'failed').length;
+    const convCount = dispatches.filter(d => d.conversionStatus === 'converted').length;
+
+    if (ribbonEl) {
+      ribbonEl.innerHTML = `
+        <span style="font-size:12px; font-weight:600; color:#0f172a;">Recipients: ${(s.recipients || []).length}</span>
+        <span style="font-size:12px; font-weight:600; color:#16a34a;">&bull; Sent: ${sentCount}</span>
+        <span style="font-size:12px; font-weight:600; color:#0284c7;">&bull; Scheduled: ${schCount}</span>
+        ${failCount > 0 ? `<span style="font-size:12px; font-weight:600; color:#dc2626;">&bull; Failed: ${failCount}</span>` : ''}
+        ${convCount > 0 ? `<span style="font-size:12px; font-weight:600; color:#008060;">&bull; Converted: ${convCount}</span>` : ''}
+      `;
+    }
+
+    // Group dispatches by recipient
+    const recipientEmails = new Set();
+    (s.recipients || []).forEach(r => {
+      const em = (typeof r === 'string' ? r : r.email || '').toLowerCase().trim();
+      if (em) recipientEmails.add(em);
+    });
+    dispatches.forEach(d => {
+      if (d.customerEmail) recipientEmails.add(d.customerEmail.toLowerCase().trim());
+    });
+
+    if (recipientEmails.size === 0) {
+      listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--p-color-text-subdued);">No recipients in this session.</div>';
+      return;
+    }
+
+    let custHtml = '';
+    recipientEmails.forEach(email => {
+      const custDispatches = dispatches.filter(d => (d.customerEmail || '').toLowerCase().trim() === email)
+        .sort((a, b) => (Number(a.stage) || 1) - (Number(b.stage) || 1));
+
+      const firstDisp = custDispatches[0];
+      const custName = firstDisp?.customerName || email;
+
+      custHtml += `
+        <div class="session-customer-card">
+          <div class="session-customer-header">
+            <div>
+              <strong style="font-size: 13.5px; color: var(--p-color-text);">${escapeHtml(custName)}</strong>
+              <span style="font-size: 12px; color: var(--p-color-text-subdued); margin-left: 6px;">(${escapeHtml(email)})</span>
+            </div>
+            <div style="font-size: 11.5px; color: var(--p-color-text-subdued);">
+              ${custDispatches.length} Stage${custDispatches.length > 1 ? 's' : ''} Configured
+            </div>
+          </div>
+
+          <div class="stage-progression-list">
+            ${custDispatches.map(d => {
+              const stageNum = d.stage || 1;
+              const isSent = d.status === 'sent';
+              const isSch = d.status === 'scheduled';
+              const isFail = d.status === 'failed';
+              const isCanc = d.status === 'cancelled';
+
+              let rowClass = 'stage-progression-row';
+              if (isSent) rowClass += ' stage-sent';
+              else if (isSch) rowClass += ' stage-scheduled';
+              else if (isFail) rowClass += ' stage-failed';
+
+              let timingHtml = '';
+              if (isSent) {
+                const sDate = d.sentAt ? new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Sent';
+                timingHtml = `<span style="color:#16a34a; font-weight:600; font-size:11.5px;">✓ Delivered (${sDate})</span>`;
+              } else if (isSch) {
+                const schDate = d.scheduledFor ? new Date(d.scheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
+                timingHtml = `<span style="color:#0284c7; font-weight:600; font-size:11.5px;">🕒 Scheduled for ${schDate}</span>`;
+              } else if (isFail) {
+                timingHtml = `<span style="color:#dc2626; font-weight:600; font-size:11.5px;">⚠️ Failed: ${escapeHtml(d.error || 'Delivery Error')}</span>`;
+              } else {
+                timingHtml = `<span style="color:#64748b; font-size:11.5px;">✕ Cancelled</span>`;
+              }
+
+              let stageActions = '';
+              if (isSch) {
+                stageActions = `
+                  <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 8px;" onclick="openRescheduleModal('${d.id}')">
+                      🕒 Change Date
+                    </button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 8px;" onclick="sendScheduledDispatchNow('${d.id}')">
+                      ⚡ Send Now
+                    </button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="cancelScheduledDispatch('${d.id}')" title="Cancel this stage">
+                      ✕
+                    </button>
+                  </div>
+                `;
+              } else if (isFail) {
+                stageActions = `
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 11px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5;" onclick="retryFailedDispatch('${d.id}')">
+                      ⚡ Retry Delivery
+                    </button>
+                  </div>
+                `;
+              }
+
+              return `
+                <div class="${rowClass}">
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
+                    <span style="font-weight: 700; font-size: 11.5px; background: #e2e8f0; color: #1e293b; padding: 1px 6px; border-radius: 4px;">
+                      Stage ${stageNum}
+                    </span>
+                    <span style="font-size: 12px; font-weight: 500; color: var(--p-color-text); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(d.subject || '')}">
+                      ${escapeHtml(d.subject || 'Care Follow-Up')}
+                    </span>
+                    <span style="font-size: 10.5px; font-family: monospace; color: #64748b; background: #f1f5f9; padding: 1px 4px; border-radius: 3px;">
+                      ${escapeHtml(d.discountCode || 'TDS-TRACK')}
+                    </span>
+                    ${timingHtml}
+                  </div>
+                  ${stageActions}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = custHtml;
+  } catch (err) {
+    showToast('Failed to load session details: ' + err.message, 'critical');
+  }
+}
+
+function closeSessionInspector() {
+  const modal = document.getElementById('sessionInspectorModal');
+  if (modal) modal.classList.remove('active');
+  activeInspectedSessionId = null;
+}
+
+async function deleteActivitySession(sessionId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Are you sure you want to delete this activity session? This will pause, cancel and remove all pending scheduled emails for this session.')) {
+    return;
+  }
+
+  try {
+    showToast('Deleting activity session and pausing scheduled dispatches...', 'info');
+    const res = await authFetch(`/api/activity-sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Activity session deleted.', 'success');
+      if (activeInspectedSessionId === sessionId) {
+        closeSessionInspector();
+      }
+      await Promise.all([
+        loadActivitySessions(),
+        loadDispatches(),
+        loadStats()
+      ]);
+    } else {
+      showToast(data.error || 'Failed to delete activity session.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+async function deleteCurrentInspectedSession() {
+  if (activeInspectedSessionId) {
+    await deleteActivitySession(activeInspectedSessionId);
+  }
+}
+
+async function retryFailedDispatch(dispatchId) {
+  try {
+    showToast('Retrying failed email delivery...', 'info');
+    const res = await authFetch(`/api/dispatches/${encodeURIComponent(dispatchId)}/retry`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Email delivered successfully!', 'success');
+      loadDispatches();
+      if (activeInspectedSessionId) {
+        openSessionInspector(activeInspectedSessionId);
+      }
+    } else {
+      showToast(data.error || 'Retry attempt failed.', 'critical');
     }
   } catch (err) {
     showToast(err.message, 'critical');

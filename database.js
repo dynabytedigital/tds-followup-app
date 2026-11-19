@@ -143,6 +143,7 @@ class Database {
       changed = true;
     }
     if (!this.data.freshPresets) { this.data.freshPresets = []; changed = true; }
+    if (!this.data.activitySessions) { this.data.activitySessions = []; changed = true; }
     if (!this.data.settings) {
       this.data.settings = {
         senderName: process.env.DEFAULT_FROM_NAME || 'Dr. Marc Mortiboys | The Dental Shaman',
@@ -551,6 +552,17 @@ class Database {
     return dispatch;
   }
 
+  deleteDispatch(id) {
+    this.reloadIfChanged();
+    const idx = (this.data.dispatches || []).findIndex(d => d.id === id);
+    if (idx !== -1) {
+      this.data.dispatches.splice(idx, 1);
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
   // --- Clicks ---
   addClick(clickData) {
     this.reloadIfChanged();
@@ -685,6 +697,98 @@ class Database {
       return true;
     }
     return false;
+  }
+
+  // --- Campaign Activity Sessions ("Seasons") ---
+  getActivitySessions() {
+    this.reloadIfChanged();
+    const sessions = this.data.activitySessions || [];
+    const dispatches = this.data.dispatches || [];
+
+    // Calculate dynamic live metrics for each session
+    return sessions.map(s => {
+      const sessDispatches = dispatches.filter(d => d.sessionId === s.id);
+      const sentCount = sessDispatches.filter(d => d.status === 'sent').length;
+      const scheduledCount = sessDispatches.filter(d => d.status === 'scheduled').length;
+      const failedCount = sessDispatches.filter(d => d.status === 'failed').length;
+      const convertedCount = sessDispatches.filter(d => d.conversionStatus === 'converted').length;
+      const cancelledCount = sessDispatches.filter(d => d.status === 'cancelled').length;
+
+      let status = s.status || 'active';
+      if (status !== 'deleted') {
+        if (scheduledCount === 0 && sentCount > 0) {
+          status = 'completed';
+        } else if (scheduledCount > 0) {
+          status = 'active';
+        }
+      }
+
+      return {
+        ...s,
+        status,
+        sentCount,
+        scheduledCount,
+        failedCount,
+        convertedCount,
+        cancelledCount,
+        totalDispatches: sessDispatches.length
+      };
+    }).filter(s => s.status !== 'deleted');
+  }
+
+  getActivitySessionById(id) {
+    this.reloadIfChanged();
+    const session = (this.data.activitySessions || []).find(s => s.id === id);
+    if (!session) return null;
+    const dispatches = (this.data.dispatches || []).filter(d => d.sessionId === id);
+    return {
+      ...session,
+      dispatches
+    };
+  }
+
+  createActivitySession(sessionData) {
+    this.reloadIfChanged();
+    if (!this.data.activitySessions) this.data.activitySessions = [];
+    const session = {
+      id: sessionData.id || ('ses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+      name: sessionData.name || 'Follow-Up Sequence',
+      campaignId: sessionData.campaignId || 'custom',
+      campaignName: sessionData.campaignName || 'Follow-Up Campaign',
+      createdAt: new Date().toISOString(),
+      recipients: sessionData.recipients || [],
+      recipientCount: (sessionData.recipients || []).length,
+      status: 'active',
+      stagesConfigured: sessionData.stagesConfigured || 1,
+      ...sessionData
+    };
+    this.data.activitySessions.unshift(session);
+    this.save();
+    return session;
+  }
+
+  deleteActivitySession(id) {
+    this.reloadIfChanged();
+    if (!this.data.activitySessions) return false;
+    const sessionIdx = this.data.activitySessions.findIndex(s => s.id === id);
+    if (sessionIdx === -1) return false;
+
+    // Cancel all scheduled / pending dispatches under this session
+    let cancelledCount = 0;
+    if (this.data.dispatches) {
+      this.data.dispatches.forEach(d => {
+        if (d.sessionId === id && d.status === 'scheduled') {
+          d.status = 'cancelled';
+          d.cancelledAt = new Date().toISOString();
+          cancelledCount++;
+        }
+      });
+    }
+
+    // Permanently remove session from active list
+    this.data.activitySessions.splice(sessionIdx, 1);
+    this.save();
+    return { success: true, cancelledCount };
   }
 
   // --- Metrics Summary ---

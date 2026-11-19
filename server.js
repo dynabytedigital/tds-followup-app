@@ -518,9 +518,14 @@ app.post('/api/followup/batch-send', async (req, res) => {
       customerIds,
       recipients,
       templateId,
+      campaignId: explicitCampaignId,
+      campaignName: explicitCampaignName,
       customSubject,
       customDiscountCode,
-      customBody
+      customBody,
+      scheduleFullSequence = true,
+      sessionId: customSessionId,
+      sessionName: customSessionName
     } = req.body;
 
     const allCustomers = db.getCustomers();
@@ -565,9 +570,42 @@ app.post('/api/followup/batch-send', async (req, res) => {
       return res.status(400).json({ success: false, error: 'At least one valid recipient must be provided.' });
     }
 
+    // Determine Campaign & Template Details
+    const allTemplates = db.getTemplates();
+    const activeTpl = allTemplates.find(t => t.id === templateId) || allTemplates[0] || {
+      id: templateId || 'water_flosser_1',
+      campaignId: explicitCampaignId || 'water_flosser',
+      campaignName: explicitCampaignName || 'Water Flosser Routine & Care',
+      stage: 1,
+      stageLabel: 'Stage 1'
+    };
+
+    const campaignId = explicitCampaignId || activeTpl.campaignId || 'water_flosser';
+    const campaignName = explicitCampaignName || activeTpl.campaignName || 'Follow-Up Campaign';
+    const activeStageNum = Number(activeTpl.stage) || 1;
+
+    // Create Activity Session ("Season")
+    const sessionId = customSessionId || ('ses_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+    const sessionName = customSessionName || `${campaignName} • ${targetCustomers.length} Recipient${targetCustomers.length > 1 ? 's' : ''}`;
+
+    const session = db.createActivitySession({
+      id: sessionId,
+      name: sessionName,
+      campaignId: campaignId,
+      campaignName: campaignName,
+      recipients: targetCustomers.map(c => ({
+        id: c.id,
+        email: c.email,
+        name: c.name || c.first_name || c.email
+      })),
+      stagesConfigured: scheduleFullSequence ? 5 : 1,
+      status: 'active'
+    });
+
     const successes = [];
     const failures = [];
 
+    // Stage 1 / Active Stage Dispatch (Immediate)
     for (const cust of targetCustomers) {
       const email = (cust.email || '').trim();
       if (!email || !email.includes('@')) {
@@ -584,11 +622,14 @@ app.post('/api/followup/batch-send', async (req, res) => {
         const result = await emailService.sendFollowUpEmail({
           to: email,
           customer: cust,
-          templateId: templateId || 'water_flosser_1',
+          templateId: activeTpl.id,
           customSubject,
           customDiscountCode,
           customBody,
-          mode: 'batch_manual'
+          mode: 'batch_manual',
+          sessionId: session.id,
+          stage: activeStageNum,
+          stageLabel: activeTpl.stageLabel || `Stage ${activeStageNum}`
         });
 
         successes.push({
@@ -610,16 +651,69 @@ app.post('/api/followup/batch-send', async (req, res) => {
       await new Promise(r => setTimeout(r, 80));
     }
 
+    // Schedule Subsequent Stages (Stages 2-5) if scheduleFullSequence is true
+    let scheduledCount = 0;
+    if (scheduleFullSequence) {
+      const remainingTemplates = allTemplates
+        .filter(t => t.campaignId === campaignId && Number(t.stage) > activeStageNum)
+        .sort((a, b) => Number(a.stage) - Number(b.stage));
+
+      const defaultDelays = {
+        2: 3,   // Day 3 (+3 days from now)
+        3: 7,   // Day 7 (+7 days from now)
+        4: 14,  // Day 14 (+14 days from now)
+        5: 21   // Day 21 (+21 days from now)
+      };
+
+      const now = new Date();
+      for (const tpl of remainingTemplates) {
+        const stageNum = Number(tpl.stage);
+        const delayDays = defaultDelays[stageNum] || ((stageNum - 1) * 7);
+        const scheduledDate = new Date(now.getTime() + delayDays * 86400000);
+
+        for (const cust of targetCustomers) {
+          const email = (cust.email || '').trim();
+          if (!email || !email.includes('@')) continue;
+
+          db.addDispatch({
+            sessionId: session.id,
+            campaignId: campaignId,
+            campaignName: campaignName,
+            stage: stageNum,
+            stageLabel: tpl.stageLabel || `Stage ${stageNum} (+${delayDays}d)`,
+            templateId: tpl.id,
+            templateName: tpl.name,
+            subject: tpl.subject,
+            htmlContent: tpl.html || null,
+            customerEmail: email,
+            customerName: cust.name || cust.first_name || email,
+            customerFirstName: cust.first_name || (cust.name ? cust.name.split(' ')[0] : email.split('@')[0]),
+            customerId: cust.id,
+            discountCode: customDiscountCode || 'TDS-CARE',
+            status: 'scheduled',
+            scheduledFor: scheduledDate.toISOString(),
+            sentAt: null,
+            mode: 'campaign_sequence_scheduled'
+          });
+          scheduledCount++;
+        }
+      }
+    }
+
     res.json({
       success: true,
+      sessionId: session.id,
+      session,
       total: targetCustomers.length,
       sentCount: successes.length,
+      scheduledCount,
       failedCount: failures.length,
-      message: `Batch complete: ${successes.length} dispatched successfully, ${failures.length} failed.`,
+      message: `Activity session started: ${successes.length} dispatched immediately, ${scheduledCount} scheduled for future stages.`,
       successes,
       failures
     });
   } catch (err) {
+    console.error('[BatchSend] Error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -932,6 +1026,21 @@ app.post('/api/fresh-sequence/dispatch', async (req, res) => {
     const now = new Date();
     const finalSessionId = sessionId || ('session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
 
+    // Register Activity Session ("Season") for this Fresh Sequence
+    const activitySession = db.createActivitySession({
+      id: finalSessionId,
+      name: sequenceName || `Fresh Sequence • ${normalizedRecipients.length} Recipient${normalizedRecipients.length > 1 ? 's' : ''}`,
+      campaignId: 'fresh_sequence',
+      campaignName: sequenceName || 'Custom Fresh Sequence',
+      recipients: normalizedRecipients.map(c => ({
+        id: c.id,
+        email: c.email,
+        name: c.name || c.first_name || c.email
+      })),
+      stagesConfigured: stages.length,
+      status: 'active'
+    });
+
     for (const stage of stages) {
       const stageNum = Number(stage.stage) || 1;
       const delayDays = Number(stage.delayDays) || 0;
@@ -963,7 +1072,10 @@ app.post('/api/fresh-sequence/dispatch', async (req, res) => {
               customSubject: stage.subject,
               customDiscountCode: trackingCode,
               customBody: stage.htmlContent,
-              mode: 'fresh_sequence_instant'
+              mode: 'fresh_sequence_instant',
+              sessionId: finalSessionId,
+              stage: stageNum,
+              stageLabel: `Stage ${stageNum} (Instant)`
             });
 
             // Update dispatch with session info
@@ -1091,16 +1203,60 @@ app.post('/api/dispatches/:id/send-now', async (req, res) => {
       customSubject: dispatch.subject,
       customDiscountCode: dispatch.discountCode || 'TDS-CARE',
       customBody: dispatch.htmlContent || null,
-      mode: 'manual_send_now'
+      mode: 'manual_send_now',
+      sessionId: dispatch.sessionId,
+      stage: dispatch.stage,
+      stageLabel: dispatch.stageLabel,
+      existingDispatchId: id
     });
 
-    const updated = db.updateDispatch(id, {
-      status: 'sent',
-      sentAt: new Date().toISOString()
-    });
-
+    const updated = db.getDispatchById(id);
     res.json({ success: true, dispatch: updated });
   } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// API: Retry a failed dispatch immediately
+app.post('/api/dispatches/:id/retry', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dispatch = db.getDispatchById(id);
+    if (!dispatch) return res.status(404).json({ success: false, error: 'Dispatch record not found.' });
+
+    const allCustomers = db.getCustomers();
+    let cust = dispatch.customerId ? allCustomers.find(c => String(c.id) === String(dispatch.customerId)) : null;
+    if (!cust) {
+      cust = {
+        id: dispatch.customerId || ('cust_' + Date.now()),
+        email: dispatch.customerEmail,
+        first_name: dispatch.customerFirstName || (dispatch.customerName ? dispatch.customerName.split(' ')[0] : dispatch.customerEmail.split('@')[0]),
+        name: dispatch.customerName || dispatch.customerEmail,
+        orders_count: 0,
+        total_spent: '0.00'
+      };
+    }
+
+    db.updateDispatch(id, { status: 'sending', error: null });
+
+    await emailService.sendFollowUpEmail({
+      to: dispatch.customerEmail,
+      customer: cust,
+      templateId: dispatch.templateId || 'water_flosser_1',
+      customSubject: dispatch.subject,
+      customDiscountCode: dispatch.discountCode || 'TDS-CARE',
+      customBody: dispatch.htmlContent || null,
+      mode: 'manual_retry',
+      sessionId: dispatch.sessionId,
+      stage: dispatch.stage,
+      stageLabel: dispatch.stageLabel,
+      existingDispatchId: id
+    });
+
+    const updated = db.getDispatchById(id);
+    res.json({ success: true, dispatch: updated });
+  } catch (e) {
+    db.updateDispatch(req.params.id, { status: 'failed', error: e.message });
     res.status(500).json({ success: false, error: e.message });
   }
 });
@@ -1117,6 +1273,40 @@ app.delete('/api/dispatches/:id', (req, res) => {
     res.json({ success: true, message: 'Scheduled dispatch cancelled.' });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// API: Activity Sessions ("Seasons")
+app.get('/api/activity-sessions', (req, res) => {
+  try {
+    const sessions = db.getActivitySessions();
+    res.json({ success: true, sessions });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/activity-sessions/:id', (req, res) => {
+  try {
+    const session = db.getActivitySessionById(req.params.id);
+    if (!session) return res.status(404).json({ success: false, error: 'Activity session not found.' });
+    res.json({ success: true, session });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/activity-sessions/:id', (req, res) => {
+  try {
+    const result = db.deleteActivitySession(req.params.id);
+    if (!result) return res.status(404).json({ success: false, error: 'Activity session not found.' });
+    res.json({
+      success: true,
+      message: `Activity session deleted. All pending scheduled emails (${result.cancelledCount}) were paused and cancelled.`,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
