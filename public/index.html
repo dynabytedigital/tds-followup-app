@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.20">
+  <link rel="stylesheet" href="style.css?v=18.21">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -114,8 +114,14 @@
           <div>
             <div class="Polaris-Card__Title">Customers</div>
           </div>
-          <div style="font-size: 12px; color: var(--p-color-text-subdued);" id="customerSyncStatus">
-            Ready
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openFreshSequenceComposer()" style="font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Start Fresh Sequence
+            </button>
+            <div style="font-size: 12px; color: var(--p-color-text-subdued);" id="customerSyncStatus">
+              Ready
+            </div>
           </div>
         </div>
 
@@ -223,6 +229,10 @@
             </button>
           </div>
           <div class="bulk-actions-btns">
+            <button type="button" id="btnBulkStartFresh" class="Polaris-Button Polaris-Button--slim" onclick="openFreshSequenceComposer()" style="background: #ffffff; border-color: var(--p-color-border-dark); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Start Fresh
+            </button>
             <button type="button" id="btnBulkFollowUp" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openBulkComposer()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               Follow Up (<span id="bulkActionCount">0</span>) &rarr;
@@ -427,10 +437,17 @@
           </div>
 
           <!-- Status Filter (Active for Sent Follow-Ups) -->
-          <div id="dispatchStatusFilterWrap" style="display: flex; align-items: center; gap: 6px;">
+          <div id="dispatchStatusFilterWrap" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--p-color-text-subdued);">Session:</span>
+              <select id="analyticsSessionFilter" class="form-input" style="height: 30px; font-size: 11.5px; padding: 2px 8px; width: auto; max-width: 220px;" onchange="onAnalyticsSessionFilterChange(this.value)">
+                <option value="all">All Sessions &amp; Sequences</option>
+              </select>
+            </div>
             <div class="Polaris-FilterPills" id="dispatchStatusPills">
               <button type="button" class="Polaris-FilterPill active" onclick="setDispatchStatus('all', this)">All Activity</button>
               <button type="button" class="Polaris-FilterPill" onclick="setDispatchStatus('sent', this)">Delivered</button>
+              <button type="button" class="Polaris-FilterPill" onclick="setDispatchStatus('scheduled', this)" id="pillStatusScheduled">Scheduled (<span id="dispatchScheduledCount">0</span>)</button>
               <button type="button" class="Polaris-FilterPill" onclick="setDispatchStatus('failed', this)">Failed (<span id="dispatchFailedCount">0</span>)</button>
             </div>
           </div>
@@ -442,7 +459,7 @@
             <table class="Polaris-DataTable">
               <thead>
                 <tr>
-                  <th>Sent Date</th>
+                  <th>Date &amp; Timing</th>
                   <th>Recipient</th>
                   <th>Sequence</th>
                   <th>Template</th>
@@ -451,6 +468,7 @@
                   <th>Delivery</th>
                   <th>Clicks</th>
                   <th>Order</th>
+                  <th style="text-align: right;">Actions</th>
                 </tr>
               </thead>
               <tbody id="dispatchesTableBody">
@@ -855,10 +873,6 @@
               <span id="composerStageActiveName">Stage 1</span>
               <span id="composerStageActiveTiming">Day 1</span>
             </div>
-            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openSavePresetDialog()" title="Save preset">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Save Preset
-            </button>
           </div>
         </div>
 
@@ -1177,9 +1191,268 @@
     </div>
   </div>
 
+  <!-- ========================================================
+       MODAL: START FRESH SEQUENCE BUILDER
+       ======================================================== -->
+  <div id="freshSequenceModal" class="modal-overlay">
+    <div class="modal-card composer-modal-card">
+      <div class="modal-header">
+        <div style="min-width: 0; flex: 1;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span class="stage-label-badge" style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe; font-weight: 700;">CUSTOM SEQUENCE</span>
+            <h2 class="modal-title" style="font-size: 15px; font-weight: 700; margin: 0; line-height: 1.3;">
+              Start Fresh Sequence
+            </h2>
+          </div>
+          <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin: 3px 0 0;">
+            Multi-stage follow-up builder &bull; Zero discounts &bull; Auto customer matching &bull; Session tracking
+          </p>
+        </div>
+        <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="closeFreshSequenceModal()" style="flex-shrink: 0; min-height: 36px; padding: 4px 10px;">&times; Close</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px;">
+        <!-- RECIPIENTS SECTION WITH PASTE & AUTO-MATCHING -->
+        <div class="fresh-recipients-container">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 600; font-size: 12.5px; color: var(--p-color-text);">Target Recipients</span>
+              <span id="freshRecipientsBadgeCount" class="stage-label-badge" style="padding: 1px 7px; font-size: 10.5px;">0 Recipients</span>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="freshAddSelectedCustomers()" id="btnFreshAddSelected" style="font-size: 11px;">
+                + Add Selected Customers (<span id="freshSelectedCustomerCount">0</span>)
+              </button>
+              <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" onclick="freshClearRecipients()" style="font-size: 11px;">
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <!-- Email Paste Box -->
+          <div class="fresh-paste-wrap">
+            <textarea id="freshRecipientsInput" class="form-textarea" rows="2" style="font-size: 12px; resize: vertical;" placeholder="Type or paste recipient emails (separated by commas, spaces, or new lines)..."></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 6px;">
+              <span style="font-size: 11px; color: var(--p-color-text-subdued);">
+                Shopify store customers are automatically detected and matched by email address.
+              </span>
+              <button type="button" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="freshProcessPastedEmails()">
+                + Add Emails
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Recipient Chips -->
+          <div id="freshRecipientsChips" class="composer-recipients-chips-container" style="max-height: 120px; margin-top: 10px; display: none;">
+            <!-- Rendered chips -->
+          </div>
+        </div>
+
+        <!-- PRESET MANAGEMENT BAR -->
+        <div class="fresh-preset-bar">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
+            <span style="font-size: 11.5px; font-weight: 600; color: var(--p-color-text);">Saved Presets:</span>
+            <select id="freshPresetSelect" class="form-input" style="height: 30px; font-size: 11.5px; padding: 2px 8px; width: auto; max-width: 220px;" onchange="onFreshPresetSelectChange(this.value)">
+              <option value="">-- Load Saved Preset --</option>
+            </select>
+          </div>
+          <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openSaveFreshPresetPrompt()" style="font-size: 11.5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save as Preset
+          </button>
+        </div>
+
+        <!-- STAGE STEPPER STRIP -->
+        <div class="fresh-stage-stepper-wrap">
+          <div class="fresh-stage-strip" id="freshStageStrip">
+            <!-- Stage Pills Rendered dynamically -->
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="addFreshStage()" style="font-size: 11px; font-weight: 600;">
+              + Add Stage
+            </button>
+            <button type="button" id="btnDeleteFreshStage" class="Polaris-Button Polaris-Button--slim btn-danger-text" onclick="deleteCurrentFreshStage()" style="font-size: 11px; display: none;">
+              Delete Stage
+            </button>
+          </div>
+        </div>
+
+        <!-- ACTIVE STAGE CONFIGURATION GRID -->
+        <div class="composer-grid" style="margin-top: 14px;">
+          <!-- Left: Controls -->
+          <div class="composer-controls-pane">
+            <!-- Stage Timing & Delay -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label class="form-label" style="margin-bottom: 0;">Stage Dispatch Timing</label>
+                <span id="freshStageTimingSummary" style="font-size: 11px; color: #008060; font-weight: 600;">Instant</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <select id="freshStageDelaySelect" class="form-input" style="flex: 1; min-width: 140px;" onchange="onFreshStageDelayChange(this.value)">
+                  <option value="0">Instant (Send immediately upon launch)</option>
+                  <option value="1">After 1 Day</option>
+                  <option value="2">After 2 Days</option>
+                  <option value="3">After 3 Days</option>
+                  <option value="5">After 5 Days</option>
+                  <option value="7">After 7 Days</option>
+                  <option value="14">After 14 Days</option>
+                  <option value="custom">Custom Date &amp; Time...</option>
+                </select>
+                <input type="datetime-local" id="freshStageCustomDateTime" class="form-input" style="display: none; width: auto;" onchange="onFreshStageCustomDateChange(this.value)">
+              </div>
+            </div>
+
+            <!-- Subject Line -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label class="form-label" for="freshSubjectInput" style="margin-bottom: 0;">Email Subject Line</label>
+                <span id="freshSubjectCount" style="font-size: 11px; color: var(--p-color-text-subdued);">0 chars</span>
+              </div>
+              <textarea id="freshSubjectInput" class="form-textarea composer-clean-textarea" rows="2" placeholder="e.g. Clinical Follow-Up from Dr. Marc Mortiboys" oninput="autoResizeTextarea(this); updateFreshPreview(); updateFreshSubjectCount();"></textarea>
+              <div class="tpl-quick-tags" style="margin-top: 4px;">
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoFreshSubject('{{first_name}}')">+ First Name</button>
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoFreshSubject('{{tracking_code}}')">+ Tracking Code</button>
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoFreshSubject('{{shop_url}}')">+ Store Link</button>
+              </div>
+            </div>
+
+            <!-- Campaign Tracking Code (Zero Discounts) -->
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label class="form-label" for="freshTrackingCodeInput" style="margin-bottom: 0;">Campaign Tracking Code</label>
+                <span style="font-size: 11px; color: var(--p-color-text-subdued);">Attribution &amp; click tracking</span>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <input type="text" id="freshTrackingCodeInput" class="form-input" style="text-transform: uppercase;" oninput="updateFreshPreview()" placeholder="e.g. TDS-CARE-W7K9">
+                <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="generateFreshTrackingCode()">
+                  Generate
+                </button>
+              </div>
+            </div>
+
+            <!-- HTML Editor -->
+            <div class="form-group" style="margin-bottom: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label class="form-label" style="margin-bottom: 0;">Email HTML Content</label>
+                <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="resetFreshStageDummyContent()" title="Reset to clean clinical dummy template">
+                  Reset Starter Template
+                </button>
+              </div>
+              <textarea id="freshHtmlInput" class="form-textarea" style="font-family: monospace; font-size: 11px; min-height: 200px;" oninput="updateFreshPreview()"></textarea>
+              <p style="font-size: 10.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
+                Supported Tags: <code>{{first_name}}</code>, <code>{{tracking_code}}</code>, <code>{{shop_url}}</code>, <code>{{discount_code}}</code>
+              </p>
+            </div>
+          </div>
+
+          <!-- Right: Live Responsive Preview -->
+          <div class="composer-preview-pane">
+            <div class="preview-container">
+              <div class="preview-toolbar">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 11.5px; font-weight: 600; color: var(--p-color-text-subdued);">Customer View</span>
+                  <span id="freshPreviewRecipientBadge" style="font-size: 10.5px; background: #eef2ff; color: #4338ca; padding: 1px 6px; border-radius: 4px;"></span>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                  <button type="button" class="Polaris-FilterPill active" id="btnFreshPreviewDesktop" onclick="setFreshPreviewDevice('desktop', this)">
+                    Desktop
+                  </button>
+                  <button type="button" class="Polaris-FilterPill" id="btnFreshPreviewMobile" onclick="setFreshPreviewDevice('mobile', this)">
+                    Mobile
+                  </button>
+                </div>
+              </div>
+              <div id="freshPreviewFrame" class="preview-frame device-desktop"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnLaunchFreshSequence" class="Polaris-Button Polaris-Button--primary" onclick="launchFreshSequence()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span id="btnLaunchFreshSequenceText">🚀 Launch Sequence (0 Recipients)</span>
+        </button>
+        <div class="modal-footer-secondary">
+          <button type="button" class="Polaris-Button" onclick="sendFreshTestEmail()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
+            Send Test to Me
+          </button>
+          <button type="button" class="Polaris-Button" onclick="closeFreshSequenceModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESCHEDULE SCHEDULED DISPATCH -->
+  <div id="modalRescheduleDispatch" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Reschedule Follow-Up Email</h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;" id="rescheduleModalSubtitle">
+            Change the scheduled delivery time for this recipient.
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closeRescheduleModal()">&times; Close</button>
+      </div>
+      <form onsubmit="submitRescheduleDispatch(event)">
+        <input type="hidden" id="rescheduleDispatchId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Recipient</label>
+            <input type="text" id="rescheduleRecipientEmail" class="form-input" readonly style="background: #f8fafc;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stage &amp; Subject</label>
+            <input type="text" id="rescheduleSubject" class="form-input" readonly style="background: #f8fafc;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Scheduled Date &amp; Time *</label>
+            <input type="datetime-local" id="rescheduleDateTime" class="form-input" required>
+            <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
+              The background automation runner will dispatch the email when this time is reached.
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="Polaris-Button" onclick="closeRescheduleModal()">Cancel</button>
+          <button type="submit" class="Polaris-Button Polaris-Button--primary">Save New Time</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SAVE FRESH PRESET PROMPT -->
+  <div id="modalSaveFreshPreset" class="modal-overlay">
+    <div class="modal-card" style="max-width: 460px;">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Save Sequence as Preset</h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;">
+            Save these custom stages, subjects, and HTML for one-click reuse later.
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closeSaveFreshPresetModal()">&times; Close</button>
+      </div>
+      <form onsubmit="submitSaveFreshPreset(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Preset Name *</label>
+            <input type="text" id="saveFreshPresetName" class="form-input" placeholder="e.g. 3-Stage Post Purchase Care Protocol" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="Polaris-Button" onclick="closeSaveFreshPresetModal()">Cancel</button>
+          <button type="submit" class="Polaris-Button Polaris-Button--primary">Save Preset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.20"></script>
+  <script src="app.js?v=18.21"></script>
 </body>
 </html>

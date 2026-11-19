@@ -780,6 +780,347 @@ app.post('/api/settings/verify-gmail', async (req, res) => {
 });
 
 /* ========================================================
+   START FRESH SEQUENCES, AUTOMATED SCHEDULING & PRESETS
+   ======================================================== */
+
+// Background Scheduler: runs every 30 seconds to check and execute due scheduled stages
+setInterval(async () => {
+  try {
+    const allDispatches = db.getDispatches();
+    const now = new Date();
+    const dueDispatches = allDispatches.filter(d => 
+      d.status === 'scheduled' && 
+      d.scheduledFor && 
+      new Date(d.scheduledFor) <= now
+    );
+
+    if (dueDispatches.length > 0) {
+      console.log(`[Scheduler] Found ${dueDispatches.length} due scheduled sequence email(s). Processing...`);
+    }
+
+    for (const d of dueDispatches) {
+      console.log(`[Scheduler] Processing dispatch ${d.id} for ${d.customerEmail} (Stage ${d.stage})...`);
+      try {
+        const allCustomers = db.getCustomers();
+        let cust = d.customerId ? allCustomers.find(c => String(c.id) === String(d.customerId)) : null;
+        if (!cust) {
+          cust = {
+            id: d.customerId || ('cust_' + Date.now()),
+            email: d.customerEmail,
+            first_name: d.customerFirstName || (d.customerName ? d.customerName.split(' ')[0] : d.customerEmail.split('@')[0]),
+            name: d.customerName || d.customerEmail,
+            orders_count: 0,
+            total_spent: '0.00'
+          };
+        }
+
+        await emailService.sendFollowUpEmail({
+          to: d.customerEmail,
+          customer: cust,
+          templateId: d.templateId || 'fresh_sequence',
+          customSubject: d.subject,
+          customDiscountCode: d.discountCode || 'TDS-CARE',
+          customBody: d.htmlContent || null,
+          mode: 'scheduled_automated'
+        });
+
+        db.updateDispatch(d.id, {
+          status: 'sent',
+          sentAt: new Date().toISOString()
+        });
+        console.log(`[Scheduler] Successfully sent scheduled dispatch ${d.id} to ${d.customerEmail}`);
+      } catch (err) {
+        console.error(`[Scheduler] Failed dispatch ${d.id} for ${d.customerEmail}:`, err.message);
+        db.updateDispatch(d.id, {
+          status: 'failed',
+          error: err.message
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[Scheduler] Error in background execution loop:', e.message);
+  }
+}, 30000);
+
+// API: Get Fresh Presets
+app.get('/api/fresh-presets', (req, res) => {
+  try {
+    const presets = db.getFreshPresets();
+    res.json({ success: true, presets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API: Save Fresh Preset
+app.post('/api/fresh-presets', (req, res) => {
+  try {
+    const preset = req.body;
+    if (!preset || !preset.name) {
+      return res.status(400).json({ success: false, error: 'Preset name is required.' });
+    }
+    const saved = db.saveFreshPreset(preset);
+    res.json({ success: true, preset: saved });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API: Delete Fresh Preset
+app.delete('/api/fresh-presets/:id', (req, res) => {
+  try {
+    const deleted = db.deleteFreshPreset(req.params.id);
+    res.json({ success: deleted });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API: Multi-stage Fresh Sequence Dispatch (Instant + Scheduled)
+app.post('/api/fresh-sequence/dispatch', async (req, res) => {
+  try {
+    const {
+      sessionId,
+      sequenceName,
+      recipients, // array of { email, name, first_name, id, ... } or strings
+      stages      // array of { stage: 1, subject: '...', htmlContent: '...', delayDays: 0, scheduledFor: ISO or null, trackingCode: '...' }
+    } = req.body;
+
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ success: false, error: 'Please specify at least one recipient.' });
+    }
+    if (!Array.isArray(stages) || stages.length === 0) {
+      return res.status(400).json({ success: false, error: 'Please configure at least one sequence stage.' });
+    }
+
+    const allCustomers = db.getCustomers();
+    // Normalize recipients & auto-match against Shopify database
+    const normalizedRecipients = recipients.map(r => {
+      const email = (typeof r === 'string' ? r : (r.email || '')).trim().toLowerCase();
+      const found = allCustomers.find(c => (c.email || '').toLowerCase() === email);
+      if (found) return found;
+
+      let fallbackName = (typeof r === 'object' && r.name) ? r.name.trim() : '';
+      if (!fallbackName && email.includes('@')) {
+        const localPart = email.split('@')[0];
+        // clean up dots/numbers: dr.marc -> Marc, john_doe -> John Doe
+        fallbackName = localPart.replace(/[._-]+/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      const fallbackFirstName = (typeof r === 'object' && r.first_name) ? r.first_name.trim() : (fallbackName ? fallbackName.split(' ')[0] : 'Valued Client');
+
+      return {
+        id: typeof r === 'object' && r.id ? r.id : ('fresh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+        email: email,
+        name: fallbackName || email,
+        first_name: fallbackFirstName,
+        orders_count: 0,
+        total_spent: '0.00'
+      };
+    }).filter(r => r.email && r.email.includes('@'));
+
+    if (normalizedRecipients.length === 0) {
+      return res.status(400).json({ success: false, error: 'No valid recipient email addresses provided.' });
+    }
+
+    const results = {
+      sentCount: 0,
+      scheduledCount: 0,
+      failedCount: 0,
+      dispatches: []
+    };
+
+    const now = new Date();
+    const finalSessionId = sessionId || ('session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+
+    for (const stage of stages) {
+      const stageNum = Number(stage.stage) || 1;
+      const delayDays = Number(stage.delayDays) || 0;
+      let isInstant = delayDays === 0 && !stage.scheduledFor;
+      let scheduledDate = null;
+
+      if (!isInstant) {
+        if (stage.scheduledFor) {
+          scheduledDate = new Date(stage.scheduledFor);
+        } else {
+          scheduledDate = new Date(now.getTime() + delayDays * 86400000);
+        }
+        if (scheduledDate <= now) {
+          isInstant = true;
+        }
+      }
+
+      for (const cust of normalizedRecipients) {
+        const trackingCode = (stage.trackingCode && stage.trackingCode.trim())
+          ? stage.trackingCode.trim().toUpperCase()
+          : `TDS-TRACK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-S${stageNum}`;
+
+        if (isInstant) {
+          try {
+            const sendResult = await emailService.sendFollowUpEmail({
+              to: cust.email,
+              customer: cust,
+              templateId: 'fresh_sequence',
+              customSubject: stage.subject,
+              customDiscountCode: trackingCode,
+              customBody: stage.htmlContent,
+              mode: 'fresh_sequence_instant'
+            });
+
+            // Update dispatch with session info
+            if (sendResult && sendResult.dispatchId) {
+              db.updateDispatch(sendResult.dispatchId, {
+                sessionId: finalSessionId,
+                campaignId: 'fresh_sequence',
+                campaignName: sequenceName || 'Custom Fresh Sequence',
+                templateName: `${sequenceName || 'Fresh Sequence'} (Stage ${stageNum})`,
+                stage: stageNum,
+                stageLabel: `Stage ${stageNum} (Instant)`
+              });
+            }
+
+            results.sentCount++;
+            results.dispatches.push({
+              email: cust.email,
+              stage: stageNum,
+              status: 'sent',
+              trackingCode
+            });
+          } catch (err) {
+            results.failedCount++;
+            results.dispatches.push({
+              email: cust.email,
+              stage: stageNum,
+              status: 'failed',
+              error: err.message,
+              trackingCode
+            });
+          }
+        } else {
+          // Schedule future dispatch in database
+          const scheduledDispatch = db.addDispatch({
+            customerEmail: cust.email,
+            customerName: cust.name || cust.first_name,
+            customerFirstName: cust.first_name,
+            customerId: cust.id,
+            templateId: 'fresh_sequence',
+            templateName: `${sequenceName || 'Fresh Sequence'} (Stage ${stageNum})`,
+            campaignId: 'fresh_sequence',
+            campaignName: sequenceName || 'Custom Fresh Sequence',
+            sessionId: finalSessionId,
+            stage: stageNum,
+            stageLabel: `Stage ${stageNum} (+${delayDays}d)`,
+            discountCode: trackingCode,
+            subject: stage.subject,
+            htmlContent: stage.htmlContent,
+            status: 'scheduled',
+            scheduledFor: scheduledDate.toISOString(),
+            mode: 'fresh_sequence_scheduled'
+          });
+          results.scheduledCount++;
+          results.dispatches.push({
+            id: scheduledDispatch.id,
+            email: cust.email,
+            stage: stageNum,
+            status: 'scheduled',
+            scheduledFor: scheduledDate.toISOString(),
+            trackingCode
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      sessionId: finalSessionId,
+      message: `Sequence initiated: ${results.sentCount} instant emails sent, ${results.scheduledCount} scheduled for future delivery, ${results.failedCount} failed.`,
+      ...results
+    });
+  } catch (err) {
+    console.error('[FreshSequence] Dispatch error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API: Reschedule a scheduled dispatch
+app.post('/api/dispatches/:id/reschedule', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { scheduledFor } = req.body;
+    if (!scheduledFor) return res.status(400).json({ success: false, error: 'New scheduled date/time is required.' });
+    
+    const parsedDate = new Date(scheduledFor);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ success: false, error: 'Invalid date/time format.' });
+    }
+
+    const updated = db.updateDispatch(id, {
+      scheduledFor: parsedDate.toISOString(),
+      status: 'scheduled'
+    });
+    if (!updated) return res.status(404).json({ success: false, error: 'Dispatch not found.' });
+    res.json({ success: true, dispatch: updated });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// API: Send a scheduled dispatch immediately
+app.post('/api/dispatches/:id/send-now', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dispatch = db.getDispatchById(id);
+    if (!dispatch) return res.status(404).json({ success: false, error: 'Dispatch not found.' });
+
+    const allCustomers = db.getCustomers();
+    let cust = dispatch.customerId ? allCustomers.find(c => String(c.id) === String(dispatch.customerId)) : null;
+    if (!cust) {
+      cust = {
+        id: dispatch.customerId || ('cust_' + Date.now()),
+        email: dispatch.customerEmail,
+        first_name: dispatch.customerFirstName || (dispatch.customerName ? dispatch.customerName.split(' ')[0] : dispatch.customerEmail.split('@')[0]),
+        name: dispatch.customerName || dispatch.customerEmail,
+        orders_count: 0,
+        total_spent: '0.00'
+      };
+    }
+
+    await emailService.sendFollowUpEmail({
+      to: dispatch.customerEmail,
+      customer: cust,
+      templateId: dispatch.templateId || 'fresh_sequence',
+      customSubject: dispatch.subject,
+      customDiscountCode: dispatch.discountCode || 'TDS-CARE',
+      customBody: dispatch.htmlContent || null,
+      mode: 'manual_send_now'
+    });
+
+    const updated = db.updateDispatch(id, {
+      status: 'sent',
+      sentAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, dispatch: updated });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// API: Cancel a scheduled dispatch
+app.delete('/api/dispatches/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = db.updateDispatch(id, {
+      status: 'cancelled',
+      cancelledAt: new Date().toISOString()
+    });
+    if (!updated) return res.status(404).json({ success: false, error: 'Dispatch not found.' });
+    res.json({ success: true, message: 'Scheduled dispatch cancelled.' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/* ========================================================
    SERVER INITIALIZATION
    ======================================================== */
 app.listen(PORT, async () => {

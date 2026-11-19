@@ -2303,6 +2303,13 @@ function setDispatchCampaign(campaignId, btn) {
   loadDispatches();
 }
 
+let activeAnalyticsSession = 'all';
+
+function onAnalyticsSessionFilterChange(val) {
+  activeAnalyticsSession = val;
+  renderDispatchesTable();
+}
+
 async function loadDispatches() {
   try {
     const q = activeDispatchCampaign && activeDispatchCampaign !== 'all' ? `?campaignId=${encodeURIComponent(activeDispatchCampaign)}` : '';
@@ -2323,6 +2330,29 @@ async function loadDispatches() {
       const delBadge = document.getElementById('kpiDeliveredCount');
       if (delBadge) delBadge.innerText = delCount;
 
+      const schCount = dispatchesList.filter(d => d.status === 'scheduled').length;
+      const schBadge = document.getElementById('dispatchScheduledCount');
+      if (schBadge) schBadge.innerText = schCount;
+
+      // Populate session filter dropdown
+      const sessionSelect = document.getElementById('analyticsSessionFilter');
+      if (sessionSelect) {
+        const currentVal = sessionSelect.value;
+        const sessions = new Set();
+        dispatchesList.forEach(d => {
+          if (d.campaignName) sessions.add(d.campaignName);
+          else if (d.sessionId) sessions.add(d.sessionId);
+        });
+        let optHtml = '<option value="all">All Sessions &amp; Sequences</option>';
+        sessions.forEach(s => {
+          optHtml += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
+        });
+        sessionSelect.innerHTML = optHtml;
+        if (currentVal && Array.from(sessions).includes(currentVal)) {
+          sessionSelect.value = currentVal;
+        }
+      }
+
       renderDispatchesTable();
     }
   } catch (e) {
@@ -2336,15 +2366,21 @@ function renderDispatchesTable() {
 
   const filteredDispatches = dispatchesList.filter(d => {
     if (activeDispatchStatus === 'sent' && d.status !== 'sent') return false;
+    if (activeDispatchStatus === 'scheduled' && d.status !== 'scheduled') return false;
     if (activeDispatchStatus === 'failed' && d.status !== 'failed') return false;
+    if (activeAnalyticsSession !== 'all') {
+      if (d.sessionId !== activeAnalyticsSession && d.campaignName !== activeAnalyticsSession && d.campaignId !== activeAnalyticsSession) {
+        return false;
+      }
+    }
     return true;
   });
 
   if (filteredDispatches.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" style="text-align: center; padding: 48px; color: var(--color-text-muted);">
-          No follow-up dispatches found for this status and campaign filter.
+        <td colspan="10" style="text-align: center; padding: 48px; color: var(--color-text-muted);">
+          No follow-up dispatches found for this status and session filter.
         </td>
       </tr>
     `;
@@ -2352,12 +2388,34 @@ function renderDispatchesTable() {
   }
 
   tbody.innerHTML = filteredDispatches.map(d => {
-    const sentDate = new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    let dateTimingHtml = '';
+    if (d.status === 'scheduled') {
+      const schDate = d.scheduledFor ? new Date(d.scheduledFor) : null;
+      const schStr = schDate ? schDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
+      dateTimingHtml = `
+        <div style="font-size: 12px; font-weight: 700; color: #0284c7;">SCHEDULED</div>
+        <div style="font-size: 11px; color: var(--p-color-text-subdued);">${schStr}</div>
+      `;
+    } else {
+      const sentDate = d.sentAt ? new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Sent';
+      dateTimingHtml = `
+        <div style="font-size: 12.5px; font-weight: 500;">${sentDate}</div>
+        <div style="font-size: 10.5px; font-family: monospace; color: var(--color-text-muted);">${d.id}</div>
+      `;
+    }
+
     const promoCode = d.discountCode ? `<code>${escapeHtml(d.discountCode)}</code>` : '<span style="color:var(--p-color-text-subdued);">&mdash;</span>';
 
-    const deliveryBadge = d.status === 'sent'
-      ? `<span class="rank-badge rank-badge-dev">DELIVERED</span>`
-      : `<span class="rank-badge rank-badge-admin">FAILED</span><div style="font-size:11px; color:#bc4141; margin-top:2px;" title="${escapeHtml(d.error || '')}">${escapeHtml(d.error || 'Delivery failed')}</div>`;
+    let deliveryBadge = '';
+    if (d.status === 'sent') {
+      deliveryBadge = `<span class="rank-badge rank-badge-dev">DELIVERED</span>`;
+    } else if (d.status === 'scheduled') {
+      deliveryBadge = `<span class="rank-badge rank-badge-scheduled">SCHEDULED</span>`;
+    } else if (d.status === 'cancelled') {
+      deliveryBadge = `<span class="rank-badge" style="background:#f1f5f9; color:#64748b; border-color:#cbd5e1;">CANCELLED</span>`;
+    } else {
+      deliveryBadge = `<span class="rank-badge rank-badge-admin">FAILED</span><div style="font-size:11px; color:#bc4141; margin-top:2px;" title="${escapeHtml(d.error || '')}">${escapeHtml(d.error || 'Delivery failed')}</div>`;
+    }
 
     const clickBadge = d.clicked
       ? `<span class="rank-badge rank-badge-vip_plus">${d.clickCount || 1} CLICK${(d.clickCount || 1) > 1 ? 'S' : ''}</span>`
@@ -2370,11 +2428,23 @@ function renderDispatchesTable() {
       conversionBadge = `<span style="font-size:12px; color:var(--p-color-text-subdued);">&mdash;</span>`;
     }
 
+    let actionsHtml = '';
+    if (d.status === 'scheduled') {
+      actionsHtml = `
+        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+          <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="sendScheduledDispatchNow('${d.id}')" title="Send immediately">⚡ Send Now</button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="openRescheduleModal('${d.id}')" title="Reschedule date & time">🕒 Reschedule</button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="cancelScheduledDispatch('${d.id}')" title="Cancel">✕</button>
+        </div>
+      `;
+    } else {
+      actionsHtml = `<span style="font-size:12px; color:var(--p-color-text-subdued);">&mdash;</span>`;
+    }
+
     return `
       <tr>
         <td>
-          <div style="font-size: 12.5px; font-weight: 500;">${sentDate}</div>
-          <div style="font-size: 10.5px; font-family: monospace; color: var(--color-text-muted);">${d.id}</div>
+          ${dateTimingHtml}
         </td>
         <td>
           <div style="font-weight: 600; color: var(--color-text-title);">${escapeHtml(d.customerName || 'Customer')}</div>
@@ -2403,6 +2473,9 @@ function renderDispatchesTable() {
         </td>
         <td>
           ${conversionBadge}
+        </td>
+        <td style="text-align: right;">
+          ${actionsHtml}
         </td>
       </tr>
     `;
@@ -3493,3 +3566,765 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
+/* ========================================================
+   START FRESH SEQUENCE & MULTI-STAGE AUTOMATION SYSTEM
+   ======================================================== */
+
+const DEFAULT_STARTER_CLINICAL_HTML = `<!-- THE DENTAL SHAMAN • CLINICAL CARE SEQUENCE -->
+<div style="font-family:Georgia, 'Times New Roman', serif; max-width:600px; margin:0 auto; background-color:#faf8f5; border:1px solid #e8e3ec; border-radius:8px; overflow:hidden; color:#2d2d2d;">
+  <!-- HEADER -->
+  <div style="background-color:#0d0820; padding:28px 24px 22px 24px; text-align:center;">
+    <a href="{{shop_url}}" target="_blank" style="text-decoration:none; display:inline-block; margin-bottom:14px;">
+      <img src="https://thedentalshaman.com/assets/tds_logo_header.png" alt="The Dental Shaman" style="height:46px; width:auto; display:block; margin:0 auto; border:0;">
+    </a>
+    <p style="color:#2D8B7A; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 8px 0; font-family:Arial,sans-serif; font-weight:bold;">
+      The Dental Shaman · Clinical Care Series
+    </p>
+    <h1 style="color:#ffffff; font-size:24px; font-weight:normal; margin:0; line-height:1.3; font-style:italic;">
+      Personal Clinical Follow-Up &amp; Care
+    </h1>
+  </div>
+
+  <!-- CONTENT -->
+  <div style="padding:32px 28px 24px 28px; background:#ffffff;">
+    <p style="font-size:16px; line-height:1.6; margin:0 0 16px 0;">
+      Dear {{first_name}},
+    </p>
+    <div style="font-size:15px; line-height:1.65; color:#444444; margin:0 0 20px 0;">
+      I wanted to follow up with you personally to share essential clinical observations and best practices. Biological dentistry prioritizes supporting your natural oral microbiome and long-term periodontal health.
+    </div>
+
+    <!-- CLINICAL POINTS -->
+    <div style="background-color:#fbf7fa; border-left:4px solid #744B6F; padding:18px 20px; margin:22px 0; border-radius:0 6px 6px 0;">
+      <h3 style="color:#744B6F; font-size:14px; margin:0 0 10px 0; font-family:Arial,sans-serif; text-transform:uppercase; letter-spacing:0.5px;">
+        Clinical Protocol Recommendations:
+      </h3>
+      <ul style="margin:0; padding-left:18px; font-family:Arial,sans-serif; font-size:13.5px; color:#4a4a4a; line-height:1.6;">
+        <li style="margin-bottom:8px;"><strong style="color:#0d0820;">Consistent Routine:</strong> Perform your home care protocol each evening to disrupt bacterial biofilm development.</li>
+        <li style="margin-bottom:8px;"><strong style="color:#0d0820;">Gentle Motion:</strong> Avoid aggressive pressure along the gumline to protect delicate periodontal attachments.</li>
+        <li style="margin-bottom:8px;"><strong style="color:#0d0820;">Hydration:</strong> Maintain healthy hydration with pure water to optimize salivary immune factors.</li>
+      </ul>
+    </div>
+
+    <!-- CTA -->
+    <div style="text-align:center; margin:32px 0 24px 0;">
+      <a href="{{shop_url}}" target="_blank" style="background-color:#744B6F; color:#ffffff; font-family:Arial,sans-serif; font-size:14.5px; font-weight:bold; text-decoration:none; padding:14px 32px; border-radius:6px; display:inline-block; letter-spacing:0.5px; box-shadow:0 4px 14px rgba(116,75,111,0.25);">
+        Visit Our Biological Care Store &rarr;
+      </a>
+    </div>
+
+    <p style="font-size:14px; line-height:1.6; color:#666666; margin:28px 0 0 0; border-top:1px solid #f0ecf2; padding-top:20px;">
+      Warmest holistic wishes,<br>
+      <strong style="color:#0d0820;">Dr. Marc Mortiboys (BDS)</strong><br>
+      <span style="font-size:12.5px; color:#888888;">Founder &amp; Biological Dental Surgeon &middot; The Dental Shaman</span>
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="background-color:#faf8f5; padding:20px 24px; text-align:center; font-family:Arial,sans-serif; font-size:11.5px; color:#888888; border-top:1px solid #e8e3ec;">
+    <p style="margin:0 0 6px 0;">The Dental Shaman &middot; Surrey, United Kingdom &middot; shop.thedentalshaman.com</p>
+    <p style="margin:0;">Ref: {{tracking_code}} &middot; You are receiving this personal communication as a valued client of The Dental Shaman.</p>
+  </div>
+</div>`;
+
+let freshRecipients = [];
+let freshStages = [];
+let activeFreshStageIndex = 0;
+let activeFreshPreviewDevice = 'desktop';
+let freshPresetsList = [];
+
+function generateRandomTrackingCode(prefix = 'CARE', stageNum = 1) {
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `TDS-${prefix}-${rand}-S${stageNum}`;
+}
+
+function openFreshSequenceComposer() {
+  // If customers are selected on the table, pre-populate them
+  freshRecipients = [];
+  if (selectedCustomerIds && selectedCustomerIds.size > 0) {
+    selectedCustomerIds.forEach(id => {
+      const c = customersList.find(cust => String(cust.id) === String(id));
+      if (c && c.email) {
+        freshRecipients.push({
+          id: c.id,
+          email: c.email.toLowerCase(),
+          name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email,
+          first_name: c.first_name || (c.name ? c.name.split(' ')[0] : 'there'),
+          isShopifyCustomer: true
+        });
+      }
+    });
+  }
+
+  // Initialize with 1 default clean starter stage
+  freshStages = [
+    {
+      stage: 1,
+      label: 'Stage 1 (Instant)',
+      delayDays: 0,
+      scheduledFor: null,
+      subject: 'A personal clinical note from Dr. Marc Mortiboys (BDS)',
+      trackingCode: generateRandomTrackingCode('FRESH', 1),
+      htmlContent: DEFAULT_STARTER_CLINICAL_HTML
+    }
+  ];
+  activeFreshStageIndex = 0;
+
+  renderFreshRecipientsChips();
+  renderFreshStageStrip();
+  loadFreshStageToEditor(0);
+  loadFreshPresets();
+
+  const countBadge = document.getElementById('freshSelectedCustomerCount');
+  if (countBadge) countBadge.textContent = selectedCustomerIds ? selectedCustomerIds.size : 0;
+
+  const modal = document.getElementById('freshSequenceModal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeFreshSequenceModal() {
+  const modal = document.getElementById('freshSequenceModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function freshAddSelectedCustomers() {
+  if (!selectedCustomerIds || selectedCustomerIds.size === 0) {
+    showToast('No customers currently selected in the table.', 'warning');
+    return;
+  }
+  let added = 0;
+  selectedCustomerIds.forEach(id => {
+    const c = customersList.find(cust => String(cust.id) === String(id));
+    if (c && c.email) {
+      const existing = freshRecipients.find(r => r.email.toLowerCase() === c.email.toLowerCase());
+      if (!existing) {
+        freshRecipients.push({
+          id: c.id,
+          email: c.email.toLowerCase(),
+          name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email,
+          first_name: c.first_name || (c.name ? c.name.split(' ')[0] : 'there'),
+          isShopifyCustomer: true
+        });
+        added++;
+      }
+    }
+  });
+  renderFreshRecipientsChips();
+  updateFreshPreview();
+  showToast(`Added ${added} selected customer(s).`, 'success');
+}
+
+function freshProcessPastedEmails() {
+  const input = document.getElementById('freshRecipientsInput');
+  if (!input) return;
+  const raw = input.value.trim();
+  if (!raw) {
+    showToast('Please type or paste at least one email address.', 'warning');
+    return;
+  }
+
+  // Split by comma, semicolon, space, or newline
+  const tokens = raw.split(/[\s,;]+/).map(t => t.trim()).filter(Boolean);
+  let added = 0;
+  let matched = 0;
+
+  tokens.forEach(token => {
+    const email = token.toLowerCase();
+    if (!email.includes('@') || email.length < 5) return;
+
+    // Check duplicate
+    if (freshRecipients.some(r => r.email === email)) return;
+
+    // Match against synced Shopify customers
+    const found = customersList.find(c => (c.email || '').toLowerCase() === email);
+    if (found) {
+      freshRecipients.push({
+        id: found.id,
+        email: found.email.toLowerCase(),
+        name: found.name || `${found.first_name || ''} ${found.last_name || ''}`.trim() || found.email,
+        first_name: found.first_name || (found.name ? found.name.split(' ')[0] : 'there'),
+        isShopifyCustomer: true
+      });
+      matched++;
+    } else {
+      // Clean up human name from email local-part: dr.marc.mortiboys -> Marc
+      const localPart = email.split('@')[0];
+      const cleanName = localPart.replace(/[._-]+/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const firstName = cleanName.split(' ')[0] || 'there';
+      freshRecipients.push({
+        id: 'custom_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        email: email,
+        name: cleanName,
+        first_name: firstName,
+        isShopifyCustomer: false
+      });
+    }
+    added++;
+  });
+
+  input.value = '';
+  renderFreshRecipientsChips();
+  updateFreshPreview();
+
+  if (added > 0) {
+    showToast(`Added ${added} recipient(s) (${matched} matched with Shopify store records).`, 'success');
+  } else {
+    showToast('No valid new email addresses detected.', 'warning');
+  }
+}
+
+function renderFreshRecipientsChips() {
+  const box = document.getElementById('freshRecipientsChips');
+  const countBadge = document.getElementById('freshRecipientsBadgeCount');
+  const launchBtn = document.getElementById('btnLaunchFreshSequenceText');
+  const prevRecipientBadge = document.getElementById('freshPreviewRecipientBadge');
+
+  if (countBadge) countBadge.textContent = `${freshRecipients.length} Recipient${freshRecipients.length === 1 ? '' : 's'}`;
+  if (launchBtn) launchBtn.textContent = `🚀 Launch Sequence (${freshRecipients.length} Recipient${freshRecipients.length === 1 ? '' : 's'})`;
+
+  if (!box) return;
+
+  if (freshRecipients.length === 0) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    if (prevRecipientBadge) prevRecipientBadge.textContent = 'Previewing as: Valued Customer';
+    return;
+  }
+
+  box.style.display = 'flex';
+  box.innerHTML = freshRecipients.map((r, idx) => {
+    const verifiedBadge = r.isShopifyCustomer 
+      ? `<span style="color:#16a34a; font-weight:700; margin-right:2px;" title="Verified Shopify Customer">✓</span>` 
+      : '';
+    return `
+      <div class="composer-recipient-chip" title="${escapeHtml(r.name)} &lt;${escapeHtml(r.email)}&gt;">
+        <span class="chip-label">
+          ${verifiedBadge}<strong>${escapeHtml(r.first_name)}</strong> (${escapeHtml(r.email)})
+        </span>
+        <button type="button" class="chip-remove-btn" onclick="freshRemoveRecipient(${idx})" title="Remove recipient">&times;</button>
+      </div>
+    `;
+  }).join('');
+
+  if (prevRecipientBadge) {
+    const first = freshRecipients[0];
+    prevRecipientBadge.textContent = `Previewing for: ${first.first_name} (${first.email})`;
+  }
+}
+
+function freshRemoveRecipient(index) {
+  if (index >= 0 && index < freshRecipients.length) {
+    freshRecipients.splice(index, 1);
+    renderFreshRecipientsChips();
+    updateFreshPreview();
+  }
+}
+
+function freshClearRecipients() {
+  freshRecipients = [];
+  renderFreshRecipientsChips();
+  updateFreshPreview();
+}
+
+function renderFreshStageStrip() {
+  const strip = document.getElementById('freshStageStrip');
+  const deleteBtn = document.getElementById('btnDeleteFreshStage');
+  if (deleteBtn) {
+    deleteBtn.style.display = freshStages.length > 1 ? 'inline-block' : 'none';
+  }
+  if (!strip) return;
+
+  strip.innerHTML = freshStages.map((s, idx) => {
+    const isActive = idx === activeFreshStageIndex;
+    let timingLabel = 'Instant';
+    if (s.delayDays > 0) {
+      timingLabel = `+${s.delayDays}d`;
+    } else if (s.scheduledFor) {
+      timingLabel = 'Custom';
+    }
+    return `
+      <button type="button" class="fresh-stage-pill ${isActive ? 'active' : ''}" onclick="selectFreshStage(${idx})">
+        <span>Stage ${s.stage}</span>
+        <span class="fresh-stage-timing-badge">${timingLabel}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function saveCurrentFreshStageFromEditor() {
+  if (!freshStages[activeFreshStageIndex]) return;
+  const s = freshStages[activeFreshStageIndex];
+  const subjInput = document.getElementById('freshSubjectInput');
+  const codeInput = document.getElementById('freshTrackingCodeInput');
+  const htmlInput = document.getElementById('freshHtmlInput');
+  const delaySelect = document.getElementById('freshStageDelaySelect');
+  const customDateInput = document.getElementById('freshStageCustomDateTime');
+
+  if (subjInput) s.subject = subjInput.value;
+  if (codeInput) s.trackingCode = codeInput.value.trim().toUpperCase();
+  if (htmlInput) s.htmlContent = htmlInput.value;
+  if (delaySelect) {
+    const val = delaySelect.value;
+    if (val === 'custom') {
+      s.delayDays = 0;
+      s.scheduledFor = customDateInput ? customDateInput.value : null;
+    } else {
+      s.delayDays = Number(val) || 0;
+      s.scheduledFor = null;
+    }
+  }
+}
+
+function loadFreshStageToEditor(index) {
+  if (index < 0 || index >= freshStages.length) return;
+  activeFreshStageIndex = index;
+  const s = freshStages[index];
+
+  const subjInput = document.getElementById('freshSubjectInput');
+  const codeInput = document.getElementById('freshTrackingCodeInput');
+  const htmlInput = document.getElementById('freshHtmlInput');
+  const delaySelect = document.getElementById('freshStageDelaySelect');
+  const customDateInput = document.getElementById('freshStageCustomDateTime');
+  const timingSummary = document.getElementById('freshStageTimingSummary');
+
+  if (subjInput) subjInput.value = s.subject || '';
+  if (codeInput) codeInput.value = s.trackingCode || generateRandomTrackingCode('FRESH', s.stage);
+  if (htmlInput) htmlInput.value = s.htmlContent || DEFAULT_STARTER_CLINICAL_HTML;
+
+  if (delaySelect) {
+    if (s.scheduledFor) {
+      delaySelect.value = 'custom';
+      if (customDateInput) {
+        customDateInput.style.display = 'inline-block';
+        customDateInput.value = s.scheduledFor.substring(0, 16);
+      }
+      if (timingSummary) timingSummary.textContent = `Scheduled: ${new Date(s.scheduledFor).toLocaleString('en-GB')}`;
+    } else {
+      delaySelect.value = String(s.delayDays || 0);
+      if (customDateInput) customDateInput.style.display = 'none';
+      if (timingSummary) {
+        timingSummary.textContent = s.delayDays === 0 ? 'Instant (Upon Launch)' : `After ${s.delayDays} Days`;
+      }
+    }
+  }
+
+  updateFreshSubjectCount();
+  updateFreshPreview();
+  renderFreshStageStrip();
+}
+
+function selectFreshStage(index) {
+  saveCurrentFreshStageFromEditor();
+  loadFreshStageToEditor(index);
+}
+
+function addFreshStage() {
+  saveCurrentFreshStageFromEditor();
+  const nextNum = freshStages.length + 1;
+  const defaultDelay = nextNum === 2 ? 3 : (nextNum === 3 ? 7 : (nextNum === 4 ? 14 : 21));
+
+  freshStages.push({
+    stage: nextNum,
+    label: `Stage ${nextNum}`,
+    delayDays: defaultDelay,
+    scheduledFor: null,
+    subject: `Clinical Care Sequence (Part ${nextNum}): Progress & Routine`,
+    trackingCode: generateRandomTrackingCode('FRESH', nextNum),
+    htmlContent: DEFAULT_STARTER_CLINICAL_HTML
+  });
+
+  selectFreshStage(freshStages.length - 1);
+  showToast(`Added Stage ${nextNum} (scheduled after ${defaultDelay} days).`, 'info');
+}
+
+function deleteCurrentFreshStage() {
+  if (freshStages.length <= 1) return;
+  freshStages.splice(activeFreshStageIndex, 1);
+  // Re-index
+  freshStages.forEach((s, i) => {
+    s.stage = i + 1;
+  });
+  activeFreshStageIndex = Math.max(0, activeFreshStageIndex - 1);
+  renderFreshStageStrip();
+  loadFreshStageToEditor(activeFreshStageIndex);
+  showToast('Stage deleted.', 'info');
+}
+
+function onFreshStageDelayChange(val) {
+  const customDateInput = document.getElementById('freshStageCustomDateTime');
+  const timingSummary = document.getElementById('freshStageTimingSummary');
+  const s = freshStages[activeFreshStageIndex];
+
+  if (val === 'custom') {
+    if (customDateInput) {
+      customDateInput.style.display = 'inline-block';
+      if (!customDateInput.value) {
+        const tomorrow = new Date(Date.now() + 86400000);
+        customDateInput.value = tomorrow.toISOString().substring(0, 16);
+      }
+      if (s) {
+        s.scheduledFor = new Date(customDateInput.value).toISOString();
+        s.delayDays = 0;
+      }
+    }
+    if (timingSummary) timingSummary.textContent = 'Custom Scheduled Time';
+  } else {
+    if (customDateInput) customDateInput.style.display = 'none';
+    const days = Number(val) || 0;
+    if (s) {
+      s.delayDays = days;
+      s.scheduledFor = null;
+    }
+    if (timingSummary) {
+      timingSummary.textContent = days === 0 ? 'Instant (Upon Launch)' : `After ${days} Day${days === 1 ? '' : 's'}`;
+    }
+  }
+  renderFreshStageStrip();
+}
+
+function onFreshStageCustomDateChange(val) {
+  const s = freshStages[activeFreshStageIndex];
+  if (s && val) {
+    s.scheduledFor = new Date(val).toISOString();
+    s.delayDays = 0;
+    const timingSummary = document.getElementById('freshStageTimingSummary');
+    if (timingSummary) timingSummary.textContent = `Scheduled: ${new Date(val).toLocaleString('en-GB')}`;
+    renderFreshStageStrip();
+  }
+}
+
+function updateFreshSubjectCount() {
+  const input = document.getElementById('freshSubjectInput');
+  const countEl = document.getElementById('freshSubjectCount');
+  if (input && countEl) {
+    countEl.textContent = `${input.value.length} chars`;
+  }
+}
+
+function insertTagIntoFreshSubject(tag) {
+  const input = document.getElementById('freshSubjectInput');
+  if (!input) return;
+  input.value += (input.value.endsWith(' ') || input.value.length === 0 ? '' : ' ') + tag;
+  input.focus();
+  updateFreshSubjectCount();
+  updateFreshPreview();
+}
+
+function generateFreshTrackingCode() {
+  const input = document.getElementById('freshTrackingCodeInput');
+  if (input) {
+    const code = generateRandomTrackingCode('FRESH', activeFreshStageIndex + 1);
+    input.value = code;
+    if (freshStages[activeFreshStageIndex]) {
+      freshStages[activeFreshStageIndex].trackingCode = code;
+    }
+    updateFreshPreview();
+  }
+}
+
+function resetFreshStageDummyContent() {
+  const htmlInput = document.getElementById('freshHtmlInput');
+  if (htmlInput) {
+    htmlInput.value = DEFAULT_STARTER_CLINICAL_HTML;
+    if (freshStages[activeFreshStageIndex]) {
+      freshStages[activeFreshStageIndex].htmlContent = DEFAULT_STARTER_CLINICAL_HTML;
+    }
+    updateFreshPreview();
+    showToast('Starter clinical dummy template restored.', 'info');
+  }
+}
+
+function setFreshPreviewDevice(device, btn) {
+  activeFreshPreviewDevice = device;
+  const frame = document.getElementById('freshPreviewFrame');
+  document.querySelectorAll('#btnFreshPreviewDesktop, #btnFreshPreviewMobile').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (frame) {
+    frame.className = `preview-frame device-${device}`;
+  }
+}
+
+function updateFreshPreview() {
+  const frame = document.getElementById('freshPreviewFrame');
+  if (!frame) return;
+
+  const htmlInput = document.getElementById('freshHtmlInput');
+  const subjInput = document.getElementById('freshSubjectInput');
+  const codeInput = document.getElementById('freshTrackingCodeInput');
+
+  const rawHtml = htmlInput ? htmlInput.value : DEFAULT_STARTER_CLINICAL_HTML;
+  const rawSubj = subjInput ? subjInput.value : 'Clinical Follow-Up';
+  const trackingCode = codeInput ? codeInput.value : 'TDS-CARE';
+
+  const firstRecip = freshRecipients.length > 0 ? freshRecipients[0] : null;
+  const firstName = firstRecip ? firstRecip.first_name : 'there';
+  const fullName = firstRecip ? firstRecip.name : 'Valued Client';
+  const shopUrl = 'https://shop.thedentalshaman.com';
+
+  let renderedSubject = rawSubj
+    .replace(/\{\{first_name\}\}/gi, firstName)
+    .replace(/\{\{customer_name\}\}/gi, fullName)
+    .replace(/\{\{tracking_code\}\}/gi, trackingCode)
+    .replace(/\{\{discount_code\}\}/gi, trackingCode)
+    .replace(/\{\{shop_url\}\}/gi, shopUrl);
+
+  let renderedBody = rawHtml
+    .replace(/\{\{first_name\}\}/gi, firstName)
+    .replace(/\{\{customer_name\}\}/gi, fullName)
+    .replace(/\{\{tracking_code\}\}/gi, trackingCode)
+    .replace(/\{\{discount_code\}\}/gi, trackingCode)
+    .replace(/\{\{shop_url\}\}/gi, shopUrl);
+
+  frame.innerHTML = `
+    <div style="background:#f1f5f9; padding:8px 12px; font-size:12px; border-bottom:1px solid #e2e8f0; font-family:var(--p-font-family);">
+      <strong>Subject:</strong> ${escapeHtml(renderedSubject)}
+    </div>
+    <div style="background:#ffffff; overflow:auto;">
+      ${renderedBody}
+    </div>
+  `;
+}
+
+// Preset Management
+async function loadFreshPresets() {
+  const select = document.getElementById('freshPresetSelect');
+  if (!select) return;
+  try {
+    const res = await authFetch('/api/fresh-presets');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.presets)) {
+      freshPresetsList = data.presets;
+      let optHtml = '<option value="">-- Load Saved Preset --</option>';
+      freshPresetsList.forEach(p => {
+        optHtml += `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${(p.stages || []).length} stages)</option>`;
+      });
+      select.innerHTML = optHtml;
+    }
+  } catch (e) {
+    console.error('Failed to load fresh presets:', e);
+  }
+}
+
+function onFreshPresetSelectChange(presetId) {
+  if (!presetId) return;
+  const p = freshPresetsList.find(preset => preset.id === presetId);
+  if (!p || !Array.isArray(p.stages) || p.stages.length === 0) return;
+
+  freshStages = JSON.parse(JSON.stringify(p.stages));
+  activeFreshStageIndex = 0;
+  renderFreshStageStrip();
+  loadFreshStageToEditor(0);
+  showToast(`Loaded preset "${p.name}".`, 'success');
+}
+
+function openSaveFreshPresetPrompt() {
+  saveCurrentFreshStageFromEditor();
+  const input = document.getElementById('saveFreshPresetName');
+  if (input) input.value = `Custom Sequence (${freshStages.length} Stages)`;
+  const modal = document.getElementById('modalSaveFreshPreset');
+  if (modal) modal.classList.add('active');
+}
+
+function closeSaveFreshPresetModal() {
+  const modal = document.getElementById('modalSaveFreshPreset');
+  if (modal) modal.classList.remove('active');
+}
+
+async function submitSaveFreshPreset(e) {
+  e.preventDefault();
+  saveCurrentFreshStageFromEditor();
+  const nameInput = document.getElementById('saveFreshPresetName');
+  const name = nameInput ? nameInput.value.trim() : 'Custom Sequence';
+  if (!name) return;
+
+  try {
+    const res = await authFetch('/api/fresh-presets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        stages: freshStages
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Preset "${name}" saved successfully!`, 'success');
+      closeSaveFreshPresetModal();
+      loadFreshPresets();
+    } else {
+      showToast(data.error || 'Failed to save preset.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+// Send Test Email for active fresh stage
+async function sendFreshTestEmail() {
+  saveCurrentFreshStageFromEditor();
+  const email = prompt('Enter your email address to receive a live test preview of this stage:');
+  if (!email || !email.includes('@')) return;
+
+  const s = freshStages[activeFreshStageIndex] || freshStages[0];
+  try {
+    showToast('Sending test email...', 'info');
+    const res = await authFetch('/api/followup/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        testEmail: email.trim(),
+        templateId: 'fresh_sequence',
+        customSubject: s.subject,
+        customDiscountCode: s.trackingCode,
+        customBody: s.htmlContent
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Test email successfully delivered to ${email}!`, 'success');
+    } else {
+      showToast(data.error || 'Failed to deliver test email.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+// Launch Multi-Stage Fresh Sequence
+async function launchFreshSequence() {
+  saveCurrentFreshStageFromEditor();
+
+  if (freshRecipients.length === 0) {
+    showToast('Please add at least one recipient email address.', 'critical');
+    return;
+  }
+  if (freshStages.length === 0) {
+    showToast('Please configure at least one stage.', 'critical');
+    return;
+  }
+
+  const confirmMsg = `Launch sequence to ${freshRecipients.length} recipient(s) across ${freshStages.length} stage(s)?\n\nStage 1 will send immediately. Subsequent delayed stages will be scheduled automatically.`;
+  if (!confirm(confirmMsg)) return;
+
+  const launchBtn = document.getElementById('btnLaunchFreshSequence');
+  if (launchBtn) launchBtn.disabled = true;
+
+  try {
+    showToast('Dispatching sequence...', 'info');
+    const sessionId = `fresh_seq_${Date.now()}`;
+    const res = await authFetch('/api/fresh-sequence/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        sequenceName: `Fresh Sequence (${freshStages.length} Stages)`,
+        recipients: freshRecipients,
+        stages: freshStages
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`🎉 Sequence Successfully Launched!\n\n${data.message}`);
+      closeFreshSequenceModal();
+      loadDispatches();
+    } else {
+      alert(`Error launching sequence: ${data.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    alert(`Dispatch failed: ${err.message}`);
+  } finally {
+    if (launchBtn) launchBtn.disabled = false;
+  }
+}
+
+// Reschedule Scheduled Dispatches
+function openRescheduleModal(dispatchId) {
+  const d = dispatchesList.find(disp => disp.id === dispatchId);
+  if (!d) return;
+
+  const modal = document.getElementById('modalRescheduleDispatch');
+  const idInput = document.getElementById('rescheduleDispatchId');
+  const recipInput = document.getElementById('rescheduleRecipientEmail');
+  const subjInput = document.getElementById('rescheduleSubject');
+  const dateInput = document.getElementById('rescheduleDateTime');
+
+  if (idInput) idInput.value = d.id;
+  if (recipInput) recipInput.value = `${d.customerName || 'Customer'} (${d.customerEmail})`;
+  if (subjInput) subjInput.value = `${d.stageLabel || ('Stage ' + d.stage)}: ${d.subject || ''}`;
+  
+  if (dateInput) {
+    const curDate = d.scheduledFor ? new Date(d.scheduledFor) : new Date(Date.now() + 86400000);
+    dateInput.value = curDate.toISOString().substring(0, 16);
+  }
+
+  if (modal) modal.classList.add('active');
+}
+
+function closeRescheduleModal() {
+  const modal = document.getElementById('modalRescheduleDispatch');
+  if (modal) modal.classList.remove('active');
+}
+
+async function submitRescheduleDispatch(e) {
+  e.preventDefault();
+  const idInput = document.getElementById('rescheduleDispatchId');
+  const dateInput = document.getElementById('rescheduleDateTime');
+  if (!idInput || !dateInput || !dateInput.value) return;
+
+  try {
+    showToast('Updating scheduled time...', 'info');
+    const res = await authFetch(`/api/dispatches/${encodeURIComponent(idInput.value)}/reschedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduledFor: new Date(dateInput.value).toISOString() })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Scheduled time updated successfully!', 'success');
+      closeRescheduleModal();
+      loadDispatches();
+    } else {
+      showToast(data.error || 'Failed to reschedule.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+async function sendScheduledDispatchNow(dispatchId) {
+  if (!confirm('Send this scheduled follow-up email immediately right now?')) return;
+  try {
+    showToast('Sending scheduled email now...', 'info');
+    const res = await authFetch(`/api/dispatches/${encodeURIComponent(dispatchId)}/send-now`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Email delivered successfully!', 'success');
+      loadDispatches();
+    } else {
+      showToast(data.error || 'Failed to send.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+async function cancelScheduledDispatch(dispatchId) {
+  if (!confirm('Are you sure you want to cancel this scheduled follow-up email?')) return;
+  try {
+    const res = await authFetch(`/api/dispatches/${encodeURIComponent(dispatchId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Scheduled email cancelled.', 'info');
+      loadDispatches();
+    } else {
+      showToast(data.error || 'Failed to cancel.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}

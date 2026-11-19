@@ -3277,3 +3277,121 @@ html.device-unauthenticated #authGateModal.active {
     font-size: 12px !important;
   }
 }
+
+/* ========================================================
+   START FRESH SEQUENCE & MULTI-STAGE AUTOMATION STYLING
+   ======================================================== */
+.fresh-recipients-container {
+  background: var(--p-color-bg-surface-secondary);
+  border: 1px solid var(--p-color-border-subdued);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.fresh-paste-wrap {
+  position: relative;
+}
+
+.fresh-preset-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.fresh-stage-stepper-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid var(--p-color-border-subdued);
+  border-radius: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fresh-stage-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.fresh-stage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--p-color-border);
+  background: #ffffff;
+  color: var(--p-color-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.fresh-stage-pill:hover {
+  background: #f1f2f4;
+  border-color: var(--p-color-border-dark);
+}
+
+.fresh-stage-pill.active {
+  background: #008060;
+  color: #ffffff;
+  border-color: #006e52;
+  box-shadow: 0 1px 3px rgba(0, 128, 96, 0.25);
+}
+
+.fresh-stage-pill.active .fresh-stage-timing-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.fresh-stage-timing-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #e5e7eb;
+  color: #374151;
+  font-weight: 500;
+}
+
+.rank-badge-scheduled {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+/* Ensure Settings Tab card and layout matches exact full width of all tabs */
+#tab-settings {
+  width: 100%;
+}
+#tab-settings .Polaris-Card {
+  width: 100%;
+  box-sizing: border-box;
+}
+.settings-grid-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 32px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+.settings-grid-col {
+  width: 100%;
+  box-sizing: border-box;
+}

@@ -142,6 +142,7 @@ class Database {
       this.data.templates = DEFAULT_TEMPLATES;
       changed = true;
     }
+    if (!this.data.freshPresets) { this.data.freshPresets = []; changed = true; }
     if (!this.data.settings) {
       this.data.settings = {
         senderName: process.env.DEFAULT_FROM_NAME || 'Dr. Marc Mortiboys | The Dental Shaman',
@@ -640,6 +641,50 @@ class Database {
     this.data.settings = { ...this.data.settings, ...newSettings };
     this.save();
     return this.data.settings;
+  }
+
+  // --- Fresh Presets ---
+  getFreshPresets() {
+    this.reloadIfChanged();
+    return this.data.freshPresets || [];
+  }
+
+  getFreshPresetById(id) {
+    this.reloadIfChanged();
+    return (this.data.freshPresets || []).find(p => p.id === id);
+  }
+
+  saveFreshPreset(preset) {
+    this.reloadIfChanged();
+    if (!this.data.freshPresets) this.data.freshPresets = [];
+    const existingIdx = this.data.freshPresets.findIndex(p => p.id === preset.id);
+    if (existingIdx !== -1) {
+      this.data.freshPresets[existingIdx] = {
+        ...this.data.freshPresets[existingIdx],
+        ...preset,
+        updatedAt: new Date().toISOString()
+      };
+      preset = this.data.freshPresets[existingIdx];
+    } else {
+      preset.id = preset.id || 'preset_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      preset.createdAt = new Date().toISOString();
+      preset.updatedAt = preset.createdAt;
+      this.data.freshPresets.push(preset);
+    }
+    this.save();
+    return preset;
+  }
+
+  deleteFreshPreset(id) {
+    this.reloadIfChanged();
+    if (!this.data.freshPresets) return false;
+    const idx = this.data.freshPresets.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      this.data.freshPresets.splice(idx, 1);
+      this.save();
+      return true;
+    }
+    return false;
   }
 
   // --- Metrics Summary ---
