@@ -132,9 +132,9 @@ html, body {
 
 .Polaris-Page-Header__Row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -472,16 +472,16 @@ html, body {
   background: #ffffff;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .Polaris-SearchContainer {
   position: relative;
-  flex: 1;
-  min-width: 240px;
-  max-width: 480px;
+  width: 360px;
+  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .Polaris-SearchIcon {

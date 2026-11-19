@@ -1026,7 +1026,7 @@ function renderCustomersTable() {
           <div style="font-size: 11px; color: var(--color-text-muted);">ID: ${c.id}</div>
         </td>
         <td>
-          <div style="font-family: monospace; font-size: 12.5px;">${email}</div>
+          <div style="font-size: 13px; color: var(--p-color-text);">${email}</div>
         </td>
         <td>
           <span style="font-weight: 600;">${orders}</span>
@@ -1924,7 +1924,7 @@ async function loadConversions() {
             </td>
             <td>
               <div style="font-weight: 600; color: var(--color-text-title);">${escapeHtml(customerName)}</div>
-              <div style="font-family: monospace; font-size: 11.5px; color: var(--color-text-muted);">${escapeHtml(customerEmail)}</div>
+              <div style="font-size: 12px; color: var(--p-color-text-subdued);">${escapeHtml(customerEmail)}</div>
             </td>
             <td>
               <div style="font-weight: 600; color: var(--color-brand); font-size: 12.5px;">${escapeHtml(c.campaignName || 'Campaign')}</div>
@@ -2115,7 +2115,7 @@ function renderDispatchesTable() {
         </td>
         <td>
           <div style="font-weight: 600; color: var(--color-text-title);">${escapeHtml(d.customerName || 'Customer')}</div>
-          <div style="font-family: monospace; font-size: 11.5px; color: var(--color-text-muted);">${escapeHtml(d.customerEmail)}</div>
+          <div style="font-size: 12px; color: var(--p-color-text-subdued);">${escapeHtml(d.customerEmail)}</div>
         </td>
         <td>
           <div style="font-weight: 600; color: var(--color-brand); font-size: 12px;">${escapeHtml(d.campaignName || 'Campaign')}</div>
