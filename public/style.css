@@ -3646,54 +3646,51 @@ html.device-unauthenticated #authGateModal.active {
 
 
 /* ========================================================
-   STICKY START FRESH DASHBOARD ACTION (ALWAYS VISIBLE & CLICKABLE)
+   MINIMAL MONOCHROME STICKY FAB (ZERO COLOR, PLUS ICON ONLY)
    ======================================================== */
 .sticky-start-fresh-btn {
   position: fixed;
-  bottom: 26px;
+  bottom: 28px;
   right: 28px;
   z-index: 990;
-  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 11px 20px 11px 16px;
-  background: #008060;
+  justify-content: center;
+  background: #111827; /* sleek neutral obsidian / zero color */
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 32px;
-  font-size: 13.5px;
-  font-weight: 600;
-  font-family: inherit;
-  letter-spacing: 0.2px;
-  box-shadow: 0 4px 16px rgba(0, 128, 96, 0.45), 0 1px 3px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   outline: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+  margin: 0;
   text-decoration: none;
-  white-space: nowrap;
   backdrop-filter: blur(8px);
 }
 
 .sticky-start-fresh-btn:hover {
-  background: #006e52;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(0, 128, 96, 0.55), 0 2px 6px rgba(0, 0, 0, 0.18);
+  background: #000000;
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.16);
   color: #ffffff;
 }
 
 .sticky-start-fresh-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 128, 96, 0.35);
+  transform: translateY(0) scale(0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
 }
 
-.sticky-start-fresh-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
+.sticky-start-fresh-btn svg {
+  display: block;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sticky-start-fresh-btn:hover svg {
+  transform: rotate(90deg);
 }
 
 /* Hide sticky button when any modal is open to avoid obstruction */
@@ -3704,14 +3701,18 @@ body.modal-open .sticky-start-fresh-btn {
 /* Mobile responsive sticky positioning (iOS & Android) */
 @media (max-width: 767px) {
   .sticky-start-fresh-btn {
-    bottom: max(16px, env(safe-area-inset-bottom));
-    right: 16px;
-    padding: 10px 16px 10px 14px;
-    font-size: 13px;
-    box-shadow: 0 4px 14px rgba(0, 128, 96, 0.45), 0 1px 3px rgba(0,0,0,0.2);
+    bottom: max(18px, env(safe-area-inset-bottom));
+    right: 18px;
+    width: 44px;
+    height: 44px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  .sticky-start-fresh-btn svg {
+    width: 18px;
+    height: 18px;
   }
   .btn-bar-start-fresh {
-    display: none !important; /* On mobile, the sticky floating button is optimal and unclutters filter row */
+    display: none !important;
   }
 }
 
