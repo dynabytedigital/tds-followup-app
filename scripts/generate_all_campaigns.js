@@ -74,7 +74,7 @@ function buildEmailHtml({
     </div>
 
     <!-- DYNAMIC CLINICAL GUIDANCE BLOCK -->
-    {{discount_block}}
+    {{guidance_block}}
 
     <!-- CTA -->
     <div style="text-align:center; margin:32px 0 24px 0;">

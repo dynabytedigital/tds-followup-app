@@ -42,7 +42,7 @@ class EmailService {
         <p>Dear {{first_name}},</p>
         <p>Thank you for being a valued client of The Dental Shaman.</p>
         <div style="margin: 24px 0; padding: 16px; background: #fbf7fa; border: 1px solid #eadce6; border-radius: 8px;">
-          <p style="margin: 0; font-weight: 600;">Use promo code: <span style="color: #744B6F;">{{discount_code}}</span></p>
+          <p style="margin: 0; font-weight: 600;">Clinical Care Reference: <span style="color: #744B6F;">{{tracking_code}}</span></p>
         </div>
         <p><a href="{{shop_url}}" style="display: inline-block; padding: 12px 24px; background: #744B6F; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Visit Our Holistic Store</a></p>
       </div>
@@ -70,7 +70,7 @@ class EmailService {
     }
 
     // Professional clinical care guidance banner (no discounts or coupon mentions)
-    const discountBlock = `
+    const guidanceBlock = `
       <div style="background-color:#fbf7fa; border-left:4px solid #744B6F; padding:16px 20px; margin:24px 0; border-radius:0 6px 6px 0;">
         <p style="color:#744B6F; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px 0; font-family:Arial,sans-serif; font-weight:bold;">
           Clinical Care Guidance &amp; Consultation
@@ -93,7 +93,8 @@ class EmailService {
       .replace(/\{\{shop_name\}\}/gi, shopName);
 
     let html = rawHtml
-      .replace(/\{\{discount_block\}\}/gi, discountBlock)
+      .replace(/\{\{guidance_block\}\}/gi, guidanceBlock)
+      .replace(/\{\{discount_block\}\}/gi, guidanceBlock)
       .replace(/\{\{first_name\}\}/gi, firstName)
       .replace(/\{\{customer_name\}\}/gi, fullName)
       .replace(/\{\{customer_email\}\}/gi, email)

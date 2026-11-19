@@ -3588,12 +3588,58 @@ html.device-unauthenticated #authGateModal.active {
   background: #fef2f2;
 }
 
+#sessionInspectorModal .modal-body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
 @media (max-width: 640px) {
   .sessions-grid-layout {
     grid-template-columns: 1fr;
   }
+  .session-customer-card {
+    padding: 10px 12px;
+  }
   .stage-progression-row {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .stage-progression-row > div:first-child {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .stage-progression-row > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+    box-sizing: border-box;
+  }
+}
+
+
+/* Balanced Full-Width Settings Grid Layout */
+.settings-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .settings-grid-layout {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .settings-form-row {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 }
