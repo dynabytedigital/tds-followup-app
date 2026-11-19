@@ -1303,6 +1303,13 @@ function openComposer(customer, preselectedTemplateId = null, isBulk = false) {
   // Open modal & lock background scroll
   document.body.classList.add('modal-open');
   document.getElementById('composerModal').classList.add('active');
+  setTimeout(() => {
+    const subjEl = document.getElementById('composerSubject');
+    if (subjEl) {
+      autoResizeTextarea(subjEl);
+      updateComposerSubjectCount();
+    }
+  }, 20);
 }
 
 function closeComposerModal() {
@@ -1520,7 +1527,12 @@ async function onTemplateChange() {
   let subj = tpl.subject || 'A personal note from Dr. Marc Mortiboys (BDS)';
   const firstName = activeCustomer?.first_name || 'there';
   subj = subj.replace(/\{\{first_name\}\}/gi, firstName);
-  document.getElementById('composerSubject').value = subj;
+  const composerSubjEl = document.getElementById('composerSubject');
+  if (composerSubjEl) {
+    composerSubjEl.value = subj;
+    autoResizeTextarea(composerSubjEl);
+    updateComposerSubjectCount();
+  }
 
   // Default promo code
   const noDisc = document.getElementById('composerNoDiscountToggle')?.checked;
@@ -1548,6 +1560,24 @@ async function onTemplateChange() {
   }
 
   updateLivePreview();
+}
+
+function updateComposerSubjectCount() {
+  const subj = document.getElementById('composerSubject')?.value || '';
+  const countEl = document.getElementById('composerSubjectCount');
+  if (countEl) {
+    const len = subj.length;
+    countEl.innerText = `${len} chars`;
+  }
+}
+
+function sanitizePreviewHtml(rawHtml) {
+  if (!rawHtml) return '';
+  // Gracefully hide broken external images and ensure images never stretch
+  return rawHtml.replace(/<img\s+([^>]*?)>/gi, (match, attrs) => {
+    if (/onerror=/i.test(attrs)) return match;
+    return `<img ${attrs} onerror="this.style.display='none';">`;
+  });
 }
 
 function generateUniqueCode() {
@@ -1580,7 +1610,7 @@ function updateLivePreview() {
       });
       const data = await res.json();
       if (data.success && data.rendered) {
-        document.getElementById('composerPreviewFrame').innerHTML = data.rendered.html;
+        document.getElementById('composerPreviewFrame').innerHTML = sanitizePreviewHtml(data.rendered.html);
       }
     } catch (e) {
       console.error('Preview render error:', e);
@@ -2735,6 +2765,45 @@ function openComposerWithTemplate(templateId = null) {
 }
 
 /* ========================================================
+   AUTO-RESIZING & MOBILE ERGONOMICS UTILITIES (v18.13)
+   ======================================================== */
+function autoResizeTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.max(58, el.scrollHeight + 4) + 'px';
+}
+
+function updateSubjectCharCount() {
+  const subj = document.getElementById('tplEditorSubject')?.value || '';
+  const countEl = document.getElementById('tplEditorSubjectCount');
+  if (countEl) {
+    const len = subj.length;
+    const note = len <= 60 ? 'Ideal length' : 'Longer on mobile';
+    countEl.innerText = `${len} / 60 chars • ${note}`;
+    countEl.style.color = len > 70 ? '#d97706' : 'var(--p-color-text-subdued)';
+  }
+}
+
+function toggleTemplateZeroDiscount(checkbox) {
+  const promoInput = document.getElementById('tplEditorPromoCode');
+  const discountInput = document.getElementById('tplEditorDiscountPercent');
+  const offerGrid = document.getElementById('tplEditorOfferInputs');
+  if (!promoInput || !discountInput) return;
+  if (checkbox.checked) {
+    promoInput.dataset.prevVal = promoInput.value;
+    discountInput.dataset.prevVal = discountInput.value;
+    promoInput.value = 'NONE';
+    discountInput.value = '0';
+    if (offerGrid) offerGrid.classList.add('tpl-offer-disabled');
+  } else {
+    promoInput.value = promoInput.dataset.prevVal || '';
+    discountInput.value = discountInput.dataset.prevVal || '10';
+    if (offerGrid) offerGrid.classList.remove('tpl-offer-disabled');
+  }
+  updateEditorLivePreview();
+}
+
+/* ========================================================
    IN-BROWSER TEMPLATE STUDIO & CODE EDITOR MODAL
    ======================================================== */
 async function openTemplateEditor(templateId) {
@@ -2757,6 +2826,23 @@ async function openTemplateEditor(templateId) {
   document.getElementById('tplEditorPromoCode').value = (tpl.discountCode && tpl.discountCode !== 'NONE') ? tpl.discountCode : '';
   document.getElementById('tplEditorDiscountPercent').value = tpl.discountPercent !== undefined ? tpl.discountPercent : 10;
   document.getElementById('tplEditorDescription').value = tpl.description || '';
+
+  // Zero discount toggle state
+  const isZeroDiscount = (!tpl.discountCode || tpl.discountCode === 'NONE' || tpl.discountPercent === 0);
+  const zeroDiscountToggle = document.getElementById('tplEditorZeroDiscountToggle');
+  if (zeroDiscountToggle) {
+    zeroDiscountToggle.checked = isZeroDiscount;
+    const offerGrid = document.getElementById('tplEditorOfferInputs');
+    if (offerGrid) offerGrid.classList.toggle('tpl-offer-disabled', isZeroDiscount);
+  }
+
+  // Trigger auto-resizing & counters
+  setTimeout(() => {
+    autoResizeTextarea(document.getElementById('tplEditorName'));
+    autoResizeTextarea(document.getElementById('tplEditorSubject'));
+    autoResizeTextarea(document.getElementById('tplEditorDescription'));
+    updateSubjectCharCount();
+  }, 20);
 
   // Default mode: clean live preview
   setTemplateEditorMode('preview');
@@ -2794,8 +2880,16 @@ function setTemplateEditorMode(mode) {
     }
     if (btnEl) btnEl.classList.toggle('active', p === mode);
   });
+
   if (mode === 'preview') {
     updateEditorLivePreview();
+  } else if (mode === 'settings') {
+    setTimeout(() => {
+      autoResizeTextarea(document.getElementById('tplEditorName'));
+      autoResizeTextarea(document.getElementById('tplEditorSubject'));
+      autoResizeTextarea(document.getElementById('tplEditorDescription'));
+      updateSubjectCharCount();
+    }, 20);
   }
 }
 
@@ -2816,6 +2910,8 @@ function insertTagIntoSubject(tag) {
   const subjInput = document.getElementById('tplEditorSubject');
   if (subjInput) {
     subjInput.value = (subjInput.value + ' ' + tag).trim();
+    autoResizeTextarea(subjInput);
+    updateSubjectCharCount();
     subjInput.focus();
     updateEditorLivePreview();
     showToast(`Added ${tag} to Subject Line`, 'info');
@@ -2849,7 +2945,7 @@ function updateEditorLivePreview() {
       });
       const data = await res.json();
       if (data.success && data.rendered) {
-        document.getElementById('tplEditorPreviewFrame').innerHTML = data.rendered.html;
+        document.getElementById('tplEditorPreviewFrame').innerHTML = sanitizePreviewHtml(data.rendered.html);
       }
     } catch (e) {
       console.error('Editor preview render error:', e);

@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.12">
+  <link rel="stylesheet" href="style.css?v=18.13">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -670,48 +670,60 @@
           </div>
         </div>
 
-        <!-- VIEW PANE 2: SUBJECT, OFFER & DETAILS -->
+        <!-- VIEW PANE 2: SUBJECT, OFFER & DETAILS (CLEAN AUTO-WRAPPING PLAYGROUND) -->
         <div id="tplPaneSettings" class="tpl-editor-pane" style="display: none;">
-          <div class="tpl-card-section">
-            <h4 class="tpl-card-title">Template &amp; Subject</h4>
-            <div class="form-group">
-              <label class="form-label" for="tplEditorName">Template Display Name</label>
-              <input type="text" id="tplEditorName" class="form-input" placeholder="e.g. Flosser Setup &amp; 7-Day Adaptation Guide">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="tplEditorSubject">Email Subject Line</label>
-              <input type="text" id="tplEditorSubject" class="form-input" oninput="updateEditorLivePreview()" placeholder="e.g. Your Flosser Has Arrived: 7-Day Adaptation Technique">
-            </div>
-          </div>
-
-          <div class="tpl-card-section">
-            <h4 class="tpl-card-title">Offer &amp; Discount Configuration</h4>
-            <div class="tpl-form-grid-2">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="tplEditorPromoCode">Default Promo Code</label>
-                <input type="text" id="tplEditorPromoCode" class="form-input" style="text-transform: uppercase;" placeholder="e.g. NONE or FLOSSER10" oninput="updateEditorLivePreview()">
+          <div class="tpl-clean-form">
+            <!-- Field 1: Template Display Name (Auto-wrapping multiline) -->
+            <div class="tpl-field-group">
+              <div class="tpl-field-header">
+                <label class="tpl-field-label" for="tplEditorName">Template Name</label>
+                <span class="tpl-field-hint">Visible in sequence</span>
               </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="tplEditorDiscountPercent">Discount Value (%)</label>
-                <input type="number" id="tplEditorDiscountPercent" class="form-input" min="0" max="100" placeholder="0" inputmode="numeric" oninput="updateEditorLivePreview()">
+              <textarea id="tplEditorName" class="tpl-clean-textarea" rows="2" placeholder="e.g. Flosser Setup &amp; 7-Day Adaptation Guide" oninput="autoResizeTextarea(this)"></textarea>
+            </div>
+
+            <!-- Field 2: Email Subject Line (Auto-wrapping multiline + Char Count + Quick Tags) -->
+            <div class="tpl-field-group">
+              <div class="tpl-field-header">
+                <label class="tpl-field-label" for="tplEditorSubject">Subject Line</label>
+                <span class="tpl-field-counter" id="tplEditorSubjectCount">0 / 60 chars</span>
+              </div>
+              <textarea id="tplEditorSubject" class="tpl-clean-textarea tpl-subject-textarea" rows="2" placeholder="e.g. Your Flosser Has Arrived: 7-Day Adaptation Technique" oninput="autoResizeTextarea(this); updateEditorLivePreview(); updateSubjectCharCount();"></textarea>
+              <div class="tpl-quick-tags">
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{first_name}}')">+ First Name</button>
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{discount_block}}')">+ Promo Code</button>
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{shop_url}}')">+ Store Link</button>
               </div>
             </div>
-            <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin: 8px 0 0;">
-              Leave empty or enter 'NONE' for 0% clinical guidance (no price change on live store).
-            </p>
-          </div>
 
-          <div class="tpl-card-section">
-            <h4 class="tpl-card-title">Clinical Goal &amp; Personalization Tags</h4>
-            <div class="form-group">
-              <label class="form-label" for="tplEditorDescription">Objective / Internal Description</label>
-              <input type="text" id="tplEditorDescription" class="form-input" placeholder="e.g. Post-purchase onboarding and gentle pressure protocol">
+            <!-- Field 3: Sequence Offer Configuration -->
+            <div class="tpl-field-group">
+              <div class="tpl-field-header">
+                <label class="tpl-field-label">Sequence Offer</label>
+                <label class="tpl-toggle-label">
+                  <input type="checkbox" id="tplEditorZeroDiscountToggle" onchange="toggleTemplateZeroDiscount(this)">
+                  <span>Zero Discount (Guidance Only)</span>
+                </label>
+              </div>
+              <div class="tpl-offer-grid" id="tplEditorOfferInputs">
+                <div class="tpl-offer-col">
+                  <span class="tpl-sublabel">Promo Code</span>
+                  <input type="text" id="tplEditorPromoCode" class="tpl-clean-input" style="text-transform: uppercase;" placeholder="FLOSSER10" oninput="updateEditorLivePreview()">
+                </div>
+                <div class="tpl-offer-col">
+                  <span class="tpl-sublabel">Discount %</span>
+                  <input type="number" id="tplEditorDiscountPercent" class="tpl-clean-input" min="0" max="100" placeholder="10" inputmode="numeric" oninput="updateEditorLivePreview()">
+                </div>
+              </div>
             </div>
-            <label class="form-label" style="margin-bottom: 6px;">Available Personalization Tags (Tap to copy)</label>
-            <div class="tpl-tag-chips">
-              <button type="button" class="tpl-tag-chip" onclick="insertTagIntoSubject('{{first_name}}')"><code>{{first_name}}</code> Customer Name</button>
-              <button type="button" class="tpl-tag-chip" onclick="insertTagIntoSubject('{{discount_block}}')"><code>{{discount_block}}</code> Promo Code</button>
-              <button type="button" class="tpl-tag-chip" onclick="insertTagIntoSubject('{{shop_url}}')"><code>{{shop_url}}</code> Store Link</button>
+
+            <!-- Field 4: Clinical Objective & Internal Notes (Auto-wrapping multiline) -->
+            <div class="tpl-field-group" style="border-bottom: none; margin-bottom: 0;">
+              <div class="tpl-field-header">
+                <label class="tpl-field-label" for="tplEditorDescription">Clinical Objective</label>
+                <span class="tpl-field-hint">Internal clinical notes</span>
+              </div>
+              <textarea id="tplEditorDescription" class="tpl-clean-textarea" rows="2" placeholder="e.g. Post-purchase onboarding and gentle low-pressure adaptation protocol" oninput="autoResizeTextarea(this)"></textarea>
             </div>
           </div>
         </div>
@@ -824,8 +836,11 @@
           <!-- Left: Direct Playground Controls -->
           <div class="composer-controls-pane">
             <div class="form-group">
-              <label class="form-label" for="composerSubject">Subject</label>
-              <input type="text" id="composerSubject" class="form-input" oninput="updateLivePreview()" placeholder="Email subject">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label class="form-label" for="composerSubject" style="margin-bottom: 0;">Subject Line</label>
+                <span id="composerSubjectCount" style="font-size: 11px; color: var(--p-color-text-subdued); font-variant-numeric: tabular-nums;"></span>
+              </div>
+              <textarea id="composerSubject" class="form-textarea composer-clean-textarea" rows="2" oninput="autoResizeTextarea(this); updateLivePreview(); updateComposerSubjectCount();" placeholder="Email subject"></textarea>
             </div>
 
             <div class="form-group">
@@ -1137,6 +1152,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.12"></script>
+  <script src="app.js?v=18.13"></script>
 </body>
 </html>

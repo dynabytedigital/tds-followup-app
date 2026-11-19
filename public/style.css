@@ -2179,6 +2179,208 @@ html.device-unauthenticated #authGateModal.active {
 }
 
 /* ========================================================
+   MODERN CLEAN MOBILE-FIRST TEMPLATE FORM & TEXTAREAS (v18.13)
+   ======================================================== */
+.tpl-clean-form {
+  background: #ffffff;
+  border: 1px solid var(--p-color-border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tpl-field-group {
+  padding: 14px 16px;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.tpl-field-group:last-child {
+  border-bottom: none;
+}
+
+.tpl-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+
+.tpl-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-color-text);
+  margin: 0;
+  letter-spacing: -0.1px;
+}
+
+.tpl-field-hint {
+  font-size: 11px;
+  color: var(--p-color-text-subdued);
+  font-weight: 400;
+}
+
+.tpl-field-counter {
+  font-size: 11px;
+  color: var(--p-color-text-subdued);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Multi-line Auto-wrapping clean Textareas */
+.tpl-clean-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 58px;
+  max-height: 240px;
+  padding: 10px 11px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1a1a1a;
+  background: #fbfcfd;
+  border: 1px solid #dcdfe3;
+  border-radius: 6px;
+  resize: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tpl-clean-textarea:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #008060;
+  box-shadow: 0 0 0 1px #008060;
+}
+
+.tpl-subject-textarea {
+  font-weight: 500;
+  color: #0f172a;
+}
+
+/* Quick Tag Insert Pills */
+.tpl-quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tpl-quick-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #008060;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tpl-quick-tag:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.tpl-quick-tag:active {
+  transform: scale(0.97);
+}
+
+/* Toggle Checkbox Label */
+.tpl-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--p-color-text-subdued);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tpl-toggle-label input[type="checkbox"] {
+  accent-color: #008060;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* Offer Grid */
+.tpl-offer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+  transition: opacity 0.2s ease;
+}
+
+.tpl-offer-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.tpl-offer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpl-sublabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--p-color-text-subdued);
+}
+
+.tpl-clean-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  font-size: 14px;
+  background: #fbfcfd;
+  border: 1px solid #dcdfe3;
+  border-radius: 6px;
+  color: #1a1a1a;
+  transition: all 0.15s ease;
+}
+
+.tpl-clean-input:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #008060;
+  box-shadow: 0 0 0 1px #008060;
+}
+
+/* Composer Clean Textarea */
+.composer-clean-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 58px;
+  max-height: 140px;
+  padding: 10px 11px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #dcdfe3;
+  border-radius: 6px;
+  resize: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.composer-clean-textarea:focus {
+  outline: none;
+  border-color: #008060;
+  box-shadow: 0 0 0 1px #008060;
+}
+
+/* ========================================================
    COMPREHENSIVE POLARIS MOBILE & HANDHELD UX (<= 767px)
    ======================================================== */
 @media (max-width: 767px) {
@@ -2857,6 +3059,27 @@ html.device-unauthenticated #authGateModal.active {
     padding: 7px 6px !important;
     font-size: 11.5px !important;
     gap: 4px !important;
+  }
+
+  .tpl-clean-form {
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
+
+  .tpl-field-group {
+    padding: 12px 12px !important;
+  }
+
+  .tpl-clean-textarea,
+  .composer-clean-textarea,
+  .tpl-clean-input {
+    font-size: 16px !important;
+    padding: 10px 10px !important;
+  }
+
+  .tpl-offer-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
   }
 
   .tpl-card-section {
