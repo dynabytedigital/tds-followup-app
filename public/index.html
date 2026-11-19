@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.11">
+  <link rel="stylesheet" href="style.css?v=18.12">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -607,92 +607,150 @@
   </div>
 
   <!-- ========================================================
-       TEMPLATE STUDIO & HTML CODE EDITOR MODAL
+       TEMPLATE STUDIO & HTML CODE EDITOR MODAL (RESPONSIVE PLAYGROUND)
        ======================================================== -->
   <div id="templateEditorModal" class="modal-overlay">
     <div class="modal-card modal-card--editor">
+      
+      <!-- Clean, Professional Responsive Header -->
       <div class="modal-header">
-        <div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <h2 class="modal-title" id="editorModalTitle">
-              Template Studio &amp; Code Editor
+        <div style="min-width: 0; flex: 1; padding-right: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span class="stage-pill stage-1" id="editorStageBadge">STAGE 1</span>
+            <h2 class="modal-title" id="editorModalTitle" style="font-size: 15px; font-weight: 700; margin: 0; line-height: 1.3;">
+              Template Editor
             </h2>
-            <span class="stage-pill stage-1" id="editorStageBadge">Stage 1</span>
           </div>
-          <p style="font-size: 12px; color: var(--p-color-text-subdued);" id="editorCampaignBadge">
-            Campaign: Loading...
+          <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="editorCampaignBadge">
+            Water Flosser Routine &amp; Care
           </p>
         </div>
-        <button class="Polaris-Button Polaris-Button--slim" onclick="closeTemplateEditor()">&times; Close</button>
+        <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="closeTemplateEditor()" style="flex-shrink: 0; min-height: 36px; padding: 4px 10px;">&times; Close</button>
       </div>
 
-      <div class="modal-body">
-        <!-- Metadata Settings Form -->
-        <div style="display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 14px; margin-bottom: 12px;">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Template Display Name</label>
-            <input type="text" id="tplEditorName" class="form-input">
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Email Subject Line</label>
-            <input type="text" id="tplEditorSubject" class="form-input" oninput="updateEditorLivePreview()">
-          </div>
-        </div>
+      <!-- Segmented View Mode Bar (Zero Drag Blocks & Zero Nested Overlaps) -->
+      <div class="tpl-mode-bar" id="tplEditorModeBar">
+        <button type="button" class="tpl-mode-btn active" id="btnTplModePreview" onclick="setTemplateEditorMode('preview')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Live Preview
+        </button>
+        <button type="button" class="tpl-mode-btn" id="btnTplModeSettings" onclick="setTemplateEditorMode('settings')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Subject &amp; Offer
+        </button>
+        <button type="button" class="tpl-mode-btn" id="btnTplModeCode" onclick="setTemplateEditorMode('code')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          HTML Code
+        </button>
+      </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 14px; margin-bottom: 14px;">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Default Promo Code</label>
-            <input type="text" id="tplEditorPromoCode" class="form-input" style="text-transform: uppercase;" placeholder="e.g. NONE or BOGOF-CUP" oninput="updateEditorLivePreview()">
-            <span style="font-size: 10.5px; color: var(--p-color-text-subdued);">Leave empty or 'NONE' for 0% guidance (zero impact on live site prices).</span>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Discount Value (%)</label>
-            <input type="number" id="tplEditorDiscountPercent" class="form-input" min="0" max="100" placeholder="0" oninput="updateEditorLivePreview()">
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Clinical Objective / Description</label>
-            <input type="text" id="tplEditorDescription" class="form-input">
-          </div>
-        </div>
+      <div class="modal-body" id="tplEditorModalBody">
 
-        <!-- Split Grid: HTML Code on Left, Live Preview on Right -->
-        <div class="editor-split-grid">
-          <div class="code-editor-wrapper">
-            <div class="code-editor-header">
-              <span><strong>HTML SOURCE CODE</strong> (Disk Template File)</span>
-              <span style="font-size: 11px; color: #89b4fa;">Supports {{first_name}}, {{discount_block}}, {{shop_url}}</span>
-            </div>
-            <textarea id="tplEditorHtml" class="code-editor-textarea" spellcheck="false" oninput="updateEditorLivePreview()"></textarea>
-          </div>
-
-          <div class="preview-container">
-            <div class="preview-toolbar">
-              <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text-subdued);">
-                Instant Live Preview
+        <!-- VIEW PANE 1: LIVE PREVIEW (DEFAULT ON MOBILE) -->
+        <div id="tplPanePreview" class="tpl-editor-pane active">
+          <div class="preview-container" style="border: none; box-shadow: none;">
+            <div class="preview-toolbar" style="padding: 8px 12px; background: #fafbfb; border: 1px solid var(--p-color-border); border-radius: 8px 8px 0 0;">
+              <span style="font-size: 11.5px; font-weight: 600; color: var(--p-color-text-subdued);">
+                Rendered Customer View
               </span>
-              <div style="display: flex; gap: 6px;">
-                <button class="Polaris-FilterPill active" onclick="setEditorPreviewDevice('desktop', this)">Desktop</button>
-                <button class="Polaris-FilterPill" onclick="setEditorPreviewDevice('mobile', this)">Mobile</button>
+              <div style="display: flex; gap: 4px;">
+                <button type="button" class="Polaris-FilterPill active" id="btnTplPreviewDesktop" onclick="setEditorPreviewDevice('desktop', this)">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  Desktop
+                </button>
+                <button type="button" class="Polaris-FilterPill" id="btnTplPreviewMobile" onclick="setEditorPreviewDevice('mobile', this)">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                  Mobile
+                </button>
               </div>
             </div>
-            <div id="tplEditorPreviewFrame" class="preview-frame">
+            <div id="tplEditorPreviewFrame" class="preview-frame device-desktop" style="border-radius: 0 0 8px 8px;">
               <!-- Rendered preview HTML injected here -->
             </div>
           </div>
         </div>
+
+        <!-- VIEW PANE 2: SUBJECT, OFFER & DETAILS -->
+        <div id="tplPaneSettings" class="tpl-editor-pane" style="display: none;">
+          <div class="tpl-card-section">
+            <h4 class="tpl-card-title">Template &amp; Subject</h4>
+            <div class="form-group">
+              <label class="form-label" for="tplEditorName">Template Display Name</label>
+              <input type="text" id="tplEditorName" class="form-input" placeholder="e.g. Flosser Setup &amp; 7-Day Adaptation Guide">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="tplEditorSubject">Email Subject Line</label>
+              <input type="text" id="tplEditorSubject" class="form-input" oninput="updateEditorLivePreview()" placeholder="e.g. Your Flosser Has Arrived: 7-Day Adaptation Technique">
+            </div>
+          </div>
+
+          <div class="tpl-card-section">
+            <h4 class="tpl-card-title">Offer &amp; Discount Configuration</h4>
+            <div class="tpl-form-grid-2">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="tplEditorPromoCode">Default Promo Code</label>
+                <input type="text" id="tplEditorPromoCode" class="form-input" style="text-transform: uppercase;" placeholder="e.g. NONE or FLOSSER10" oninput="updateEditorLivePreview()">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="tplEditorDiscountPercent">Discount Value (%)</label>
+                <input type="number" id="tplEditorDiscountPercent" class="form-input" min="0" max="100" placeholder="0" inputmode="numeric" oninput="updateEditorLivePreview()">
+              </div>
+            </div>
+            <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin: 8px 0 0;">
+              Leave empty or enter 'NONE' for 0% clinical guidance (no price change on live store).
+            </p>
+          </div>
+
+          <div class="tpl-card-section">
+            <h4 class="tpl-card-title">Clinical Goal &amp; Personalization Tags</h4>
+            <div class="form-group">
+              <label class="form-label" for="tplEditorDescription">Objective / Internal Description</label>
+              <input type="text" id="tplEditorDescription" class="form-input" placeholder="e.g. Post-purchase onboarding and gentle pressure protocol">
+            </div>
+            <label class="form-label" style="margin-bottom: 6px;">Available Personalization Tags (Tap to copy)</label>
+            <div class="tpl-tag-chips">
+              <button type="button" class="tpl-tag-chip" onclick="insertTagIntoSubject('{{first_name}}')"><code>{{first_name}}</code> Customer Name</button>
+              <button type="button" class="tpl-tag-chip" onclick="insertTagIntoSubject('{{discount_block}}')"><code>{{discount_block}}</code> Promo Code</button>
+              <button type="button" class="tpl-tag-chip" onclick="insertTagIntoSubject('{{shop_url}}')"><code>{{shop_url}}</code> Store Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW PANE 3: HTML CODE EDITOR -->
+        <div id="tplPaneCode" class="tpl-editor-pane" style="display: none;">
+          <div class="code-editor-wrapper" style="border-radius: 8px;">
+            <div class="code-editor-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                <strong style="color: #f1f5f9;">HTML SOURCE CODE</strong>
+              </div>
+              <span id="tplEditorFilePath" style="font-size: 11px; color: #94a3b8; font-family: monospace;">template file</span>
+            </div>
+            <div style="background: #111827; padding: 6px 12px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+              <span style="font-size: 11px; color: #38bdf8;">Supported tags: <code>{{first_name}}</code>, <code>{{discount_block}}</code>, <code>{{shop_url}}</code></span>
+              <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="copyEditorHtml()" style="font-size: 10.5px; padding: 2px 6px; background: #374151; color: #f9fafb; border: none;">Copy All</button>
+            </div>
+            <textarea id="tplEditorHtml" class="code-editor-textarea" spellcheck="false" oninput="updateEditorLivePreview()"></textarea>
+          </div>
+        </div>
+
       </div>
 
+      <!-- Clean Sticky Mobile / Desktop Footer -->
       <div class="modal-footer">
-        <button class="Polaris-Button" onclick="sendEditorTestEmail()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
-          Send Test to Me
+        <button id="btnSaveTemplateEdits" class="Polaris-Button Polaris-Button--primary" onclick="saveTemplateEdits()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Save Changes Permanently</span>
         </button>
-        <button class="Polaris-Button" onclick="closeTemplateEditor()">Cancel</button>
-        <button id="btnSaveTemplateEdits" class="Polaris-Button Polaris-Button--dark" onclick="saveTemplateEdits()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Save Changes Permanently
-        </button>
+        <div class="modal-footer-secondary">
+          <button type="button" class="Polaris-Button" onclick="sendEditorTestEmail()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.36 19.3A2 2 0 0 0 6.09 22h11.82a2 2 0 0 0 1.73-2.7L14 9.31V2"/></svg>
+            Send Test
+          </button>
+          <button type="button" class="Polaris-Button" onclick="closeTemplateEditor()">Cancel</button>
+        </div>
       </div>
+
     </div>
   </div>
 
@@ -1079,6 +1137,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.11"></script>
+  <script src="app.js?v=18.12"></script>
 </body>
 </html>

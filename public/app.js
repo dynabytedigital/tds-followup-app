@@ -2745,16 +2745,21 @@ async function openTemplateEditor(templateId) {
   }
   currentEditingTemplate = tpl;
 
-  document.getElementById('editorModalTitle').innerText = `Edit: ${tpl.name}`;
+  document.getElementById('editorModalTitle').innerText = tpl.name || 'Edit Template';
   document.getElementById('editorStageBadge').className = `stage-pill stage-${tpl.stage || 1}`;
-  document.getElementById('editorStageBadge').innerText = tpl.stageLabel || `Stage ${tpl.stage || 1}`;
-  document.getElementById('editorCampaignBadge').innerText = `Campaign: ${tpl.campaignName || tpl.campaignId} · File: templates/${tpl.file || (tpl.id + '.html')}`;
+  document.getElementById('editorStageBadge').innerText = (tpl.stageLabel || `Stage ${tpl.stage || 1}`).toUpperCase();
+  document.getElementById('editorCampaignBadge').innerText = `${tpl.campaignName || tpl.campaignId} • Stage ${tpl.stage || 1} of 5`;
+  const filePathEl = document.getElementById('tplEditorFilePath');
+  if (filePathEl) filePathEl.innerText = `templates/${tpl.file || (tpl.id + '.html')}`;
 
   document.getElementById('tplEditorName').value = tpl.name || '';
   document.getElementById('tplEditorSubject').value = tpl.subject || '';
   document.getElementById('tplEditorPromoCode').value = (tpl.discountCode && tpl.discountCode !== 'NONE') ? tpl.discountCode : '';
   document.getElementById('tplEditorDiscountPercent').value = tpl.discountPercent !== undefined ? tpl.discountPercent : 10;
   document.getElementById('tplEditorDescription').value = tpl.description || '';
+
+  // Default mode: clean live preview
+  setTemplateEditorMode('preview');
 
   // Load raw HTML
   try {
@@ -2771,6 +2776,50 @@ async function openTemplateEditor(templateId) {
 
   updateEditorLivePreview();
   document.getElementById('templateEditorModal').classList.add('active');
+}
+
+function setTemplateEditorMode(mode) {
+  const panes = ['preview', 'settings', 'code'];
+  panes.forEach(p => {
+    const paneEl = document.getElementById(`tplPane${p.charAt(0).toUpperCase() + p.slice(1)}`);
+    const btnEl = document.getElementById(`btnTplMode${p.charAt(0).toUpperCase() + p.slice(1)}`);
+    if (paneEl) {
+      if (p === mode) {
+        paneEl.style.display = 'block';
+        paneEl.classList.add('active');
+      } else {
+        paneEl.style.display = 'none';
+        paneEl.classList.remove('active');
+      }
+    }
+    if (btnEl) btnEl.classList.toggle('active', p === mode);
+  });
+  if (mode === 'preview') {
+    updateEditorLivePreview();
+  }
+}
+
+function copyEditorHtml() {
+  const code = document.getElementById('tplEditorHtml')?.value || '';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(() => {
+      showToast('HTML code copied to clipboard', 'info');
+    }).catch(() => {
+      showToast('HTML code copied', 'info');
+    });
+  } else {
+    showToast('HTML code copied', 'info');
+  }
+}
+
+function insertTagIntoSubject(tag) {
+  const subjInput = document.getElementById('tplEditorSubject');
+  if (subjInput) {
+    subjInput.value = (subjInput.value + ' ' + tag).trim();
+    subjInput.focus();
+    updateEditorLivePreview();
+    showToast(`Added ${tag} to Subject Line`, 'info');
+  }
 }
 
 function closeTemplateEditor() {
@@ -2814,15 +2863,19 @@ function setEditorPreviewDevice(device, btn) {
   if (btn) btn.classList.add('active');
 
   if (device === 'mobile') {
+    container.classList.remove('device-desktop');
+    container.classList.add('device-mobile');
     container.style.maxWidth = '375px';
     container.style.margin = '0 auto';
     container.style.border = '1px solid #d1d5db';
     container.style.borderRadius = '12px';
   } else {
+    container.classList.remove('device-mobile');
+    container.classList.add('device-desktop');
     container.style.maxWidth = '100%';
     container.style.margin = '0';
-    container.style.border = '1px solid var(--color-border)';
-    container.style.borderRadius = 'var(--radius-sm)';
+    container.style.border = '1px solid var(--p-color-border)';
+    container.style.borderRadius = '8px';
   }
 }
 
