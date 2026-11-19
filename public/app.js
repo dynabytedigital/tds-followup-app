@@ -1314,7 +1314,7 @@ async function openSavePresetDialog() {
   const tplId = tplSelect ? tplSelect.value : composerActiveTemplateId;
   const currentTpl = templatesList.find(t => t.id === tplId) || templatesList[0];
   const currentSubj = document.getElementById('composerSubject')?.value || '';
-  const currentPromo = document.getElementById('composerDiscountCode')?.value || 'HOLISTIC10';
+  const currentPromo = document.getElementById('composerDiscountCode')?.value || 'TDS-CARE';
   const currentHtml = document.getElementById('composerBody')?.value || '';
 
   const choice = confirm(`Save customizations to campaign preset?\n\n- Click OK to UPDATE the existing stage preset: "${currentTpl.name}"\n- Click Cancel to create a brand new preset stage instead.`);

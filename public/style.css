@@ -464,6 +464,31 @@ html, body {
 }
 
 /* ========================================================
+   SETTINGS TAB BALANCED GRID LAYOUT (EQUAL WIDTH TO ALL TABS)
+   ======================================================== */
+.settings-grid-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .settings-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.settings-panel-box {
+  background: var(--p-color-bg-surface-secondary);
+  border: 1px solid var(--p-color-border-subdued);
+  border-radius: var(--p-radius-md);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+/* ========================================================
    POLARIS FILTER & SEARCH CONTROLS (INDEX FILTERS)
    ======================================================== */
 .Polaris-TableControls {

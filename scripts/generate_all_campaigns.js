@@ -12,10 +12,8 @@ function buildEmailHtml({
   heroText,
   clinicalSectionTitle,
   clinicalPoints,
-  defaultDiscountNote,
   ctaText,
-  ctaUrl,
-  signoffNote
+  ctaUrl
 }) {
   const pointsHtml = clinicalPoints.map(p => `
     <li style="margin-bottom:8px;">
@@ -75,7 +73,7 @@ function buildEmailHtml({
       </ul>
     </div>
 
-    <!-- DYNAMIC DISCOUNT / ADVICE BLOCK -->
+    <!-- DYNAMIC CLINICAL GUIDANCE BLOCK -->
     {{discount_block}}
 
     <!-- CTA -->
@@ -100,7 +98,6 @@ function buildEmailHtml({
 </div>`;
 }
 
-// 20 TEMPLATES DEFINITIONS
 const ALL_TEMPLATES = [
   // ==========================================
   // CAMPAIGN 1: WATER FLOSSER ROUTINE & CARE (5 STAGES)
@@ -113,22 +110,22 @@ const ALL_TEMPLATES = [
     stageLabel: 'Stage 1: Setup & Guidance',
     name: 'Flosser Setup & 7-Day Adaptation Guide',
     subject: 'A personal clinical note from Dr. Marc Mortiboys (BDS) on your Sonic Flosser',
-    discountCode: 'FLOSSERCARE',
+    discountCode: 'TDS-FLOSSER',
     discountPercent: 0,
     description: 'Post-purchase onboarding on pressure modes, warm water use, and 45° sulcus angle positioning.',
     file: 'water_flosser_1.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Clinical Care Series (1 of 5)',
       title: 'Optimal Sonic Flosser Setup & Adaptation',
-      heroText: 'I wanted to personally check in and guide your first week with the Ozone Sonic Water Flosser. Biological dentistry is built on working with your oral biology rather than tearing fragile tissue with aggressive manual thread.',
-      clinicalSectionTitle: 'Dr. Marc\'s 3-Step Start Protocol:',
+      heroText: 'I wanted to personally check in and guide your first week with the Ozone Sonic Water Flosser. Biological dentistry is built on working with your oral biology rather than tearing delicate periodontal ligaments with aggressive pressure.',
+      clinicalSectionTitle: 'Three Rules For Your First 7 Days:',
       clinicalPoints: [
-        { bold: 'Begin on Soft Mode', text: 'Allow your gingival capillaries 7 days to adapt to pulsed hydro-oxygenation before escalating pressure.' },
-        { bold: 'Use Lukewarm Filtered Water', text: 'Cold water shocks dentinal tubules; warm water relaxes periodontal tissues.' },
-        { bold: 'Trace the 45-Degree Sulcus', text: 'Keep the tip angled along the gum line for 60 seconds nightly before sleep.' }
+        { bold: 'Start on Soft Mode', text: 'Allow gingival tissues 5-7 days to adapt to pulsed hydro-irrigation before increasing intensity.' },
+        { bold: 'Use Luke-Warm Water', text: 'Cold water shocks exposed dentin tubules and triggers acute nerve sensitivity.' },
+        { bold: 'Trace the Gumline at 45°', text: 'Keep the nozzle tip aimed at the sulcus margin where anaerobic biofilm accumulates.' }
       ],
-      ctaText: 'Explore Water Flosser Care & Guides',
-      ctaUrl: '{{shop_url}}/products/sonic-water-flosser'
+      ctaText: 'View The Clinical Technique Guide',
+      ctaUrl: '{{shop_url}}/pages/water-flosser-guide'
     }
   },
   {
@@ -139,22 +136,22 @@ const ALL_TEMPLATES = [
     stageLabel: 'Stage 2: Periodontal Calibration',
     name: 'Why 90 PSI Protects Periodontal Pockets',
     subject: 'Why 90 PSI protects periodontal pockets without tissue trauma, {{first_name}}',
-    discountCode: 'FLOSSERCARE',
+    discountCode: 'TDS-FLOSSER',
     discountPercent: 0,
     description: 'Clinical rationale of pulsed micro-bubbles disrupting anaerobic subgingival biofilm.',
     file: 'water_flosser_2.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Clinical Care Series (2 of 5)',
-      title: 'The Science of Subgingival Biofilm Disruption',
-      heroText: 'Now that your gums have completed the initial adaptation, let us calibrate your pressure settings. Periodontal pockets shelter anaerobic pathogens that thrive in low-oxygen environments. Water pulsating at 1,400 pulses per minute carries dissolved oxygen deep beneath the margin.',
-      clinicalSectionTitle: 'Calibrating Your Pressure:',
+      title: 'The Periodontal Sulcus & Micro-Bubble Physics',
+      heroText: 'Many patients ask me why string floss frequently leaves periodontal pockets inflamed. String floss cuts horizontally across papillae and cannot reach deeper than 2-3mm without causing tissue laceration.',
+      clinicalSectionTitle: 'The Hydro-Dynamic Advantage:',
       clinicalPoints: [
-        { bold: 'Normal Mode (90 PSI)', text: 'Ideal for dislodging tenacious interdental plaque without lacerating fragile papilla.' },
-        { bold: 'Pulse Mode for Micro-Circulation', text: 'Alternating pressure massages gingival margins, drawing fresh blood flow and nutrients.' },
-        { bold: 'Zero Force Required', text: 'Let the hydro-kinetic stream do the work; never press the plastic nozzle hard against the tooth.' }
+        { bold: 'Pulsed Fluid Dynamics', text: 'Rapid pulses create acoustic micro-cavitation bubbles that physically dislodge stubborn colonies.' },
+        { bold: 'Oxygenating Anaerobic Pockets', text: 'Pathogenic bacteria like P. gingivalis thrive in oxygen-depleted depths; irrigation delivers life-giving oxygen.' },
+        { bold: 'Preserves Attached Gingiva', text: 'Zero mechanical abrasion means your delicate sulcular epithelial attachment remains pristine.' }
       ],
-      ctaText: 'View Clinical Routine Video',
-      ctaUrl: '{{shop_url}}/pages/water-flosser-guide'
+      ctaText: 'Explore Periodontal Care Resources',
+      ctaUrl: '{{shop_url}}/collections/all'
     }
   },
   {
@@ -165,21 +162,21 @@ const ALL_TEMPLATES = [
     stageLabel: 'Stage 3: Antimicrobial Infusion',
     name: 'Liquid Ozone & Organic Antimicrobial Infusions',
     subject: 'Clinical Tip: What to add to your flosser reservoir for 3x defense, {{first_name}}',
-    discountCode: 'FLOSSERCARE',
+    discountCode: 'TDS-FLOSSER',
     discountPercent: 0,
     description: 'Guide to infusing the reservoir with organic rinses and biological saline solutions.',
     file: 'water_flosser_3.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Clinical Care Series (3 of 5)',
-      title: 'Antimicrobial Reservoir Infusions',
-      heroText: 'Water alone delivers exceptional physical cleansing, but infusing your water flosser reservoir transforms it into an active biological defense station.',
-      clinicalSectionTitle: 'Recommended Reservoir Infusions:',
+      title: 'Infusing Your Reservoir: Biological Additives',
+      heroText: 'Your water flosser is not just an irrigator — it is an active delivery system for biological antimicrobial agents. By adding pure clinical elements to warm reservoir water, you accelerate tissue regeneration.',
+      clinicalSectionTitle: 'Approved Reservoir Infusions:',
       clinicalPoints: [
-        { bold: 'Organic Herbal Mouth Rinse', text: 'Add 1 capful of The Dental Shaman Botanical Concentrate to warm water for botanical astringency.' },
-        { bold: 'Celtic Sea Salt Pinch', text: 'Creates an isotonic mineral wash that reduces tissue edema and accelerates healing.' },
-        { bold: 'Always Flush Clean Water', text: 'Run 10 seconds of plain water after finishing to preserve the internal pump.' }
+        { bold: 'Himalayan Pink Saline', text: 'Add 1/4 tsp pure dissolved mineral salt to create an isotonic soothing rinse.' },
+        { bold: 'Diluted Botanical Mouthwash', text: 'Add 1-2 capfuls of alcohol-free herbal rinse to circulate botanical extracts subgingivally.' },
+        { bold: 'Ozonated Water Synergy', text: 'Fill directly from an ozone generator to flood pockets with transient trioxygen for instant biofilm oxidation.' }
       ],
-      ctaText: 'Browse Organic Herbal Rinses',
+      ctaText: 'Explore Biological Additives & Care',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   },
@@ -190,14 +187,14 @@ const ALL_TEMPLATES = [
     stage: 4,
     stageLabel: 'Stage 4: Tip Refresh & Hygiene',
     name: '60-Day Hygienic Tip Refresh & Anti-Calcification',
-    subject: 'Time to refresh your flosser tips, {{first_name}}? Clinical restock notice',
-    discountCode: 'RESTOCK10',
+    subject: 'Time to refresh your flosser tips, {{first_name}}? Clinical care notice',
+    discountCode: 'TDS-FLOSSER',
     discountPercent: 0,
     description: 'Preventing bacterial colonization on nozzles and mineral scaling inside the pump.',
     file: 'water_flosser_4.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Clinical Care Series (4 of 5)',
-      title: 'Nozzle Hygiene & Tip Replacement',
+      title: 'Nozzle Hygiene & Tip Maintenance',
       heroText: 'Just like manual toothbrush bristles degrade, water flosser nozzle orifices wear under continuous 90 PSI pressure. Micro-grooves harbor bacterial biofilm after 60 to 90 days of consistent usage.',
       clinicalSectionTitle: 'Hygiene Maintenance Checklist:',
       clinicalPoints: [
@@ -205,7 +202,7 @@ const ALL_TEMPLATES = [
         { bold: 'Monthly Vinegar Descaling', text: 'Run 1 part white vinegar to 2 parts warm water to clear tap water calcium deposits.' },
         { bold: 'Air Dry Reservoir Open', text: 'Never leave stagnant water sitting sealed in the chamber overnight.' }
       ],
-      ctaText: 'Replenish Flosser Tips & Rinses',
+      ctaText: 'Replenish Flosser Tips & Accessories',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   },
@@ -217,7 +214,7 @@ const ALL_TEMPLATES = [
     stageLabel: 'Stage 5: VIP Loyalty Check-In',
     name: 'VIP Loyalty Check-In & Complete Oral Mastery',
     subject: 'How is your gum sensitivity feeling, {{first_name}}? Clinical check-in',
-    discountCode: 'MASTERY10',
+    discountCode: 'TDS-FLOSSER',
     discountPercent: 0,
     description: 'Milestone check-in celebrating bleeding cessation and long-term oral vitality.',
     file: 'water_flosser_5.html',
@@ -229,7 +226,7 @@ const ALL_TEMPLATES = [
       clinicalPoints: [
         { bold: 'Notice Gum Color', text: 'Healthy gingiva transitions from congested red to firm, pale stippled pink.' },
         { bold: 'Pair with Tongue Scraping', text: 'Remove morning volatile sulfur compounds before bedtime irrigation.' },
-        { bold: 'VIP Privilege Extended', text: 'We have reserved an ongoing 10% courtesy benefit for all clinical replenishment on your account.' }
+        { bold: 'Continuous Clinical Support', text: 'Our clinical team is always available to answer your periodontal and holistic oral health questions.' }
       ],
       ctaText: 'Visit The Dental Shaman Store',
       ctaUrl: '{{shop_url}}'
@@ -237,17 +234,17 @@ const ALL_TEMPLATES = [
   },
 
   // ==========================================
-  // CAMPAIGN 2: BOGOF COPPER CUP SPECIAL (5 STAGES)
+  // CAMPAIGN 2: MOUTHWASH CUP ROUTINE & CARE (5 STAGES)
   // ==========================================
   {
     id: 'bogof_cup_1',
     campaignId: 'bogof_cup',
-    campaignName: 'BOGOF Copper Cup Special',
+    campaignName: 'Mouthwash Cup Routine & Care',
     stage: 1,
     stageLabel: 'Stage 1: The Copper Ritual',
     name: 'The Sacred Biological Copper Water Ritual',
     subject: 'The Oligodynamic Effect: Why drinking from pure copper transforms morning oral wellness',
-    discountCode: 'BOGOFCUP',
+    discountCode: 'TDS-COPPER',
     discountPercent: 0,
     description: 'Clinical explanation of Tamra Jal, antimicrobial oligodynamic copper ions, and morning saliva alkalization.',
     file: 'bogof_cup_1.html',
@@ -268,120 +265,120 @@ const ALL_TEMPLATES = [
   {
     id: 'bogof_cup_2',
     campaignId: 'bogof_cup',
-    campaignName: 'BOGOF Copper Cup Special',
+    campaignName: 'Mouthwash Cup Routine & Care',
     stage: 2,
-    stageLabel: 'Stage 2: BOGOF Announcement',
-    name: 'Buy 1 Handcrafted Copper Cup, Get 1 Free',
-    subject: 'Special Clinical Courtesy: Buy 1 Handcrafted Copper Cup, Receive 1 Free, {{first_name}}',
-    discountCode: 'BOGOFCUP',
+    stageLabel: 'Stage 2: Vessel Benefits',
+    name: 'Handcrafted Copper Water Vessels: Benefits & Care',
+    subject: 'Pure Artisan Copper: Daily clinical hydration for periodontal health, {{first_name}}',
+    discountCode: 'TDS-COPPER',
     discountPercent: 0,
-    description: 'Exclusive BOGOF promotion invitation for patients and clients.',
+    description: 'Detailed clinical guide on unlined copper vessels, morning routines, and biological health.',
     file: 'bogof_cup_2.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Copper Ritual Series (2 of 5)',
-      title: 'Buy One Get One Free Clinical Invitation',
-      heroText: 'To help you establish this biological habit both at home and at the office (or share the gift of biological wellness with a loved one), Dr. Marc has opened an exclusive <strong>Buy One Get One Free</strong> allocation on our artisan-beaten 100% pure copper cups.',
-      clinicalSectionTitle: 'Your BOGOF Copper Benefit:',
+      title: 'Artisan Copper Vessel Protocol',
+      heroText: 'To help you establish consistent biological hydration at home and at work, Dr. Marc recommends incorporating unlined pure copper vessels into your everyday routine.',
+      clinicalSectionTitle: 'Clinical Copper Properties:',
       clinicalPoints: [
         { bold: '100% Pure Virgin Copper', text: 'Heavy gauge, unlined, and free from synthetic nickel or tin coatings.' },
-        { bold: 'One for Nightstand, One for Desk', text: 'Keep charged water by your bedside and at your workspace.' },
-        { bold: 'Automatic Checkout Application', text: 'Clicking below applies your BOGOF entitlement instantly at checkout.' }
+        { bold: 'Bedside Hydration', text: 'Store room temperature water overnight (6-8 hours) for optimal ion absorption.' },
+        { bold: 'Biological Alkaline Balance', text: 'Supports systemic and salivary pH balance naturally.' }
       ],
-      ctaText: 'Claim Your BOGOF Copper Cup &rarr;',
+      ctaText: 'Explore Copper Vessel Details &rarr;',
       ctaUrl: '{{shop_url}}/products/copper-cup'
     }
   },
   {
     id: 'bogof_cup_3',
     campaignId: 'bogof_cup',
-    campaignName: 'BOGOF Copper Cup Special',
+    campaignName: 'Mouthwash Cup Routine & Care',
     stage: 3,
     stageLabel: 'Stage 3: Morning Detox Protocol',
     name: 'Dr. Marc\'s 3-Step Morning Oral Detox Routine',
-    subject: 'Dr. Marc\'s 3-Step Morning Oral Ritual using pure copper, {{first_name}}',
-    discountCode: 'BOGOFCUP',
+    subject: 'How Dr. Marc uses pure copper water every morning in 3 clinical steps',
+    discountCode: 'TDS-COPPER',
     discountPercent: 0,
-    description: 'Detailed protocol combining tongue scraping, copper water sipping, and biological oil swishing.',
+    description: 'Actionable step-by-step: scrape tongue, swish copper water, hydrate gut before coffee.',
     file: 'bogof_cup_3.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Copper Ritual Series (3 of 5)',
-      title: 'Dr. Marc\'s Morning Detox Protocol',
-      heroText: 'What you do in the first 10 minutes after waking sets your oral pH and digestive immunity for the entire day. Here is the exact morning routine Dr. Marc prescribes to biological dentistry patients.',
+      title: 'Dr. Marc\'s 3-Step Morning Detox Routine',
+      heroText: 'Most people wake up and immediately brew acidic coffee, trapping overnight bacterial biofilm onto enamel. Here is the exact clinical sequence I practice every morning to protect teeth and wake up the digestive fire.',
       clinicalSectionTitle: 'The 3-Step Morning Sequence:',
       clinicalPoints: [
-        { bold: 'Step 1: Scrape the Tongue', text: 'Clear accumulated nocturnal endotoxins from the dorsal tongue before swallowing.' },
-        { bold: 'Step 2: Sip 200ml Copper Water', text: 'Drink copper-charged water on an empty stomach to stimulate peristalsis and alkalize the stomach.' },
-        { bold: 'Step 3: Gentle Botanical Swish', text: 'Swish with warm water and botanical rinse for 30 seconds to oxygenate the gums.' }
+        { bold: 'Step 1: Scrape Tongue 7 Times', text: 'Gently scrape from root to tip to remove overnight metabolic waste before swallowing anything.' },
+        { bold: 'Step 2: Swish Copper Water for 30s', text: 'Take a generous sip of Tamra Jal and swish across gums to coat mucosal tissues with alkaline ions.' },
+        { bold: 'Step 3: Drink Full Vessel Warm', text: 'Hydrate your intestines to stimulate peristalsis before your first meal or hot beverage.' }
       ],
-      ctaText: 'Pair with BOGOF Copper Cup',
+      ctaText: 'Explore The Full Morning Detox Protocol',
       ctaUrl: '{{shop_url}}/products/copper-cup'
     }
   },
   {
     id: 'bogof_cup_4',
     campaignId: 'bogof_cup',
-    campaignName: 'BOGOF Copper Cup Special',
+    campaignName: 'Mouthwash Cup Routine & Care',
     stage: 4,
-    stageLabel: 'Stage 4: Care & Maintenance',
+    stageLabel: 'Stage 4: Patina & Cleaning Care',
     name: 'Pure Copper Maintenance & Natural Patina Care',
-    subject: 'How to keep your pure copper gleaming naturally (lemon & salt guide)',
-    discountCode: 'BOGOFCUP',
+    subject: 'Why real copper darkens and how to clean it naturally in 60 seconds',
+    discountCode: 'TDS-COPPER',
     discountPercent: 0,
-    description: 'Natural cleaning instructions without harsh chemicals; understanding copper oxidation.',
+    description: 'Clinical guide on natural lemon & salt cleaning, explaining oxidation vs harmful green verdigris.',
     file: 'bogof_cup_4.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Copper Ritual Series (4 of 5)',
-      title: 'Natural Pure Copper Care Guide',
-      heroText: 'Because our cups are 100% pure copper with no chemical lacquer, they will naturally develop dark patina markings when reacting with air and water. This is living proof that your cup is authentic, pure copper.',
+      title: 'Maintaining Pure Copper: Natural Patina Guide',
+      heroText: 'If your copper cup begins developing dark spots or a deeper reddish-brown tone, rejoice! That is conclusive scientific proof your vessel is genuine 100% unlined copper rather than a plastic imitation coated in clear varnish.',
       clinicalSectionTitle: 'The 60-Second Natural Cleanse:',
       clinicalPoints: [
-        { bold: 'Lemon & Salt Rub', text: 'Sprinkle salt on half a fresh lemon and gently rub the cup exterior for 30 seconds.' },
-        { bold: 'Rinse with Warm Water', text: 'Wash thoroughly and wipe dry with a soft microfiber cloth.' },
-        { bold: 'Never Use Dishwashers', text: 'Dishwasher heat and harsh detergents strip the natural copper surface.' }
+        { bold: 'Half a Lemon + Pinch of Salt', text: 'Rub the cut lemon dipped in sea salt across the cup surface; watch oxidation dissolve instantly.' },
+        { bold: 'Rinse with Warm Water', text: 'Wash away acidic lemon residue and dry thoroughly with a soft microfibre towel.' },
+        { bold: 'Never Use A Dishwasher', text: 'Harsh industrial chemical detergents strip pure copper and damage its metallurgical structure.' }
       ],
-      ctaText: 'Secure Your BOGOF Copper Cup',
+      ctaText: 'Read The Complete Copper Care Manual',
       ctaUrl: '{{shop_url}}/products/copper-cup'
     }
   },
   {
     id: 'bogof_cup_5',
     campaignId: 'bogof_cup',
-    campaignName: 'BOGOF Copper Cup Special',
+    campaignName: 'Mouthwash Cup Routine & Care',
     stage: 5,
-    stageLabel: 'Stage 5: Final Call on Allocation',
-    name: 'Final 24 Hours: Reserved BOGOF Copper Cup Benefit',
-    subject: 'Final 24 Hours: Reserved Buy 1 Get 1 Free Copper Cup courtesy allocation for {{first_name}}',
-    discountCode: 'BOGOFCUP',
+    stageLabel: 'Stage 5: Courtesy Check-In',
+    name: 'Clinical Check-In: Your Copper Water Routine',
+    subject: 'Clinical Check-In: Your morning copper water hydration habit, {{first_name}}',
+    discountCode: 'TDS-COPPER',
     discountPercent: 0,
-    description: 'Closing notice on the reserved BOGOF copper cup stock allocation.',
+    description: 'Courtesy check-in on patient hydration and oral tissue vitality.',
     file: 'bogof_cup_5.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Copper Ritual Series (5 of 5)',
-      title: 'Final Call: BOGOF Copper Cup Allocation',
-      heroText: 'Our handcrafted copper cups are beaten in small artisan batches in India. We have held a reserved Buy One Get One Free pairing under your customer profile, but unclaimed allocations must be released back to the general clinic catalog tonight.',
-      clinicalSectionTitle: 'Closing Opportunity Summary:',
+      title: 'Clinical Check-In: Morning Hydration Ritual',
+      heroText: 'Our handcrafted copper cups are beaten in small artisan batches in India. Storing water overnight and alkalizing morning saliva is one of the most effective habits you can build for long-term oral biological vitality.',
+      clinicalSectionTitle: 'Key Routine Benefits:',
       clinicalPoints: [
-        { bold: 'Buy 1 Get 1 Free Privilege', text: 'Two heirloom copper cups for the price of one.' },
-        { bold: 'Zero Code Entry Needed', text: 'Clicking below directs you to full product details and clinical care protocols.' },
-        { bold: 'Pure Holistic Quality', text: '100% food-grade certified virgin antimicrobial copper.' }
+        { bold: 'Natural Alkalization', text: 'Balances saliva pH naturally to resist enamel demineralization.' },
+        { bold: 'Unlined Pure Copper', text: '100% food-grade certified virgin antimicrobial copper.' },
+        { bold: 'Lifelong Biological Companion', text: 'Built to last for decades of daily morning detox rituals.' }
       ],
-      ctaText: 'Claim Your BOGOF Set Now &rarr;',
+      ctaText: 'Visit The Copper Vessel Collection &rarr;',
       ctaUrl: '{{shop_url}}/products/copper-cup'
     }
   },
 
   // ==========================================
-  // CAMPAIGN 3: BOGOF HERBAL SPRAY OFFER (5 STAGES)
+  // CAMPAIGN 3: OZOMIST SPRAY DEFENSE ROUTINE (5 STAGES)
   // ==========================================
   {
     id: 'bogof_spray_1',
     campaignId: 'bogof_spray',
-    campaignName: 'BOGOF Herbal Spray Offer',
+    campaignName: 'Ozomist Spray Defense Routine',
     stage: 1,
     stageLabel: 'Stage 1: Microbiome Shield',
     name: 'The Oral Microbiome Shield vs Harsh Alcohol Washes',
     subject: 'Why conventional alcohol mouthwash damages your heart and oral barrier',
-    discountCode: 'BOGOFSPRAY',
+    discountCode: 'TDS-OZOMIST',
     discountPercent: 0,
     description: 'Clinical breakdown of how alcohol mouthwashes destroy nitric-oxide oral flora, introducing organic botanical spray.',
     file: 'bogof_spray_1.html',
@@ -402,38 +399,38 @@ const ALL_TEMPLATES = [
   {
     id: 'bogof_spray_2',
     campaignId: 'bogof_spray',
-    campaignName: 'BOGOF Herbal Spray Offer',
+    campaignName: 'Ozomist Spray Defense Routine',
     stage: 2,
-    stageLabel: 'Stage 2: BOGOF Invitation',
-    name: 'Buy 1 Organic Herbal Spray, Get Free Copper Cup or Bonus Spray',
-    subject: 'Exclusive Courtesy: Buy 1 Botanical Oral Spray, Get a Bonus Spray or Cup Free',
-    discountCode: 'BOGOFSPRAY',
+    stageLabel: 'Stage 2: Formulation Guide',
+    name: 'Botanical Oral Shield: Organic Herbal Spray Formulation',
+    subject: 'Clinical Formula Breakdown: Organic Myrrh, Colloidal Silver, and Peppermint',
+    discountCode: 'TDS-OZOMIST',
     discountPercent: 0,
-    description: 'BOGOF promotional package allowing customer to get a free second spray or copper companion.',
+    description: 'Clinical analysis of therapeutic herbal ingredients in Dr. Marc\'s organic botanical spray formula.',
     file: 'bogof_spray_2.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Botanical Spray Series (2 of 5)',
-      title: 'Buy One Get One Free Clinical Invitation',
-      heroText: 'We want every client to have clean biological oral defense within arm\'s reach at all times. For a limited window, when you order Dr. Marc\'s Botanical Oral Spray, you receive a complimentary second bottle or holistic copper cup free.',
+      title: 'Clinical Formula Architecture',
+      heroText: 'We want every client to have clean biological oral defense within arm\'s reach at all times. Dr. Marc\'s Botanical Oral Spray provides portable, on-the-go protection against acidic plaque without harsh chemicals.',
       clinicalSectionTitle: 'What Makes This Formula Unique:',
       clinicalPoints: [
         { bold: 'Wildcrafted Myrrh & Clove', text: 'Centuries of clinical evidence soothing inflamed pocket tissue.' },
         { bold: 'Colloidal Silver Infusion', text: 'Sub-micron silver particles provide natural barrier protection against acidic plaque.' },
         { bold: 'Pure English Peppermint', text: 'Clean, crisp breath without artificial sweeteners or synthetic dyes.' }
       ],
-      ctaText: 'Claim Your BOGOF Botanical Spray &rarr;',
+      ctaText: 'Learn More About Botanical Defense &rarr;',
       ctaUrl: '{{shop_url}}/products/organic-oral-spray'
     }
   },
   {
     id: 'bogof_spray_3',
     campaignId: 'bogof_spray',
-    campaignName: 'BOGOF Herbal Spray Offer',
+    campaignName: 'Ozomist Spray Defense Routine',
     stage: 3,
     stageLabel: 'Stage 3: Post-Meal Defense',
     name: 'The 2-Minute Midday Post-Meal Enamel Defense Protocol',
     subject: 'The 2-Minute Post-Meal Protocol to stop enamel demineralization on the go',
-    discountCode: 'BOGOFSPRAY',
+    discountCode: 'TDS-OZOMIST',
     discountPercent: 0,
     description: 'Practical clinical instructions on spraying right after meals to buffer acidity.',
     file: 'bogof_spray_3.html',
@@ -447,75 +444,75 @@ const ALL_TEMPLATES = [
         { bold: 'Spray 2 Pumps Directly', text: 'Spray onto tongue and inner cheeks to immediately buffer saliva back to pH 7.2.' },
         { bold: 'Swish Saliva for 10 Seconds', text: 'Allows botanical flavonoids to penetrate tight contact points.' }
       ],
-      ctaText: 'Order BOGOF Spray Package',
+      ctaText: 'Explore Botanical Spray Protocols',
       ctaUrl: '{{shop_url}}/products/organic-oral-spray'
     }
   },
   {
     id: 'bogof_spray_4',
     campaignId: 'bogof_spray',
-    campaignName: 'BOGOF Herbal Spray Offer',
+    campaignName: 'Ozomist Spray Defense Routine',
     stage: 4,
-    stageLabel: 'Stage 4: Ingredient Deep Dive',
+    stageLabel: 'Stage 4: Organic Ingredients',
     name: 'Inside The Bottle: Clinical Anatomy of Organic Myrrh & Silver',
-    subject: 'Inside the bottle: Why we chose organic myrrh and colloidal silver',
-    discountCode: 'BOGOFSPRAY',
+    subject: 'The science behind our wildcrafted Myrrh, Colloidal Silver, and Peppermint',
+    discountCode: 'TDS-OZOMIST',
     discountPercent: 0,
-    description: 'Ingredient breakdown for conscious patients wanting full biological transparency.',
+    description: 'Detailed monograph on therapeutic plant actives, anti-gingivitis flavonoids, and biocompatibility.',
     file: 'bogof_spray_4.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Botanical Spray Series (4 of 5)',
-      title: 'The Clinical Anatomy of Our Formula',
-      heroText: 'Transparency is the cornerstone of biological dentistry. Here is exactly why each active botanical compound was selected for The Dental Shaman Oral Spray formula.',
-      clinicalSectionTitle: 'Clinical Breakdown of Active Actives:',
+      title: 'Therapeutic Monograph: What Is In Your Spray',
+      heroText: 'Commercial oral sprays rely on synthetic cetylpyridinium chloride (CPC) and sodium saccharin. Our formula uses certified food-grade, biocompatible botanicals that nourish connective tissue.',
+      clinicalSectionTitle: 'Active Therapeutic Components:',
       clinicalPoints: [
-        { bold: 'Commiphora Myrrha Resin', text: 'Potent natural astringent that tightens loose gingival margins and soothes aphthous ulcers.' },
-        { bold: 'Syzygium Aromaticum (Clove)', text: 'Contains natural eugenol to alleviate sensitivity and calm nerve endings.' },
-        { bold: 'Colloidal Silver (10 PPM)', text: 'Non-toxic elemental silver suspended in deionized water for targeted microbial defense.' }
+        { bold: 'Somalian Commiphora Myrrha', text: 'Potent sesquiterpenes physically shrink inflamed sulcular margins.' },
+        { bold: 'Pharmaceutical Colloidal Silver (20 PPM)', text: 'Generates electrical field that disrupts bacterial replication without developing resistance.' },
+        { bold: 'Organic Aloe Vera Base', text: 'Contains acemannan to stimulate fibroblast growth and speed ulcer healing.' }
       ],
-      ctaText: 'View Complete Formula & BOGOF',
+      ctaText: 'Discover Full Formula Specifications',
       ctaUrl: '{{shop_url}}/products/organic-oral-spray'
     }
   },
   {
     id: 'bogof_spray_5',
     campaignId: 'bogof_spray',
-    campaignName: 'BOGOF Herbal Spray Offer',
+    campaignName: 'Ozomist Spray Defense Routine',
     stage: 5,
-    stageLabel: 'Stage 5: Final Call on Benefit',
-    name: 'Final Courtesy Window: Your BOGOF Botanical Spray Benefit',
-    subject: 'Courtesy window ending: Your Buy 1 Get 1 Free Botanical Spray benefit, {{first_name}}',
-    discountCode: 'BOGOFSPRAY',
+    stageLabel: 'Stage 5: Courtesy Check-In',
+    name: 'Clinical Check-In: Botanical Spray Oral Protection',
+    subject: 'Clinical Check-In: Your daily midday botanical defense, {{first_name}}',
+    discountCode: 'TDS-OZOMIST',
     discountPercent: 0,
-    description: 'Last notification on the Buy 1 Get 1 Free spray package.',
+    description: 'Clinical check-in on patient portable oral defense and midday enamel buffering.',
     file: 'bogof_spray_5.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Botanical Spray Series (5 of 5)',
-      title: 'Final Call on BOGOF Botanical Spray',
-      heroText: 'This is the final notification before we close our Buy One Get One Free courtesy allocation on The Dental Shaman Botanical Oral Spray. Keep one bottle in your car or handbag and one in your bathroom.',
-      clinicalSectionTitle: 'Package Privileges:',
+      title: 'Clinical Check-In: On-The-Go Oral Vitality',
+      heroText: 'Keeping your saliva pH neutral between meals is the single greatest preventive habit you can adopt against acid erosion and recurrent decay. We hope your Botanical Oral Spray is keeping your oral microbiome thriving.',
+      clinicalSectionTitle: 'Daily Enamel Protection Summary:',
       clinicalPoints: [
-        { bold: 'Two Bottles for the Price of One', text: 'Stock up for 4–6 months of portable biological defense.' },
-        { bold: '100% Certified Organic & Vegan', text: 'Free from SLS, artificial colors, saccharin, and parabens.' },
-        { bold: 'Instant Auto-Applied Coupon', text: 'Applied smoothly during checkout without changing website catalog prices.' }
+        { bold: 'Buffered Salivary pH', text: 'Restores neutral pH within seconds of post-meal acidity.' },
+        { bold: 'Nourishes Periodontal Tissues', text: 'Plant botanicals soothe tender sulcular margins.' },
+        { bold: 'Zero Harmful Additives', text: 'Free of alcohol, artificial dyes, and synthetic sweeteners.' }
       ],
-      ctaText: 'Claim Your BOGOF Spray Before It Closes &rarr;',
+      ctaText: 'Visit The Botanical Care Range &rarr;',
       ctaUrl: '{{shop_url}}/products/organic-oral-spray'
     }
   },
 
   // ==========================================
-  // CAMPAIGN 4: ALL E-BOOKS 50% OFF (5 STAGES)
+  // CAMPAIGN 4: HOLISTIC DENTAL WELLNESS GUIDES (5 STAGES)
   // ==========================================
   {
     id: 'ebook_50_1',
     campaignId: 'ebook_50',
-    campaignName: 'All E-Books 50% Off Campaign',
+    campaignName: 'Holistic Dental Wellness Guides',
     stage: 1,
     stageLabel: 'Stage 1: Living Teeth Biology',
     name: 'The Root Cause of Oral Disease & Living Teeth Biology',
     subject: 'Why cavities and gum disease are symptoms of internal imbalance, {{first_name}}',
-    discountCode: 'EBOOK50',
+    discountCode: 'TDS-GUIDES',
     discountPercent: 0,
     description: 'Dr. Marc\'s foundational philosophy on how teeth heal from within via dentinal fluid flow.',
     file: 'ebook_50_1.html',
@@ -529,45 +526,45 @@ const ALL_TEMPLATES = [
         { bold: 'Systemic Stress & Diet Reversal', text: 'High sugar and chronic stress reverse this fluid flow, sucking oral bacteria inward toward the nerve.' },
         { bold: 'Remineralization Is Possible', text: 'With correct fat-soluble vitamins (K2, D3, A) and minerals, teeth can actively remineralize.' }
       ],
-      ctaText: 'Explore The Holistic E-Book Library',
+      ctaText: 'Explore The Holistic Guide Library',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   },
   {
     id: 'ebook_50_2',
     campaignId: 'ebook_50',
-    campaignName: 'All E-Books 50% Off Campaign',
+    campaignName: 'Holistic Dental Wellness Guides',
     stage: 2,
-    stageLabel: 'Stage 2: 50% Courtesy Benefit',
-    name: '50% Off The Complete Dental Shaman Biological E-Book Library',
-    subject: 'Exclusive 50% Courtesy Benefit: All Biological Oral Health E-Books & Guides',
-    discountCode: 'EBOOK50',
+    stageLabel: 'Stage 2: Biological Guides',
+    name: 'The Complete Dental Shaman Biological Guide Series',
+    subject: 'Clinical Guide Series: Biological Oral Health Protocols by Dr. Marc Mortiboys',
+    discountCode: 'TDS-GUIDES',
     discountPercent: 0,
-    description: 'Announcement of 50% courtesy privilege on all digital clinical guides and protocols.',
+    description: 'Comprehensive overview of Dr. Marc\'s digital clinical protocols and oral wellness guides.',
     file: 'ebook_50_2.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Biological Wisdom Series (2 of 5)',
-      title: '50% Courtesy On All Clinical Guides',
-      heroText: 'To put the power of preventive biological medicine directly in your hands, Dr. Marc has released an exclusive <strong>50% Courtesy Discount</strong> on all digital e-books, protocols, and oral wellness guides.',
+      title: 'Biological Dental Protocols & Clinical Guides',
+      heroText: 'To put the power of preventive biological medicine directly in your hands, Dr. Marc has assembled his comprehensive clinical guide series covering natural remineralization, periodontal restoration, and biocompatible oral care.',
       clinicalSectionTitle: 'Included in the Digital Collection:',
       clinicalPoints: [
         { bold: 'Reversing Gum Recession Naturally', text: 'Clinical nutrition and hydro-therapy protocols to tighten periodontal attachments.' },
         { bold: 'The Enamel Remineralization Protocol', text: 'The exact ratio of fat-soluble vitamins and ionic trace minerals to harden tooth structure.' },
         { bold: 'The Toxic Dentistry Detox Guide', text: 'Safe practices surrounding mercury amalgam, root canals, and fluoride alternatives.' }
       ],
-      ctaText: 'Claim 50% Off All E-Books &rarr;',
+      ctaText: 'Read Dr. Marc\'s Clinical Guides &rarr;',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   },
   {
     id: 'ebook_50_3',
     campaignId: 'ebook_50',
-    campaignName: 'All E-Books 50% Off Campaign',
+    campaignName: 'Holistic Dental Wellness Guides',
     stage: 3,
     stageLabel: 'Stage 3: Chapter Excerpt',
-    name: 'Exclusive Chapter Excerpt: Reversing Demineralization',
+    name: 'Clinical Chapter Excerpt: Reversing Demineralization',
     subject: 'Excerpt from Chapter 2: The dentinal fluid flow that actively heals teeth',
-    discountCode: 'EBOOK50',
+    discountCode: 'TDS-GUIDES',
     discountPercent: 0,
     description: 'Actionable excerpt on Vitamin K2 (MK-7) directing calcium into teeth rather than arteries.',
     file: 'ebook_50_3.html',
@@ -579,21 +576,21 @@ const ALL_TEMPLATES = [
       clinicalPoints: [
         { bold: 'Vitamin K2 (MK-7) is the Conductor', text: 'K2 activates Osteocalcin, the protein that literally grabs calcium and locks it into tooth enamel.' },
         { bold: 'Magnesium Ratio Matters', text: 'Excess calcium without magnesium leads to brittle enamel prone to micro-fractures.' },
-        { bold: 'Download the Full Guide', text: 'Includes complete daily nutritional tables and meal timing strategies.' }
+        { bold: 'Complete Clinical Protocols', text: 'Includes complete daily nutritional tables and meal timing strategies.' }
       ],
-      ctaText: 'Download The Full E-Book (50% Off)',
+      ctaText: 'Read The Complete Clinical Protocol &rarr;',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   },
   {
     id: 'ebook_50_4',
     campaignId: 'ebook_50',
-    campaignName: 'All E-Books 50% Off Campaign',
+    campaignName: 'Holistic Dental Wellness Guides',
     stage: 4,
     stageLabel: 'Stage 4: Toxic Dentistry Myths',
-    name: 'Toxic Dentistry Myths & Safe Biocompatible Protocols',
+    name: 'Biocompatible Dentistry: Myths & Safe Holistic Protocols',
     subject: 'Fluoride, amalgam, and microplastics: What modern dental clinics often overlook',
-    discountCode: 'EBOOK50',
+    discountCode: 'TDS-GUIDES',
     discountPercent: 0,
     description: 'Dr. Marc\'s clinical exposé on toxic ingredients in modern dental products and safe holistic swaps.',
     file: 'ebook_50_4.html',
@@ -607,49 +604,48 @@ const ALL_TEMPLATES = [
         { bold: 'Myth 2: Bleaching Gels Are Harmless', text: 'Peroxides strip the protective protein pellicle, creating microscopic pits in enamel.' },
         { bold: 'Myth 3: Foaming Pastes Clean Better', text: 'Sodium Lauryl Sulfate (SLS) is an industrial surfactant proven to trigger recurring canker sores.' }
       ],
-      ctaText: 'Access The Biocompatible E-Book Guide',
+      ctaText: 'Access The Biocompatible Guide &rarr;',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   },
   {
     id: 'ebook_50_5',
     campaignId: 'ebook_50',
-    campaignName: 'All E-Books 50% Off Campaign',
+    campaignName: 'Holistic Dental Wellness Guides',
     stage: 5,
-    stageLabel: 'Stage 5: Final Hours',
-    name: 'Final Call: Instant Download Access to 50% Off Holistic E-Books',
-    subject: 'Final call for 50% Off Dr. Marc\'s Complete Holistic Dental E-Books',
-    discountCode: 'EBOOK50',
+    stageLabel: 'Stage 5: Complete Library',
+    name: 'Complete Clinical Guide & Lifetime Reference Library',
+    subject: 'Complete download access: Dr. Marc\'s Biological Dental Care Library',
+    discountCode: 'TDS-GUIDES',
     discountPercent: 0,
-    description: 'Last notification before the 50% courtesy promotion window closes.',
+    description: 'Full overview of Dr. Marc\'s holistic dental library, guides, and practical home care protocols.',
     file: 'ebook_50_5.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Biological Wisdom Series (5 of 5)',
-      title: 'Final Call: 50% Courtesy Benefit Closing',
-      heroText: 'This is the final courtesy reminder for the clinical digital guide on The Dental Shaman complete digital library expires. Immediate PDF digital download delivered to your inbox upon checkout.',
+      title: 'The Complete Biological Dental Library',
+      heroText: 'Take control of your oral health with evidence-based biological dental wisdom. Instant digital access delivers complete clinical protocols directly to your device.',
       clinicalSectionTitle: 'Instant Digital Access:',
       clinicalPoints: [
         { bold: 'Immediate Smartphone & Tablet Access', text: 'Read on any device with searchable PDF format.' },
-        { bold: '50% Courtesy Applied Automatically', text: 'Clicking below opens the digital guides library directly.' },
+        { bold: 'Actionable Clinical Protocols', text: 'Step-by-step nutrition, remineralization, and non-toxic home care routines.' },
         { bold: 'Lifetime Reference Material', text: 'Actionable protocols you and your family can return to for years.' }
       ],
-      ctaText: 'Download Complete Holistic Dental E-Book Collection &rarr;',
+      ctaText: 'Explore The Complete Dental Shaman Library &rarr;',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   }
 ];
 
-// Populate htmlContent and ensure files exist on disk
+// Populate htmlContent and write clean files to disk
 for (const tpl of ALL_TEMPLATES) {
   const filePath = path.join(TEMPLATES_DIR, tpl.file);
-  if (!fs.existsSync(filePath)) {
-    const defaultHtml = buildEmailHtml(tpl.htmlData);
-    fs.writeFileSync(filePath, defaultHtml, 'utf8');
-    tpl.htmlContent = defaultHtml;
-  } else {
-    tpl.htmlContent = fs.readFileSync(filePath, 'utf8');
-  }
-  delete tpl.htmlData; // clean up data
+  const html = buildEmailHtml(tpl.htmlData);
+  tpl.htmlContent = html;
+  fs.writeFileSync(filePath, html, 'utf8');
 }
 
-module.exports = { ALL_TEMPLATES };
+console.log(`[Generate] Successfully generated and wrote ${ALL_TEMPLATES.length} clean, 100% zero-discount clinical templates!`);
+
+module.exports = {
+  ALL_TEMPLATES
+};

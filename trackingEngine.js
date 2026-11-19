@@ -70,8 +70,8 @@ class TrackingEngine {
       destination.searchParams.set('utm_campaign', 'followup');
       destination.searchParams.set('utm_content', dispatchId);
       if (discount) {
-        // Shopify auto-applies discount coupon when 'discount' query parameter is present!
-        destination.searchParams.set('discount', discount);
+        // Pure tracking tag for conversation and sequence attribution (NEVER auto-apply price discount on store)
+        destination.searchParams.set('tds_trk', discount);
       }
       return destination.toString();
     } catch (e) {
