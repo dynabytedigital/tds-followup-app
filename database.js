@@ -148,7 +148,7 @@ class Database {
         senderEmail: process.env.DEFAULT_FROM_EMAIL || 'shop@thedentalshaman.com',
         replyTo: process.env.DEFAULT_REPLY_TO || 'shop@thedentalshaman.com',
         resendApiKey: process.env.RESEND_API_KEY || '',
-        defaultDiscountCode: 'HOLISTIC10',
+        defaultDiscountCode: 'TDS-CARE',
         attributionWindowDays: 14,
         shopUrl: 'https://shop.thedentalshaman.com'
       };
@@ -405,8 +405,8 @@ class Database {
       name: tplData.name || 'New Custom Preset',
       description: tplData.description || 'Clinical guidance and follow-up.',
       subject: tplData.subject || 'A personal follow-up from Dr. Marc Mortiboys',
-      discountCode: tplData.discountCode || 'HOLISTIC10',
-      discountPercent: tplData.discountPercent !== undefined ? Number(tplData.discountPercent) : 10,
+      discountCode: tplData.discountCode || 'TDS-CARE',
+      discountPercent: 0,
       file: fileName,
       htmlContent: tplData.htmlContent || '',
       createdAt: new Date().toISOString()

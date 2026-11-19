@@ -57,45 +57,29 @@ class EmailService {
     const fullName = customer.name || firstName;
     const email = customer.email || '';
     
-    // Determine promo code & percentage
-    let discountCode = '';
-    let discountPercent = tpl.discountPercent !== undefined ? tpl.discountPercent : 10;
+    // Determine tracking code (zero discounts across the platform)
+    let trackingCode = '';
 
     if (customDiscountCode !== undefined && customDiscountCode !== null) {
-      discountCode = String(customDiscountCode).trim();
+      trackingCode = String(customDiscountCode).trim();
     } else {
-      discountCode = tpl.discountCode ? String(tpl.discountCode).trim() : '';
+      trackingCode = tpl.discountCode ? String(tpl.discountCode).trim() : 'TDS-CARE';
+    }
+    if (!trackingCode || trackingCode.toUpperCase() === 'NONE') {
+      trackingCode = 'TDS-CARE';
     }
 
-    const hasDiscount = discountCode && discountCode.toUpperCase() !== 'NONE' && discountCode !== '0';
-
-    let discountBlock = '';
-    if (hasDiscount) {
-      discountBlock = `
-        <div style="background:linear-gradient(135deg, #fdf9fc 0%, #f7edf5 100%); border:1px dashed #744B6F; border-radius:8px; padding:20px; text-align:center; margin:28px 0;">
-          <p style="color:#744B6F; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px 0; font-family:Arial,sans-serif; font-weight:bold;">
-            Courtesy Benefit Extended To Your Account
-          </p>
-          <div style="font-family:Arial,sans-serif; font-size:26px; font-weight:bold; color:#0d0820; letter-spacing:2px; margin:8px 0;">
-            ${discountCode}
-          </div>
-          <p style="font-family:Arial,sans-serif; font-size:13px; color:#6b6b6b; margin:4px 0 0 0;">
-            Enjoy ${discountPercent > 0 ? `<strong>${discountPercent}% off</strong>` : 'special courtesy privilege'} on your order. Applied automatically when clicking below.
-          </p>
-        </div>
-      `;
-    } else {
-      discountBlock = `
-        <div style="background-color:#fbf7fa; border-left:4px solid #744B6F; padding:16px 20px; margin:24px 0; border-radius:0 6px 6px 0;">
-          <p style="color:#744B6F; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px 0; font-family:Arial,sans-serif; font-weight:bold;">
-            Clinical Patient Care Notice
-          </p>
-          <p style="font-family:Arial,sans-serif; font-size:13.5px; color:#4a4a4a; margin:0; line-height:1.5;">
-            This guidance is extended to support your everyday oral biology and systemic health. Full price clinical care — no coupon required.
-          </p>
-        </div>
-      `;
-    }
+    // Professional clinical care guidance banner (no discounts or coupon mentions)
+    const discountBlock = `
+      <div style="background-color:#fbf7fa; border-left:4px solid #744B6F; padding:16px 20px; margin:24px 0; border-radius:0 6px 6px 0;">
+        <p style="color:#744B6F; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0 0 4px 0; font-family:Arial,sans-serif; font-weight:bold;">
+          Clinical Care Guidance &amp; Consultation
+        </p>
+        <p style="font-family:Arial,sans-serif; font-size:13.5px; color:#4a4a4a; margin:0; line-height:1.5;">
+          This clinical guidance is provided by Dr. Marc Mortiboys (BDS) to support your everyday biological wellness and periodontal care protocol.
+        </p>
+      </div>
+    `;
 
     const shopName = 'The Dental Shaman';
     const shopUrl = process.env.SHOPIFY_SHOP ? `https://${process.env.SHOPIFY_SHOP}` : 'https://shop.thedentalshaman.com';
@@ -104,7 +88,8 @@ class EmailService {
     subject = subject
       .replace(/\{\{first_name\}\}/gi, firstName)
       .replace(/\{\{customer_name\}\}/gi, fullName)
-      .replace(/\{\{discount_code\}\}/gi, hasDiscount ? discountCode : '')
+      .replace(/\{\{tracking_code\}\}/gi, trackingCode)
+      .replace(/\{\{discount_code\}\}/gi, trackingCode)
       .replace(/\{\{shop_name\}\}/gi, shopName);
 
     let html = rawHtml
@@ -112,8 +97,9 @@ class EmailService {
       .replace(/\{\{first_name\}\}/gi, firstName)
       .replace(/\{\{customer_name\}\}/gi, fullName)
       .replace(/\{\{customer_email\}\}/gi, email)
-      .replace(/\{\{discount_code\}\}/gi, hasDiscount ? discountCode : '')
-      .replace(/\{\{discount_percent\}\}/gi, String(discountPercent))
+      .replace(/\{\{tracking_code\}\}/gi, trackingCode)
+      .replace(/\{\{discount_code\}\}/gi, trackingCode)
+      .replace(/\{\{discount_percent\}\}/gi, '0')
       .replace(/\{\{shop_name\}\}/gi, shopName)
       .replace(/\{\{shop_url\}\}/gi, shopUrl)
       .replace(/\{\{total_spent\}\}/gi, customer.total_spent ? `£${customer.total_spent}` : '£0.00')
@@ -123,7 +109,7 @@ class EmailService {
       template: tpl,
       subject,
       html,
-      discountCode: hasDiscount ? discountCode : ''
+      discountCode: trackingCode
     };
   }
 

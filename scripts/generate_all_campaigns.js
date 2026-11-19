@@ -114,7 +114,7 @@ const ALL_TEMPLATES = [
     name: 'Flosser Setup & 7-Day Adaptation Guide',
     subject: 'A personal clinical note from Dr. Marc Mortiboys (BDS) on your Sonic Flosser',
     discountCode: 'FLOSSERCARE',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Post-purchase onboarding on pressure modes, warm water use, and 45° sulcus angle positioning.',
     file: 'water_flosser_1.html',
     htmlData: {
@@ -140,7 +140,7 @@ const ALL_TEMPLATES = [
     name: 'Why 90 PSI Protects Periodontal Pockets',
     subject: 'Why 90 PSI protects periodontal pockets without tissue trauma, {{first_name}}',
     discountCode: 'FLOSSERCARE',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Clinical rationale of pulsed micro-bubbles disrupting anaerobic subgingival biofilm.',
     file: 'water_flosser_2.html',
     htmlData: {
@@ -166,7 +166,7 @@ const ALL_TEMPLATES = [
     name: 'Liquid Ozone & Organic Antimicrobial Infusions',
     subject: 'Clinical Tip: What to add to your flosser reservoir for 3x defense, {{first_name}}',
     discountCode: 'FLOSSERCARE',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Guide to infusing the reservoir with organic rinses and biological saline solutions.',
     file: 'water_flosser_3.html',
     htmlData: {
@@ -192,7 +192,7 @@ const ALL_TEMPLATES = [
     name: '60-Day Hygienic Tip Refresh & Anti-Calcification',
     subject: 'Time to refresh your flosser tips, {{first_name}}? Clinical restock notice',
     discountCode: 'RESTOCK10',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Preventing bacterial colonization on nozzles and mineral scaling inside the pump.',
     file: 'water_flosser_4.html',
     htmlData: {
@@ -218,7 +218,7 @@ const ALL_TEMPLATES = [
     name: 'VIP Loyalty Check-In & Complete Oral Mastery',
     subject: 'How is your gum sensitivity feeling, {{first_name}}? Clinical check-in',
     discountCode: 'MASTERY10',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Milestone check-in celebrating bleeding cessation and long-term oral vitality.',
     file: 'water_flosser_5.html',
     htmlData: {
@@ -248,7 +248,7 @@ const ALL_TEMPLATES = [
     name: 'The Sacred Biological Copper Water Ritual',
     subject: 'The Oligodynamic Effect: Why drinking from pure copper transforms morning oral wellness',
     discountCode: 'BOGOFCUP',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Clinical explanation of Tamra Jal, antimicrobial oligodynamic copper ions, and morning saliva alkalization.',
     file: 'bogof_cup_1.html',
     htmlData: {
@@ -274,7 +274,7 @@ const ALL_TEMPLATES = [
     name: 'Buy 1 Handcrafted Copper Cup, Get 1 Free',
     subject: 'Special Clinical Courtesy: Buy 1 Handcrafted Copper Cup, Receive 1 Free, {{first_name}}',
     discountCode: 'BOGOFCUP',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Exclusive BOGOF promotion invitation for patients and clients.',
     file: 'bogof_cup_2.html',
     htmlData: {
@@ -300,7 +300,7 @@ const ALL_TEMPLATES = [
     name: 'Dr. Marc\'s 3-Step Morning Oral Detox Routine',
     subject: 'Dr. Marc\'s 3-Step Morning Oral Ritual using pure copper, {{first_name}}',
     discountCode: 'BOGOFCUP',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Detailed protocol combining tongue scraping, copper water sipping, and biological oil swishing.',
     file: 'bogof_cup_3.html',
     htmlData: {
@@ -326,7 +326,7 @@ const ALL_TEMPLATES = [
     name: 'Pure Copper Maintenance & Natural Patina Care',
     subject: 'How to keep your pure copper gleaming naturally (lemon & salt guide)',
     discountCode: 'BOGOFCUP',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Natural cleaning instructions without harsh chemicals; understanding copper oxidation.',
     file: 'bogof_cup_4.html',
     htmlData: {
@@ -352,7 +352,7 @@ const ALL_TEMPLATES = [
     name: 'Final 24 Hours: Reserved BOGOF Copper Cup Benefit',
     subject: 'Final 24 Hours: Reserved Buy 1 Get 1 Free Copper Cup courtesy allocation for {{first_name}}',
     discountCode: 'BOGOFCUP',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Closing notice on the reserved BOGOF copper cup stock allocation.',
     file: 'bogof_cup_5.html',
     htmlData: {
@@ -362,7 +362,7 @@ const ALL_TEMPLATES = [
       clinicalSectionTitle: 'Closing Opportunity Summary:',
       clinicalPoints: [
         { bold: 'Buy 1 Get 1 Free Privilege', text: 'Two heirloom copper cups for the price of one.' },
-        { bold: 'Zero Code Entry Needed', text: 'Clicking below applies your discount coupon directly on checkout.' },
+        { bold: 'Zero Code Entry Needed', text: 'Clicking below directs you to full product details and clinical care protocols.' },
         { bold: 'Pure Holistic Quality', text: '100% food-grade certified virgin antimicrobial copper.' }
       ],
       ctaText: 'Claim Your BOGOF Set Now &rarr;',
@@ -382,7 +382,7 @@ const ALL_TEMPLATES = [
     name: 'The Oral Microbiome Shield vs Harsh Alcohol Washes',
     subject: 'Why conventional alcohol mouthwash damages your heart and oral barrier',
     discountCode: 'BOGOFSPRAY',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Clinical breakdown of how alcohol mouthwashes destroy nitric-oxide oral flora, introducing organic botanical spray.',
     file: 'bogof_spray_1.html',
     htmlData: {
@@ -408,7 +408,7 @@ const ALL_TEMPLATES = [
     name: 'Buy 1 Organic Herbal Spray, Get Free Copper Cup or Bonus Spray',
     subject: 'Exclusive Courtesy: Buy 1 Botanical Oral Spray, Get a Bonus Spray or Cup Free',
     discountCode: 'BOGOFSPRAY',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'BOGOF promotional package allowing customer to get a free second spray or copper companion.',
     file: 'bogof_spray_2.html',
     htmlData: {
@@ -434,7 +434,7 @@ const ALL_TEMPLATES = [
     name: 'The 2-Minute Midday Post-Meal Enamel Defense Protocol',
     subject: 'The 2-Minute Post-Meal Protocol to stop enamel demineralization on the go',
     discountCode: 'BOGOFSPRAY',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Practical clinical instructions on spraying right after meals to buffer acidity.',
     file: 'bogof_spray_3.html',
     htmlData: {
@@ -460,7 +460,7 @@ const ALL_TEMPLATES = [
     name: 'Inside The Bottle: Clinical Anatomy of Organic Myrrh & Silver',
     subject: 'Inside the bottle: Why we chose organic myrrh and colloidal silver',
     discountCode: 'BOGOFSPRAY',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Ingredient breakdown for conscious patients wanting full biological transparency.',
     file: 'bogof_spray_4.html',
     htmlData: {
@@ -486,7 +486,7 @@ const ALL_TEMPLATES = [
     name: 'Final Courtesy Window: Your BOGOF Botanical Spray Benefit',
     subject: 'Courtesy window ending: Your Buy 1 Get 1 Free Botanical Spray benefit, {{first_name}}',
     discountCode: 'BOGOFSPRAY',
-    discountPercent: 10,
+    discountPercent: 0,
     description: 'Last notification on the Buy 1 Get 1 Free spray package.',
     file: 'bogof_spray_5.html',
     htmlData: {
@@ -516,7 +516,7 @@ const ALL_TEMPLATES = [
     name: 'The Root Cause of Oral Disease & Living Teeth Biology',
     subject: 'Why cavities and gum disease are symptoms of internal imbalance, {{first_name}}',
     discountCode: 'EBOOK50',
-    discountPercent: 50,
+    discountPercent: 0,
     description: 'Dr. Marc\'s foundational philosophy on how teeth heal from within via dentinal fluid flow.',
     file: 'ebook_50_1.html',
     htmlData: {
@@ -542,7 +542,7 @@ const ALL_TEMPLATES = [
     name: '50% Off The Complete Dental Shaman Biological E-Book Library',
     subject: 'Exclusive 50% Courtesy Benefit: All Biological Oral Health E-Books & Guides',
     discountCode: 'EBOOK50',
-    discountPercent: 50,
+    discountPercent: 0,
     description: 'Announcement of 50% courtesy privilege on all digital clinical guides and protocols.',
     file: 'ebook_50_2.html',
     htmlData: {
@@ -568,7 +568,7 @@ const ALL_TEMPLATES = [
     name: 'Exclusive Chapter Excerpt: Reversing Demineralization',
     subject: 'Excerpt from Chapter 2: The dentinal fluid flow that actively heals teeth',
     discountCode: 'EBOOK50',
-    discountPercent: 50,
+    discountPercent: 0,
     description: 'Actionable excerpt on Vitamin K2 (MK-7) directing calcium into teeth rather than arteries.',
     file: 'ebook_50_3.html',
     htmlData: {
@@ -594,7 +594,7 @@ const ALL_TEMPLATES = [
     name: 'Toxic Dentistry Myths & Safe Biocompatible Protocols',
     subject: 'Fluoride, amalgam, and microplastics: What modern dental clinics often overlook',
     discountCode: 'EBOOK50',
-    discountPercent: 50,
+    discountPercent: 0,
     description: 'Dr. Marc\'s clinical exposé on toxic ingredients in modern dental products and safe holistic swaps.',
     file: 'ebook_50_4.html',
     htmlData: {
@@ -620,20 +620,20 @@ const ALL_TEMPLATES = [
     name: 'Final Call: Instant Download Access to 50% Off Holistic E-Books',
     subject: 'Final call for 50% Off Dr. Marc\'s Complete Holistic Dental E-Books',
     discountCode: 'EBOOK50',
-    discountPercent: 50,
+    discountPercent: 0,
     description: 'Last notification before the 50% courtesy promotion window closes.',
     file: 'ebook_50_5.html',
     htmlData: {
       badgeText: 'The Dental Shaman · Biological Wisdom Series (5 of 5)',
       title: 'Final Call: 50% Courtesy Benefit Closing',
-      heroText: 'This is the final courtesy reminder before the 50% discount allocation on The Dental Shaman complete digital library expires. Immediate PDF digital download delivered to your inbox upon checkout.',
+      heroText: 'This is the final courtesy reminder for the clinical digital guide on The Dental Shaman complete digital library expires. Immediate PDF digital download delivered to your inbox upon checkout.',
       clinicalSectionTitle: 'Instant Digital Access:',
       clinicalPoints: [
         { bold: 'Immediate Smartphone & Tablet Access', text: 'Read on any device with searchable PDF format.' },
-        { bold: '50% Courtesy Applied Automatically', text: 'Clicking below applies code EBOOK50 directly at checkout.' },
+        { bold: '50% Courtesy Applied Automatically', text: 'Clicking below opens the digital guides library directly.' },
         { bold: 'Lifetime Reference Material', text: 'Actionable protocols you and your family can return to for years.' }
       ],
-      ctaText: 'Download Complete E-Book Collection (50% Off) &rarr;',
+      ctaText: 'Download Complete Holistic Dental E-Book Collection &rarr;',
       ctaUrl: '{{shop_url}}/collections/all'
     }
   }

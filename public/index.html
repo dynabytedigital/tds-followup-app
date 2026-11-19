@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.13">
+  <link rel="stylesheet" href="style.css?v=18.14">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -447,7 +447,7 @@
                   <th>Sequence</th>
                   <th>Template</th>
                   <th>Subject</th>
-                  <th>Discount</th>
+                  <th>Tracking Code</th>
                   <th>Delivery</th>
                   <th>Clicks</th>
                   <th>Order</th>
@@ -563,8 +563,11 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Default Discount Code</label>
-              <input type="text" id="settingDefaultPromo" class="form-input" value="HOLISTIC10">
+              <label class="form-label">Default Campaign Tracking Code</label>
+              <input type="text" id="settingDefaultPromo" class="form-input" style="text-transform: uppercase;" value="TDS-CARE" placeholder="e.g. TDS-CARE">
+              <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
+                Base identifier used for customer attribution and sequence link tracking.
+              </p>
             </div>
 
             <button type="submit" class="Polaris-Button Polaris-Button--dark">Save Settings</button>
@@ -636,7 +639,7 @@
         </button>
         <button type="button" class="tpl-mode-btn" id="btnTplModeSettings" onclick="setTemplateEditorMode('settings')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Subject &amp; Offer
+          Subject &amp; Tracking
         </button>
         <button type="button" class="tpl-mode-btn" id="btnTplModeCode" onclick="setTemplateEditorMode('code')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -691,30 +694,19 @@
               <textarea id="tplEditorSubject" class="tpl-clean-textarea tpl-subject-textarea" rows="2" placeholder="e.g. Your Flosser Has Arrived: 7-Day Adaptation Technique" oninput="autoResizeTextarea(this); updateEditorLivePreview(); updateSubjectCharCount();"></textarea>
               <div class="tpl-quick-tags">
                 <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{first_name}}')">+ First Name</button>
-                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{discount_block}}')">+ Promo Code</button>
+                <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{tracking_code}}')">+ Tracking Code</button>
                 <button type="button" class="tpl-quick-tag" onclick="insertTagIntoSubject('{{shop_url}}')">+ Store Link</button>
               </div>
             </div>
 
-            <!-- Field 3: Sequence Offer Configuration -->
+            <!-- Field 3: Campaign Attribution & Tracking Code (Zero Discounts) -->
             <div class="tpl-field-group">
               <div class="tpl-field-header">
-                <label class="tpl-field-label">Sequence Offer</label>
-                <label class="tpl-toggle-label">
-                  <input type="checkbox" id="tplEditorZeroDiscountToggle" onchange="toggleTemplateZeroDiscount(this)">
-                  <span>Zero Discount (Guidance Only)</span>
-                </label>
+                <label class="tpl-field-label" for="tplEditorPromoCode">Campaign Tracking Code</label>
+                <span class="tpl-field-hint">Attribution &amp; click tracking identifier</span>
               </div>
-              <div class="tpl-offer-grid" id="tplEditorOfferInputs">
-                <div class="tpl-offer-col">
-                  <span class="tpl-sublabel">Promo Code</span>
-                  <input type="text" id="tplEditorPromoCode" class="tpl-clean-input" style="text-transform: uppercase;" placeholder="FLOSSER10" oninput="updateEditorLivePreview()">
-                </div>
-                <div class="tpl-offer-col">
-                  <span class="tpl-sublabel">Discount %</span>
-                  <input type="number" id="tplEditorDiscountPercent" class="tpl-clean-input" min="0" max="100" placeholder="10" inputmode="numeric" oninput="updateEditorLivePreview()">
-                </div>
-              </div>
+              <input type="text" id="tplEditorPromoCode" class="tpl-clean-input" style="text-transform: uppercase;" placeholder="e.g. TDS-CARE or FLOSSER-GUIDE" oninput="updateEditorLivePreview()">
+              <input type="hidden" id="tplEditorDiscountPercent" value="0">
             </div>
 
             <!-- Field 4: Clinical Objective & Internal Notes (Auto-wrapping multiline) -->
@@ -845,18 +837,16 @@
 
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <label class="form-label" style="margin-bottom: 0;">Discount Code</label>
-                <label style="font-size: 11px; color: var(--p-color-text-subdued); cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                  <input type="checkbox" id="composerNoDiscountToggle" onchange="toggleComposerDiscount(this)">
-                  <span>No Discount</span>
-                </label>
+                <label class="form-label" for="composerDiscountCode" style="margin-bottom: 0;">Campaign Tracking Code</label>
+                <span style="font-size: 11px; color: var(--p-color-text-subdued);">Attribution Tag</span>
               </div>
               <div style="display: flex; gap: 6px;" id="composerDiscountInputGroup">
-                <input type="text" id="composerDiscountCode" class="form-input" style="text-transform: uppercase;" oninput="updateLivePreview()" placeholder="e.g. HOLISTIC10">
+                <input type="text" id="composerDiscountCode" class="form-input" style="text-transform: uppercase;" oninput="updateLivePreview()" placeholder="e.g. TDS-CARE">
                 <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="generateUniqueCode()">
                   Generate
                 </button>
               </div>
+              <input type="checkbox" id="composerNoDiscountToggle" style="display: none;">
               <span id="composerDiscountHelpText" style="display: none;"></span>
             </div>
 
@@ -871,7 +861,7 @@
               <div id="composerHtmlEditorWrap" style="display: none;">
                 <textarea id="composerBody" class="form-textarea" style="font-family: monospace; font-size: 11px; min-height: 160px;" oninput="updateLivePreview()"></textarea>
                 <p style="font-size: 10.5px; color: var(--p-color-text-subdued); margin-top: 3px;">
-                  Tags: <code>{{first_name}}</code>, <code>{{discount_code}}</code>, <code>{{shop_url}}</code>
+                  Tags: <code>{{first_name}}</code>, <code>{{tracking_code}}</code>, <code>{{shop_url}}</code>
                 </p>
               </div>
             </div>
@@ -996,7 +986,7 @@
                 <option value="star">⭐ VIP Star</option>
                 <option value="sparkles">✨ Sparkles / Whitening</option>
                 <option value="shield">🛡️ Defense / Hygiene</option>
-                <option value="tag">🏷️ Promotion / Gift</option>
+                <option value="tag">🏷️ Customer Tag Filter</option>
               </select>
             </div>
           </div>
@@ -1052,15 +1042,10 @@
             <label class="form-label">Email Subject Line *</label>
             <input type="text" id="presetModalSubject" class="form-input" placeholder="Subject for customer inbox" required>
           </div>
-          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;">
-            <div class="form-group">
-              <label class="form-label">Default Promo Code</label>
-              <input type="text" id="presetModalDiscountCode" class="form-input" style="text-transform: uppercase;" value="HOLISTIC10">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Discount (%)</label>
-              <input type="number" id="presetModalDiscountPercent" class="form-input" min="0" max="100" value="10">
-            </div>
+          <div class="form-group">
+            <label class="form-label">Default Campaign Tracking Code</label>
+            <input type="text" id="presetModalDiscountCode" class="form-input" style="text-transform: uppercase;" value="TDS-CARE" placeholder="e.g. TDS-CARE">
+            <input type="hidden" id="presetModalDiscountPercent" value="0">
           </div>
         </div>
         <div class="modal-footer">
@@ -1152,6 +1137,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.13"></script>
+  <script src="app.js?v=18.14"></script>
 </body>
 </html>

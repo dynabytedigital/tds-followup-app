@@ -1211,8 +1211,7 @@ function updateComposerStageTitle(tpl) {
   const timingEl = document.getElementById('composerStageActiveTiming');
   if (nameEl) nameEl.innerText = `Stage ${tpl.stage || 1}: ${tpl.name || 'Follow-Up'}`;
   if (timingEl) {
-    const hasDiscount = tpl.discountCode && tpl.discountCode !== 'NONE' && tpl.discountPercent > 0;
-    timingEl.innerText = hasDiscount ? `(${tpl.timing || 'Day 1'} · ${tpl.discountPercent}% OFF)` : `(${tpl.timing || 'Day 1'})`;
+    timingEl.innerText = `(${tpl.timing || 'Day 1'})`;
   }
 }
 
@@ -1230,17 +1229,6 @@ function toggleComposerHtmlView(btn) {
 }
 
 function toggleComposerDiscount(cb) {
-  const codeInput = document.getElementById('composerDiscountCode');
-  if (cb.checked) {
-    codeInput.value = 'NONE';
-    codeInput.disabled = true;
-  } else {
-    codeInput.disabled = false;
-    const tplId = composerActiveTemplateId || document.getElementById('composerTemplateSelect')?.value;
-    const tpl = templatesList.find(t => t.id === tplId);
-    const prefix = tpl?.discountCode && tpl.discountCode !== 'NONE' ? tpl.discountCode : 'HOLISTIC10';
-    codeInput.value = `${prefix}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-  }
   updateLivePreview();
 }
 
@@ -1534,18 +1522,13 @@ async function onTemplateChange() {
     updateComposerSubjectCount();
   }
 
-  // Default promo code
-  const noDisc = document.getElementById('composerNoDiscountToggle')?.checked;
-  if (noDisc || tpl.discountCode === 'NONE' || tpl.discountPercent === 0) {
-    document.getElementById('composerDiscountCode').value = 'NONE';
-    if (document.getElementById('composerNoDiscountToggle')) {
-      document.getElementById('composerNoDiscountToggle').checked = true;
-    }
-    document.getElementById('composerDiscountCode').disabled = true;
-  } else {
-    const codePrefix = tpl.discountCode || 'HOLISTIC10';
-    document.getElementById('composerDiscountCode').value = `${codePrefix}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    document.getElementById('composerDiscountCode').disabled = false;
+  // Campaign Tracking Code (zero discounts platform-wide)
+  const codePrefix = (tpl.discountCode && tpl.discountCode !== 'NONE') ? tpl.discountCode : 'TDS-CARE';
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const codeEl = document.getElementById('composerDiscountCode');
+  if (codeEl) {
+    codeEl.value = `${codePrefix}-${rand}`;
+    codeEl.disabled = false;
   }
 
   // Fetch raw template HTML
@@ -1581,11 +1564,12 @@ function sanitizePreviewHtml(rawHtml) {
 }
 
 function generateUniqueCode() {
-  const tplId = document.getElementById('composerTemplateSelect').value;
+  const tplId = document.getElementById('composerTemplateSelect')?.value;
   const tpl = templatesList.find(t => t.id === tplId);
-  const prefix = tpl?.discountCode || 'HOLISTIC10';
+  const prefix = (tpl?.discountCode && tpl.discountCode !== 'NONE') ? tpl.discountCode : 'TDS-CARE';
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  document.getElementById('composerDiscountCode').value = `${prefix}-${rand}`;
+  const codeEl = document.getElementById('composerDiscountCode');
+  if (codeEl) codeEl.value = `${prefix}-${rand}`;
   updateLivePreview();
 }
 
@@ -1916,19 +1900,19 @@ async function loadConversions() {
         // Clean Attribution Details
         let attributionMethod = '';
         if (c.proofType === 'PROMO_CODE_MATCH' || (c.proofLevel && c.proofLevel.includes('Promo'))) {
-          attributionMethod = 'Discount code applied';
+          attributionMethod = 'Tracking code match';
         } else if (c.clickedAt) {
           attributionMethod = 'Follow-up link click';
         } else {
-          attributionMethod = 'Campaign window';
+          attributionMethod = 'Campaign sequence window';
         }
 
-        const promoCodeUsed = (c.discountCodesUsed && c.discountCodesUsed.length > 0) ? c.discountCodesUsed.join(', ') : 'None';
+        const trackingRefUsed = (c.discountCodesUsed && c.discountCodesUsed.length > 0) ? c.discountCodesUsed.join(', ') : (c.discountCode || 'TDS-CARE');
 
         const evidenceHtml = `
           <div style="font-size: 12px; font-weight: 500; color: var(--p-color-text);">${attributionMethod}</div>
           <div style="font-size: 11px; color: var(--p-color-text-subdued); margin-top: 2px;">
-            Discount: <code>${escapeHtml(promoCodeUsed)}</code>
+            Tracking Ref: <code>${escapeHtml(trackingRefUsed)}</code>
           </div>
         `;
 
@@ -2295,10 +2279,8 @@ function renderTemplateCards() {
       : siloTemplates.map(t => {
           const stageNum = t.stage || 1;
           const stageLabel = t.stageLabel || `Stage ${stageNum}`;
-          const hasDiscount = t.discountCode && t.discountCode !== 'NONE' && t.discountCode !== '0' && (t.discountPercent > 0);
-          const offerBadge = hasDiscount
-            ? `<span class="sequence-offer-badge">Discount: <strong>${escapeHtml(t.discountCode)}</strong> (${t.discountPercent}% off)</span>`
-            : `<span class="sequence-offer-none">No discount included</span>`;
+          const trackingCode = (t.discountCode && t.discountCode !== 'NONE' && t.discountCode !== '0') ? t.discountCode : 'TDS-CARE';
+          const offerBadge = `<span class="sequence-tracking-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>Tracking: <code>${escapeHtml(trackingCode)}</code></span>`;
 
           return `
             <div class="sequence-row">
@@ -2495,8 +2477,10 @@ function openNewPresetModal(preselectedCampId = null) {
   document.getElementById('presetModalName').value = '';
   document.getElementById('presetModalDesc').value = '';
   document.getElementById('presetModalSubject').value = '';
-  document.getElementById('presetModalDiscountCode').value = 'HOLISTIC10';
-  document.getElementById('presetModalDiscountPercent').value = 10;
+  document.getElementById('presetModalDiscountCode').value = 'TDS-CARE';
+  if (document.getElementById('presetModalDiscountPercent')) {
+    document.getElementById('presetModalDiscountPercent').value = 0;
+  }
 
   document.getElementById('modalNewPreset').classList.add('active');
 }
@@ -2513,8 +2497,8 @@ async function savePresetForm(e) {
   const name = document.getElementById('presetModalName').value.trim();
   const description = document.getElementById('presetModalDesc').value.trim();
   const subject = document.getElementById('presetModalSubject').value.trim();
-  const discountCode = document.getElementById('presetModalDiscountCode').value.trim();
-  const discountPercent = parseInt(document.getElementById('presetModalDiscountPercent').value, 10) || 0;
+  const discountCode = document.getElementById('presetModalDiscountCode')?.value.trim() || 'TDS-CARE';
+  const discountPercent = 0;
 
   try {
     const res = await authFetch('/api/templates', {
@@ -2785,22 +2769,7 @@ function updateSubjectCharCount() {
 }
 
 function toggleTemplateZeroDiscount(checkbox) {
-  const promoInput = document.getElementById('tplEditorPromoCode');
-  const discountInput = document.getElementById('tplEditorDiscountPercent');
-  const offerGrid = document.getElementById('tplEditorOfferInputs');
-  if (!promoInput || !discountInput) return;
-  if (checkbox.checked) {
-    promoInput.dataset.prevVal = promoInput.value;
-    discountInput.dataset.prevVal = discountInput.value;
-    promoInput.value = 'NONE';
-    discountInput.value = '0';
-    if (offerGrid) offerGrid.classList.add('tpl-offer-disabled');
-  } else {
-    promoInput.value = promoInput.dataset.prevVal || '';
-    discountInput.value = discountInput.dataset.prevVal || '10';
-    if (offerGrid) offerGrid.classList.remove('tpl-offer-disabled');
-  }
-  updateEditorLivePreview();
+  // Deprecated - zero discounts platform wide
 }
 
 /* ========================================================
@@ -2823,18 +2792,11 @@ async function openTemplateEditor(templateId) {
 
   document.getElementById('tplEditorName').value = tpl.name || '';
   document.getElementById('tplEditorSubject').value = tpl.subject || '';
-  document.getElementById('tplEditorPromoCode').value = (tpl.discountCode && tpl.discountCode !== 'NONE') ? tpl.discountCode : '';
-  document.getElementById('tplEditorDiscountPercent').value = tpl.discountPercent !== undefined ? tpl.discountPercent : 10;
-  document.getElementById('tplEditorDescription').value = tpl.description || '';
-
-  // Zero discount toggle state
-  const isZeroDiscount = (!tpl.discountCode || tpl.discountCode === 'NONE' || tpl.discountPercent === 0);
-  const zeroDiscountToggle = document.getElementById('tplEditorZeroDiscountToggle');
-  if (zeroDiscountToggle) {
-    zeroDiscountToggle.checked = isZeroDiscount;
-    const offerGrid = document.getElementById('tplEditorOfferInputs');
-    if (offerGrid) offerGrid.classList.toggle('tpl-offer-disabled', isZeroDiscount);
+  document.getElementById('tplEditorPromoCode').value = (tpl.discountCode && tpl.discountCode !== 'NONE') ? tpl.discountCode : 'TDS-CARE';
+  if (document.getElementById('tplEditorDiscountPercent')) {
+    document.getElementById('tplEditorDiscountPercent').value = 0;
   }
+  document.getElementById('tplEditorDescription').value = tpl.description || '';
 
   // Trigger auto-resizing & counters
   setTimeout(() => {
@@ -2983,8 +2945,8 @@ async function saveTemplateEdits() {
 
   const name = document.getElementById('tplEditorName').value.trim();
   const subject = document.getElementById('tplEditorSubject').value.trim();
-  const discountCode = document.getElementById('tplEditorPromoCode').value.trim();
-  const discountPercent = parseFloat(document.getElementById('tplEditorDiscountPercent').value) || 0;
+  const discountCode = document.getElementById('tplEditorPromoCode')?.value.trim() || 'TDS-CARE';
+  const discountPercent = 0;
   const description = document.getElementById('tplEditorDescription').value.trim();
   const htmlContent = document.getElementById('tplEditorHtml').value;
 
@@ -3069,7 +3031,7 @@ async function loadSettings() {
       if (document.getElementById('settingSenderEmail')) document.getElementById('settingSenderEmail').value = s.senderEmail || '';
       if (document.getElementById('settingReplyTo')) document.getElementById('settingReplyTo').value = s.replyTo || '';
       if (document.getElementById('settingResendApiKey')) document.getElementById('settingResendApiKey').value = s.resendApiKey || '';
-      if (document.getElementById('settingDefaultPromo')) document.getElementById('settingDefaultPromo').value = s.defaultDiscountCode || 'HOLISTIC10';
+      if (document.getElementById('settingDefaultPromo')) document.getElementById('settingDefaultPromo').value = s.defaultDiscountCode || 'TDS-CARE';
       if (document.getElementById('settingEmailProvider')) document.getElementById('settingEmailProvider').value = s.emailProvider || 'google_workspace';
       if (document.getElementById('settingSmtpPass') && s.smtpPass) document.getElementById('settingSmtpPass').value = s.smtpPass;
       toggleProviderSettingsFields();
@@ -3144,7 +3106,7 @@ async function saveSettings(event) {
     smtpUser: document.getElementById('settingSenderEmail').value.trim(),
     smtpPass: document.getElementById('settingSmtpPass').value.trim().replace(/\s+/g, ''),
     resendApiKey: document.getElementById('settingResendApiKey').value.trim(),
-    defaultDiscountCode: document.getElementById('settingDefaultPromo').value.trim()
+    defaultDiscountCode: document.getElementById('settingDefaultPromo')?.value.trim() || 'TDS-CARE'
   };
 
   try {
