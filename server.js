@@ -230,7 +230,7 @@ app.get('/api/customers/:id', async (req, res) => {
 });
 
 /* ========================================================
-   CAMPAIGNS & TEMPLATES STUDIO API
+   CAMPAIGNS & TEMPLATES STUDIO API (FULL DYNAMIC CRUD)
    ======================================================== */
 app.get('/api/campaigns', (req, res) => {
   res.json({
@@ -239,11 +239,77 @@ app.get('/api/campaigns', (req, res) => {
   });
 });
 
+app.post('/api/campaigns', (req, res) => {
+  try {
+    const { name, shortName, color, iconSvg } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Campaign name is required.' });
+    }
+    const camp = db.createCampaign({ name, shortName, color, iconSvg });
+    res.json({ success: true, campaign: camp });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/campaigns/:id', (req, res) => {
+  try {
+    const updated = db.updateCampaign(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ success: false, error: 'Campaign not found.' });
+    res.json({ success: true, campaign: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/campaigns/:id', (req, res) => {
+  try {
+    const ok = db.deleteCampaign(req.params.id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Campaign not found.' });
+    res.json({ success: true, message: 'Campaign and associated stages deleted permanently.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/templates', (req, res) => {
   res.json({
     success: true,
     templates: db.getTemplates(req.query.campaignId)
   });
+});
+
+app.post('/api/templates', (req, res) => {
+  try {
+    const { campaignId, stage, stageLabel, name, description, subject, discountCode, discountPercent, htmlContent } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Preset name is required.' });
+    }
+    const tpl = db.createTemplate({
+      campaignId,
+      stage,
+      stageLabel,
+      name,
+      description,
+      subject,
+      discountCode,
+      discountPercent,
+      htmlContent
+    });
+    res.json({ success: true, template: tpl });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/templates/:id', (req, res) => {
+  try {
+    const ok = db.deleteTemplate(req.params.id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Preset not found.' });
+    res.json({ success: true, message: 'Preset deleted permanently.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get('/api/templates/:id/raw', (req, res) => {
@@ -255,14 +321,16 @@ app.get('/api/templates/:id/raw', (req, res) => {
 
 app.post('/api/templates/:id/save', (req, res) => {
   try {
-    const { name, subject, discountCode, discountPercent, description, htmlContent } = req.body;
+    const { name, subject, discountCode, discountPercent, description, htmlContent, stageLabel, stage } = req.body;
     const updated = db.saveTemplate(req.params.id, {
       name,
       subject,
       discountCode,
       discountPercent: discountPercent !== undefined ? Number(discountPercent) : undefined,
       description,
-      htmlContent
+      htmlContent,
+      stageLabel,
+      stage: stage !== undefined ? Number(stage) : undefined
     });
     if (!updated) {
       return res.status(404).json({ success: false, error: 'Template not found.' });
@@ -289,6 +357,96 @@ app.post('/api/templates/:id/preview', (req, res) => {
     customBody
   );
   res.json({ success: true, rendered });
+});
+
+/* ========================================================
+   AUTOMATION RULES API
+   ======================================================== */
+app.get('/api/rules', (req, res) => {
+  res.json({ success: true, rules: db.getRules() });
+});
+
+app.post('/api/rules', (req, res) => {
+  try {
+    const rule = db.saveRule(req.body);
+    res.json({ success: true, rule });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/rules/:id', (req, res) => {
+  try {
+    const ok = db.deleteRule(req.params.id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Rule not found.' });
+    res.json({ success: true, message: 'Rule deleted.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/rules/:id/run', async (req, res) => {
+  try {
+    const rule = db.getRuleById(req.params.id);
+    if (!rule) return res.status(404).json({ success: false, error: 'Rule not found.' });
+
+    const allCustomers = db.getCustomers();
+    let matching = [];
+
+    if (rule.triggerType === 'spend_min') {
+      const min = parseFloat(rule.triggerValue) || 0;
+      matching = allCustomers.filter(c => parseFloat(c.total_spent || 0) >= min);
+    } else if (rule.triggerType === 'orders_min') {
+      const minOrders = parseInt(rule.triggerValue) || 1;
+      matching = allCustomers.filter(c => parseInt(c.orders_count || 0) >= minOrders);
+    } else if (rule.triggerType === 'never_followed_up') {
+      matching = allCustomers.filter(c => !c.lastFollowUpAt);
+    } else {
+      matching = allCustomers;
+    }
+
+    // Filter to customers with valid email
+    matching = matching.filter(c => c.email && c.email.includes('@'));
+
+    // Find template for rule
+    const templates = db.getTemplates(rule.campaignId).sort((a, b) => (a.stage || 1) - (b.stage || 1));
+    const targetTpl = templates.find(t => (t.stage || 1) === (rule.stage || 1)) || templates[0];
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const cust of matching) {
+      try {
+        await emailService.sendFollowUpEmail({
+          to: cust.email,
+          customer: cust,
+          templateId: targetTpl ? targetTpl.id : 'water_flosser_1',
+          mode: 'automated_rule'
+        });
+        sent++;
+      } catch (e) {
+        failed++;
+      }
+      // Small pause between emails
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    db.saveRule({
+      id: rule.id,
+      lastRunAt: new Date().toISOString(),
+      enrolledCount: (rule.enrolledCount || 0) + sent
+    });
+
+    res.json({
+      success: true,
+      message: `Rule "${rule.name}" executed: ${sent} emails dispatched, ${failed} failed.`,
+      matched: matching.length,
+      sent,
+      failed
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 /* ========================================================
@@ -329,6 +487,88 @@ app.post('/api/followup/send', async (req, res) => {
       dispatchId: result.dispatchId,
       messageId: result.messageId,
       usedProtocol: result.usedProtocol
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/followup/batch-send', async (req, res) => {
+  try {
+    const {
+      customerIds,
+      templateId,
+      customSubject,
+      customDiscountCode,
+      customBody
+    } = req.body;
+
+    if (!Array.isArray(customerIds) || customerIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'At least one customer must be selected.' });
+    }
+
+    const allCustomers = db.getCustomers();
+    const targetCustomers = customerIds
+      .map(id => allCustomers.find(c => String(c.id) === String(id)))
+      .filter(Boolean);
+
+    if (targetCustomers.length === 0) {
+      return res.status(400).json({ success: false, error: 'None of the selected customer IDs could be found.' });
+    }
+
+    const successes = [];
+    const failures = [];
+
+    for (const cust of targetCustomers) {
+      const email = (cust.email || '').trim();
+      if (!email || !email.includes('@')) {
+        failures.push({
+          customerId: cust.id,
+          name: cust.name || 'Valued Customer',
+          email,
+          error: 'No valid email address'
+        });
+        continue;
+      }
+
+      try {
+        const result = await emailService.sendFollowUpEmail({
+          to: email,
+          customer: cust,
+          templateId: templateId || 'water_flosser_1',
+          customSubject,
+          customDiscountCode,
+          customBody,
+          mode: 'batch_manual'
+        });
+
+        successes.push({
+          customerId: cust.id,
+          name: cust.name || 'Valued Customer',
+          email,
+          dispatchId: result.dispatchId
+        });
+      } catch (err) {
+        failures.push({
+          customerId: cust.id,
+          name: cust.name || 'Valued Customer',
+          email,
+          error: err.message || 'Delivery error'
+        });
+      }
+
+      // 80ms gentle throttle between dispatches
+      await new Promise(r => setTimeout(r, 80));
+    }
+
+    res.json({
+      success: true,
+      total: targetCustomers.length,
+      sentCount: successes.length,
+      failedCount: failures.length,
+      message: `Batch complete: ${successes.length} dispatched successfully, ${failures.length} failed.`,
+      successes,
+      failures
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

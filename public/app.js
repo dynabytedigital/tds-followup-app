@@ -503,6 +503,140 @@ function filterCustomers() {
   }
 }
 
+/* ========================================================
+   GRID MULTI-SELECT & POLARIS BULK ACTIONS STATE
+   ======================================================== */
+const selectedCustomerIds = new Set();
+let composerTargetCustomers = [];
+
+function toggleCustomerSelection(id, isChecked) {
+  const strId = String(id);
+  if (isChecked) {
+    selectedCustomerIds.add(strId);
+  } else {
+    selectedCustomerIds.delete(strId);
+  }
+  updateBulkActionsBar();
+  syncMasterCheckboxState();
+}
+
+function toggleSelectAllPage(isChecked) {
+  const startIdx = (currentPage - 1) * pageSize;
+  const pageSlice = filteredCustomers.slice(startIdx, startIdx + pageSize);
+  pageSlice.forEach(c => {
+    const strId = String(c.id);
+    if (isChecked) selectedCustomerIds.add(strId);
+    else selectedCustomerIds.delete(strId);
+  });
+  renderCustomersTable();
+}
+
+function selectAllFilteredCustomers() {
+  filteredCustomers.forEach(c => selectedCustomerIds.add(String(c.id)));
+  renderCustomersTable();
+  showToast(`Selected all ${filteredCustomers.length.toLocaleString()} customers matching filter!`, 'info');
+}
+
+function clearCustomerSelection() {
+  selectedCustomerIds.clear();
+  renderCustomersTable();
+}
+
+function syncMasterCheckboxState() {
+  const master = document.getElementById('selectAllCustomersCheckbox');
+  if (!master) return;
+  const startIdx = (currentPage - 1) * pageSize;
+  const pageSlice = filteredCustomers.slice(startIdx, startIdx + pageSize);
+  if (pageSlice.length === 0) {
+    master.checked = false;
+    master.indeterminate = false;
+    return;
+  }
+  const selectedOnPage = pageSlice.filter(c => selectedCustomerIds.has(String(c.id))).length;
+  if (selectedOnPage === pageSlice.length) {
+    master.checked = true;
+    master.indeterminate = false;
+  } else if (selectedOnPage > 0) {
+    master.checked = false;
+    master.indeterminate = true;
+  } else {
+    master.checked = false;
+    master.indeterminate = false;
+  }
+}
+
+function updateBulkActionsBar() {
+  const bar = document.getElementById('bulkActionsBar');
+  const countEl = document.getElementById('bulkSelectedCount');
+  const actionCountEl = document.getElementById('bulkActionCount');
+  const selectAllBtn = document.getElementById('btnSelectAllFiltered');
+  const filteredCountEl = document.getElementById('bulkFilteredTotalCount');
+
+  const count = selectedCustomerIds.size;
+  if (countEl) countEl.innerText = count.toLocaleString();
+  if (actionCountEl) actionCountEl.innerText = count.toLocaleString();
+
+  if (count > 0) {
+    if (bar) bar.style.display = 'flex';
+    if (selectAllBtn && filteredCountEl) {
+      if (filteredCustomers.length > count) {
+        filteredCountEl.innerText = filteredCustomers.length.toLocaleString();
+        selectAllBtn.style.display = 'inline-block';
+      } else {
+        selectAllBtn.style.display = 'none';
+      }
+    }
+  } else {
+    if (bar) bar.style.display = 'none';
+  }
+}
+
+function openBulkComposer() {
+  if (selectedCustomerIds.size === 0) {
+    showToast('Please select at least one customer first.', 'warning');
+    return;
+  }
+  const targets = customersList.filter(c => selectedCustomerIds.has(String(c.id)));
+  composerTargetCustomers = targets;
+  openComposer(targets[0], null, true);
+}
+
+function toggleRecipientsList() {
+  const box = document.getElementById('composerRecipientsBox');
+  const btn = document.getElementById('btnToggleRecipientsList');
+  if (!box || !btn) return;
+  const isHidden = box.style.display === 'none';
+  box.style.display = isHidden ? 'flex' : 'none';
+  btn.innerHTML = isHidden ? 'Hide Recipients &#9652;' : 'Show Recipients &#9662;';
+}
+
+function renderComposerRecipientChips() {
+  const box = document.getElementById('composerRecipientsBox');
+  if (!box) return;
+  box.innerHTML = composerTargetCustomers.map(c => `
+    <span class="recipient-chip">
+      <span>${escapeHtml(c.first_name || c.name || 'Customer')} (${escapeHtml(c.email || 'No email')})</span>
+      <span class="recipient-chip-remove" onclick="removeRecipientFromBatch('${c.id}')">&times;</span>
+    </span>
+  `).join('');
+}
+
+function removeRecipientFromBatch(id) {
+  const strId = String(id);
+  selectedCustomerIds.delete(strId);
+  composerTargetCustomers = composerTargetCustomers.filter(c => String(c.id) !== strId);
+  if (composerTargetCustomers.length === 0) {
+    closeComposerModal();
+    renderCustomersTable();
+    return;
+  }
+  document.getElementById('composerCustomerBadge').innerText = `Targeting: ${composerTargetCustomers.length} Selected Customers`;
+  document.getElementById('btnDispatchCustomerEmailText').innerText = `Send to ${composerTargetCustomers.length} Customers \u2192`;
+  renderComposerRecipientChips();
+  updateBulkActionsBar();
+  syncMasterCheckboxState();
+}
+
 function renderCustomersTable() {
   const tbody = document.getElementById('customersTableBody');
   if (!tbody) return;
@@ -510,11 +644,13 @@ function renderCustomersTable() {
   if (filteredCustomers.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align: center; padding: 48px; color: var(--color-text-muted);">
+        <td colspan="8" style="text-align: center; padding: 48px; color: var(--color-text-muted);">
           No customers found matching the selected filter or search query.
         </td>
       </tr>
     `;
+    updateBulkActionsBar();
+    syncMasterCheckboxState();
     return;
   }
 
@@ -528,6 +664,7 @@ function renderCustomersTable() {
     const email = c.email ? escapeHtml(String(c.email)) : '<span style="color:var(--color-text-subdued); font-style:italic;">No Email</span>';
     const orders = parseInt(c.orders_count, 10) || 0;
     const spent = `£${parseFloat(c.total_spent || 0).toFixed(2)}`;
+    const isSelected = selectedCustomerIds.has(String(c.id));
     
     // Segment tags (clean, understated)
     const tags = [];
@@ -554,7 +691,10 @@ function renderCustomersTable() {
       : `<button class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openComposerById('${c.id}')" ${!c.email ? 'disabled' : ''}>Follow Up &rarr;</button>`;
 
     return `
-      <tr>
+      <tr class="${isSelected ? 'row-selected' : ''}">
+        <td style="text-align: center; width: 44px;">
+          <input type="checkbox" class="customer-row-checkbox" data-id="${c.id}" ${isSelected ? 'checked' : ''} onchange="toggleCustomerSelection('${c.id}', this.checked)">
+        </td>
         <td>
           <div style="font-weight: 600; color: var(--color-text-title);">${escapeHtml(fullName)}</div>
           <div style="font-size: 11px; color: var(--color-text-muted);">ID: ${c.id}</div>
@@ -585,7 +725,7 @@ function renderCustomersTable() {
   if (totalPages > 1) {
     html += `
       <tr>
-        <td colspan="7" style="padding: 16px 20px; background: #fafbfc; border-top: 1px solid var(--color-border);">
+        <td colspan="8" style="padding: 16px 20px; background: #fafbfc; border-top: 1px solid var(--color-border);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: var(--color-text-muted);">
               Showing ${startIdx + 1}&ndash;${Math.min(startIdx + pageSize, filteredCustomers.length)} of ${filteredCustomers.length.toLocaleString()} customers
@@ -602,6 +742,8 @@ function renderCustomersTable() {
   }
 
   tbody.innerHTML = html;
+  updateBulkActionsBar();
+  syncMasterCheckboxState();
 }
 
 function prevCustomerPage() {
@@ -632,22 +774,33 @@ function openComposerById(customerId) {
 let composerActiveCampaign = 'water_flosser';
 let composerActiveTemplateId = null;
 
+function renderComposerCampaignTabs() {
+  const container = document.getElementById('composerCampTabs');
+  if (!container) return;
+  if (!campaignsList || campaignsList.length === 0) return;
+
+  container.innerHTML = campaignsList.map(camp => {
+    const isActive = camp.id === composerActiveCampaign;
+    const iconHtml = camp.iconSvg || getSiloIconSvg(camp.id);
+    return `
+      <button type="button" class="composer-camp-tab ${isActive ? 'active' : ''}" data-camp="${camp.id}" onclick="selectComposerCampaign('${camp.id}')">
+        ${iconHtml}
+        <span>${escapeHtml(camp.shortName || camp.name)}</span>
+      </button>
+    `;
+  }).join('');
+}
+
 function selectComposerCampaign(campaignId, preselectedTplId = null) {
   composerActiveCampaign = campaignId;
 
-  // Update campaign tab active state
-  document.querySelectorAll('#composerCampTabs .composer-camp-tab').forEach(tab => {
-    if (tab.getAttribute('data-camp') === campaignId) {
-      tab.classList.add('active');
-    } else {
-      tab.classList.remove('active');
-    }
-  });
+  // Render dynamic campaign tabs
+  renderComposerCampaignTabs();
 
   const campSelect = document.getElementById('composerCampaignSelect');
   if (campSelect) campSelect.value = campaignId;
 
-  // Render the 5 stages for this campaign
+  // Render the stages for this campaign
   renderComposerStages(campaignId, preselectedTplId);
 }
 
@@ -661,7 +814,12 @@ function renderComposerStages(campaignId, preselectedTplId = null) {
     .sort((a, b) => (a.stage || 1) - (b.stage || 1));
 
   if (siloTemplates.length === 0) {
-    container.innerHTML = '<div style="color:var(--p-color-text-subdued); font-size:12px; grid-column: span 5; text-align:center;">No stages available for this campaign.</div>';
+    container.innerHTML = `
+      <div style="color:var(--p-color-text-subdued); font-size:12px; padding: 6px; display: flex; align-items: center; gap: 8px;">
+        <span>No presets in this campaign yet.</span>
+        <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openNewPresetModal('${campaignId}')">+ Create First Preset</button>
+      </div>
+    `;
     return;
   }
 
@@ -675,7 +833,7 @@ function renderComposerStages(campaignId, preselectedTplId = null) {
   composerActiveTemplateId = activeTpl.id;
   if (tplSelect) tplSelect.value = activeTpl.id;
 
-  // Render clean 5 Stage buttons
+  // Render clean Stage buttons
   container.innerHTML = siloTemplates.map((t, idx) => {
     const stageNum = t.stage || (idx + 1);
     const timing = t.timing || `Day ${stageNum === 1 ? 1 : stageNum === 2 ? 3 : stageNum === 3 ? 7 : stageNum === 4 ? 14 : 21}`;
@@ -754,16 +912,39 @@ function toggleComposerDiscount(cb) {
   updateLivePreview();
 }
 
-function openComposer(customer, preselectedTemplateId = null) {
+function openComposer(customer, preselectedTemplateId = null, isBulk = false) {
   activeCustomer = customer || { first_name: 'Valued', name: 'Valued Customer', email: 'shop@thedentalshaman.com' };
-  const fullName = `${activeCustomer.first_name || ''} ${activeCustomer.last_name || ''}`.trim() || activeCustomer.name || 'Valued Customer';
-  document.getElementById('composerCustomerBadge').innerText = `Target: ${fullName} (${activeCustomer.email || 'No email'}) · ${activeCustomer.orders_count || 0} orders · £${activeCustomer.total_spent || '0.00'}`;
+  
+  const titleEl = document.getElementById('composerModalTitle');
+  const badgeEl = document.getElementById('composerCustomerBadge');
+  const toggleBtn = document.getElementById('btnToggleRecipientsList');
+  const dispatchBtnText = document.getElementById('btnDispatchCustomerEmailText');
+
+  if (isBulk && composerTargetCustomers && composerTargetCustomers.length > 1) {
+    if (titleEl) titleEl.innerText = `Compose Follow-Up Batch (${composerTargetCustomers.length} Recipients)`;
+    if (badgeEl) badgeEl.innerText = `Targeting: ${composerTargetCustomers.length} Selected Customers`;
+    if (toggleBtn) {
+      toggleBtn.style.display = 'inline-block';
+      toggleBtn.innerHTML = 'Show Recipients &#9662;';
+    }
+    renderComposerRecipientChips();
+    if (dispatchBtnText) dispatchBtnText.innerText = `Send to ${composerTargetCustomers.length} Customers \u2192`;
+  } else {
+    composerTargetCustomers = [activeCustomer];
+    const fullName = `${activeCustomer.first_name || ''} ${activeCustomer.last_name || ''}`.trim() || activeCustomer.name || 'Valued Customer';
+    if (titleEl) titleEl.innerText = 'Compose Customer Follow-Up';
+    if (badgeEl) badgeEl.innerText = `Target: ${fullName} (${activeCustomer.email || 'No email'}) · ${activeCustomer.orders_count || 0} orders · £${activeCustomer.total_spent || '0.00'}`;
+    if (toggleBtn) toggleBtn.style.display = 'none';
+    const recBox = document.getElementById('composerRecipientsBox');
+    if (recBox) recBox.style.display = 'none';
+    if (dispatchBtnText) dispatchBtnText.innerText = 'Send Official Follow-Up';
+  }
 
   // Reset HTML collapse view
   const htmlWrap = document.getElementById('composerHtmlEditorWrap');
   if (htmlWrap) htmlWrap.style.display = 'none';
-  const toggleBtn = document.getElementById('btnToggleComposerHtml');
-  if (toggleBtn) toggleBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit HTML Code`;
+  const htmlToggleBtn = document.getElementById('btnToggleComposerHtml');
+  if (htmlToggleBtn) htmlToggleBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit HTML Code`;
 
   // Reset zero discount checkbox
   const noDisc = document.getElementById('composerNoDiscountToggle');
@@ -773,7 +954,7 @@ function openComposer(customer, preselectedTemplateId = null) {
   }
 
   // Determine target campaign
-  let targetCampaign = 'water_flosser';
+  let targetCampaign = campaignsList[0]?.id || 'water_flosser';
   if (preselectedTemplateId) {
     const tpl = templatesList.find(t => t.id === preselectedTemplateId);
     if (tpl && tpl.campaignId) {
@@ -790,6 +971,206 @@ function openComposer(customer, preselectedTemplateId = null) {
 function closeComposerModal() {
   document.getElementById('composerModal').classList.remove('active');
   activeCustomer = null;
+}
+
+/* ========================================================
+   IN-LINE PRESET SAVING FROM COMPOSER
+   ======================================================== */
+async function openSavePresetDialog() {
+  const tplSelect = document.getElementById('composerTemplateSelect');
+  const tplId = tplSelect ? tplSelect.value : composerActiveTemplateId;
+  const currentTpl = templatesList.find(t => t.id === tplId) || templatesList[0];
+  const currentSubj = document.getElementById('composerSubject')?.value || '';
+  const currentPromo = document.getElementById('composerDiscountCode')?.value || 'HOLISTIC10';
+  const currentHtml = document.getElementById('composerBody')?.value || '';
+
+  const choice = confirm(`Save customizations to campaign preset?\n\n- Click OK to UPDATE the existing stage preset: "${currentTpl.name}"\n- Click Cancel to create a brand new preset stage instead.`);
+
+  if (choice) {
+    try {
+      showToast(`Saving changes to preset "${currentTpl.name}"...`, 'info');
+      const res = await authFetch(`/api/templates/${currentTpl.id}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: currentTpl.name,
+          subject: currentSubj,
+          discountCode: currentPromo,
+          htmlContent: currentHtml
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Preset "${currentTpl.name}" saved permanently!`, 'success');
+        await loadTemplates();
+        renderComposerStages(composerActiveCampaign, currentTpl.id);
+      } else {
+        showToast(data.error || 'Failed to save preset', 'error');
+      }
+    } catch (e) {
+      showToast('Error saving preset', 'error');
+    }
+  } else {
+    const newName = prompt('Enter a name for the new preset / stage:');
+    if (newName && newName.trim()) {
+      try {
+        const nextStageNum = (templatesList.filter(t => t.campaignId === composerActiveCampaign).length) + 1;
+        const res = await authFetch('/api/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignId: composerActiveCampaign,
+            stage: nextStageNum,
+            stageLabel: `Stage ${nextStageNum}: ${newName.trim()}`,
+            name: newName.trim(),
+            description: 'Custom clinical follow-up preset.',
+            subject: currentSubj,
+            discountCode: currentPromo,
+            htmlContent: currentHtml
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`New preset "${newName}" created successfully!`, 'success');
+          await loadTemplates();
+          renderComposerStages(composerActiveCampaign, data.template.id);
+        } else {
+          showToast(data.error || 'Failed to create preset', 'error');
+        }
+      } catch (e) {
+        showToast('Error creating new preset', 'error');
+      }
+    }
+  }
+}
+
+async function dispatchCustomerEmail() {
+  const isBulk = composerTargetCustomers && composerTargetCustomers.length > 1;
+
+  if (!isBulk) {
+    if (!activeCustomer || !activeCustomer.email) {
+      showToast('Cannot dispatch: Customer has no valid email address.', 'error');
+      return;
+    }
+  }
+
+  const btn = document.getElementById('btnDispatchCustomerEmail');
+  const tplId = document.getElementById('composerTemplateSelect').value;
+  const customSubject = document.getElementById('composerSubject').value;
+  const customDiscountCode = document.getElementById('composerDiscountCode').value;
+  const customBody = document.getElementById('composerBody').value;
+
+  if (isBulk) {
+    closeComposerModal();
+    openBatchProgressModal(composerTargetCustomers.length);
+
+    try {
+      const res = await authFetch('/api/followup/batch-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerIds: composerTargetCustomers.map(c => c.id),
+          templateId: tplId,
+          customSubject,
+          customDiscountCode,
+          customBody
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        finishBatchProgressModal(data);
+        clearCustomerSelection();
+        await Promise.all([loadStats(), loadCustomers(), loadDispatches()]);
+      } else {
+        logBatchProgress(`[Error] Batch failed: ${data.error || 'Unknown error'}`);
+        document.getElementById('btnBatchDone').style.display = 'inline-block';
+      }
+    } catch (err) {
+      logBatchProgress(`[Network Error] Failed to complete batch.`);
+      document.getElementById('btnBatchDone').style.display = 'inline-block';
+    }
+    return;
+  }
+
+  // Single customer send
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Delivering via Resend...`;
+
+  try {
+    const res = await authFetch('/api/followup/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerId: activeCustomer.id,
+        customerEmail: activeCustomer.email,
+        templateId: tplId,
+        customSubject,
+        customDiscountCode,
+        customBody
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Official clinical follow-up sent to ${activeCustomer.email}.`, 'success');
+      closeComposerModal();
+      await Promise.all([loadStats(), loadCustomers(), loadDispatches()]);
+    } else {
+      showToast(data.error || 'Dispatch failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while dispatching follow-up', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="btnDispatchCustomerEmailText">Send Official Follow-Up</span>`;
+  }
+}
+
+/* ========================================================
+   BATCH DISPATCH PROGRESS OVERLAY HELPERS
+   ======================================================== */
+function openBatchProgressModal(total) {
+  document.getElementById('batchProgressTitle').innerText = `Dispatching Follow-Up Batch (${total} Recipients)`;
+  document.getElementById('batchProgressSubtitle').innerText = `Personalizing email and conversion tokens for each customer...`;
+  document.getElementById('batchProgressCounter').innerText = `0 of ${total} dispatched`;
+  document.getElementById('batchProgressPercent').innerText = `0%`;
+  document.getElementById('batchProgressBarFill').style.width = '10%';
+  document.getElementById('btnBatchDone').style.display = 'none';
+  document.getElementById('batchProgressLog').innerHTML = `
+    <div>[System] Initializing personalized sequence templates...</div>
+    <div>[System] Connecting to Resend API / SMTP gateway...</div>
+    <div>[System] Processing ${total} customer deliveries with throttled queue...</div>
+  `;
+  document.getElementById('modalBatchProgress').classList.add('active');
+}
+
+function logBatchProgress(msg) {
+  const logEl = document.getElementById('batchProgressLog');
+  if (logEl) {
+    logEl.innerHTML += `<div>${escapeHtml(msg)}</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+}
+
+function finishBatchProgressModal(data) {
+  document.getElementById('batchProgressBarFill').style.width = '100%';
+  document.getElementById('batchProgressPercent').innerText = '100%';
+  document.getElementById('batchProgressCounter').innerText = `${data.sentCount} of ${data.total} dispatched`;
+  
+  const logEl = document.getElementById('batchProgressLog');
+  const summaryHtml = `
+    <div style="color: #4ade80; font-weight: bold; margin-top: 8px;">✓ Batch Completed: ${data.sentCount} sent successfully, ${data.failedCount} failed.</div>
+    ${(data.successes || []).slice(0, 8).map(s => `<div>✓ Delivered to ${escapeHtml(s.name)} (${escapeHtml(s.email)})</div>`).join('')}
+    ${(data.successes || []).length > 8 ? `<div>... and ${(data.successes || []).length - 8} more recipients</div>` : ''}
+    ${(data.failures || []).map(f => `<div style="color: #f87171;">✗ Failed: ${escapeHtml(f.email)} - ${escapeHtml(f.error)}</div>`).join('')}
+  `;
+  logEl.innerHTML += summaryHtml;
+  logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById('btnBatchDone').style.display = 'inline-block';
+  showToast(`Batch complete: ${data.sentCount} sent!`, 'success');
+}
+
+function closeBatchProgressModal() {
+  document.getElementById('modalBatchProgress').classList.remove('active');
 }
 
 async function onTemplateChange() {
@@ -1360,13 +1741,40 @@ function renderDispatchesTable() {
 }
 
 /* ========================================================
-   CAMPAIGN SEQUENCES & TEMPLATE STUDIO
+   CAMPAIGN SEQUENCES & TEMPLATE STUDIO (DYNAMIC CRUD)
    ======================================================== */
+function renderCampaignFilterPills() {
+  const container = document.getElementById('templateCampaignPills');
+  if (!container) return;
+  let html = `<button class="Polaris-FilterPill ${activeTemplateCampaign === 'all' ? 'active' : ''}" onclick="setTemplateCampaign('all', this)">All Sequences (${templatesList.length})</button>`;
+  campaignsList.forEach(camp => {
+    const count = templatesList.filter(t => t.campaignId === camp.id).length;
+    html += `<button class="Polaris-FilterPill ${activeTemplateCampaign === camp.id ? 'active' : ''}" onclick="setTemplateCampaign('${camp.id}', this)">${escapeHtml(camp.shortName || camp.name)} (${count})</button>`;
+  });
+  container.innerHTML = html;
+}
+
 function setTemplateCampaign(campaignId, btn) {
   activeTemplateCampaign = campaignId;
   document.querySelectorAll('#templateCampaignPills .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderTemplateCards();
+}
+
+async function loadCampaigns() {
+  try {
+    const res = await authFetch('/api/campaigns');
+    const data = await res.json();
+    if (data.success) {
+      campaignsList = data.campaigns || [];
+      renderCampaignFilterPills();
+      renderComposerCampaignTabs();
+      populatePresetModalCampaignSelect();
+      populateRuleCampaignSelect();
+    }
+  } catch (e) {
+    console.error('Failed to load campaigns:', e);
+  }
 }
 
 async function loadTemplates() {
@@ -1377,6 +1785,7 @@ async function loadTemplates() {
       templatesList = data.templates || [];
       const badge = document.getElementById('badgeTemplateCount');
       if (badge) badge.innerText = templatesList.length;
+      renderCampaignFilterPills();
       renderTemplateCards();
     }
   } catch (e) {
@@ -1385,6 +1794,9 @@ async function loadTemplates() {
 }
 
 function getSiloIconSvg(id) {
+  const customCamp = campaignsList.find(c => c.id === id);
+  if (customCamp && customCamp.iconSvg) return customCamp.iconSvg;
+
   switch (id) {
     case 'water_flosser':
       return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#008060" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
@@ -1442,7 +1854,8 @@ function renderTemplateCards() {
   if (campaignsToRender.length === 0) {
     container.innerHTML = `
       <div class="Polaris-Card" style="padding: 48px; text-align: center; color: var(--p-color-text-subdued);">
-        No templates found for this campaign category.
+        <p style="margin-bottom: 12px;">No campaigns found.</p>
+        <button class="Polaris-Button Polaris-Button--primary" onclick="openNewCampaignModal()">+ Create New Campaign</button>
       </div>
     `;
     return;
@@ -1452,45 +1865,53 @@ function renderTemplateCards() {
     const siloTemplates = templatesList.filter(t => t.campaignId === camp.id).sort((a, b) => (a.stage || 1) - (b.stage || 1));
     const isCollapsed = Boolean(siloCollapseState[camp.id]);
 
-    const sequenceRowsHtml = siloTemplates.map(t => {
-      const stageNum = t.stage || 1;
-      const stageLabel = t.stageLabel || `Stage ${stageNum}`;
-      const hasDiscount = t.discountCode && t.discountCode !== 'NONE' && t.discountCode !== '0' && (t.discountPercent > 0);
-      const offerBadge = hasDiscount
-        ? `<span class="sequence-offer-badge">Discount: <strong>${escapeHtml(t.discountCode)}</strong> (${t.discountPercent}% off)</span>`
-        : `<span class="sequence-offer-none">No discount included</span>`;
+    const sequenceRowsHtml = siloTemplates.length === 0
+      ? `<div style="padding: 24px; text-align: center; color: var(--p-color-text-subdued); font-size: 13px;">
+          No presets added to this campaign yet. 
+          <button class="Polaris-Button Polaris-Button--slim" style="margin-left: 8px;" onclick="openNewPresetModal('${camp.id}')">+ Add First Stage Preset</button>
+        </div>`
+      : siloTemplates.map(t => {
+          const stageNum = t.stage || 1;
+          const stageLabel = t.stageLabel || `Stage ${stageNum}`;
+          const hasDiscount = t.discountCode && t.discountCode !== 'NONE' && t.discountCode !== '0' && (t.discountPercent > 0);
+          const offerBadge = hasDiscount
+            ? `<span class="sequence-offer-badge">Discount: <strong>${escapeHtml(t.discountCode)}</strong> (${t.discountPercent}% off)</span>`
+            : `<span class="sequence-offer-none">No discount included</span>`;
 
-      return `
-        <div class="sequence-row">
-          <div class="sequence-col sequence-col-stage">
-            <span class="stage-pill stage-${stageNum}">
-              ${escapeHtml(stageLabel)}
-            </span>
-          </div>
+          return `
+            <div class="sequence-row">
+              <div class="sequence-col sequence-col-stage">
+                <span class="stage-pill stage-${stageNum}">
+                  ${escapeHtml(stageLabel)}
+                </span>
+              </div>
 
-          <div class="sequence-col sequence-col-info">
-            <div class="sequence-name">${escapeHtml(t.name)}</div>
-            <div class="sequence-desc">${escapeHtml(t.description || 'Clinical guidance and follow-up.')}</div>
-          </div>
+              <div class="sequence-col sequence-col-info">
+                <div class="sequence-name">${escapeHtml(t.name)}</div>
+                <div class="sequence-desc">${escapeHtml(t.description || 'Clinical guidance and follow-up.')}</div>
+              </div>
 
-          <div class="sequence-col sequence-col-meta">
-            <div class="sequence-subject" title="${escapeHtml(t.subject)}"><strong>Subject:</strong> ${escapeHtml(t.subject)}</div>
-            <div class="sequence-offer">${offerBadge}</div>
-          </div>
+              <div class="sequence-col sequence-col-meta">
+                <div class="sequence-subject" title="${escapeHtml(t.subject)}"><strong>Subject:</strong> ${escapeHtml(t.subject)}</div>
+                <div class="sequence-offer">${offerBadge}</div>
+              </div>
 
-          <div class="sequence-col sequence-col-actions">
-            <button class="Polaris-Button Polaris-Button--slim" onclick="openTemplateEditor('${t.id}')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edit Code &amp; Settings
-            </button>
-            <button class="Polaris-Button Polaris-Button--dark Polaris-Button--slim" onclick="openComposerWithTemplate('${t.id}')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              Send &rarr;
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
+              <div class="sequence-col sequence-col-actions">
+                <button class="Polaris-Button Polaris-Button--slim" onclick="openTemplateEditor('${t.id}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit Code
+                </button>
+                <button class="Polaris-Button Polaris-Button--dark Polaris-Button--slim" onclick="openComposerWithTemplate('${t.id}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Send &rarr;
+                </button>
+                <button class="Polaris-Button Polaris-Button--slim btn-danger-text" onclick="deleteTemplate('${t.id}')" title="Delete preset">
+                  &times;
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
 
     const iconHtml = camp.iconSvg || getSiloIconSvg(camp.id);
 
@@ -1501,10 +1922,19 @@ function renderTemplateCards() {
             <div class="silo-icon">${iconHtml}</div>
             <div>
               <div class="silo-title">${escapeHtml(camp.name)}</div>
-              <div class="silo-subtitle">${siloTemplates.length} clinical follow-up stages in this sequence</div>
+              <div class="silo-subtitle">${siloTemplates.length} follow-up presets in this sequence</div>
             </div>
           </div>
           <div class="silo-header__right" onclick="event.stopPropagation()">
+            <button class="Polaris-Button Polaris-Button--slim" onclick="openNewPresetModal('${camp.id}')" title="Add a new stage/preset to this campaign">
+              + Add Stage
+            </button>
+            <button class="Polaris-Button Polaris-Button--slim" onclick="openEditCampaignModal('${camp.id}')" title="Edit campaign details">
+              Edit
+            </button>
+            <button class="Polaris-Button Polaris-Button--slim btn-danger-text" onclick="deleteCampaign('${camp.id}')" title="Delete campaign">
+              Delete
+            </button>
             <button class="Polaris-Button Polaris-Button--slim" onclick="openComposerWithTemplate('${siloTemplates[0]?.id || ''}')">
               Send Stage 1 &rarr;
             </button>
@@ -1520,6 +1950,383 @@ function renderTemplateCards() {
       </div>
     `;
   }).join('');
+}
+
+/* ========================================================
+   CAMPAIGN CRUD MODAL HANDLERS
+   ======================================================== */
+function openNewCampaignModal() {
+  document.getElementById('campaignModalTitle').innerText = 'Create New Campaign';
+  document.getElementById('campModalId').value = '';
+  document.getElementById('campModalName').value = '';
+  document.getElementById('campModalShortName').value = '';
+  document.getElementById('campModalColor').value = '#008060';
+  document.getElementById('campModalIconSelect').value = 'droplet';
+  document.getElementById('btnSaveCampaign').innerText = 'Save Campaign';
+  document.getElementById('modalNewCampaign').classList.add('active');
+}
+
+function openEditCampaignModal(campId) {
+  const camp = campaignsList.find(c => c.id === campId);
+  if (!camp) return;
+
+  document.getElementById('campaignModalTitle').innerText = `Edit: ${camp.name}`;
+  document.getElementById('campModalId').value = camp.id;
+  document.getElementById('campModalName').value = camp.name || '';
+  document.getElementById('campModalShortName').value = camp.shortName || '';
+  document.getElementById('campModalColor').value = camp.color || '#008060';
+  document.getElementById('btnSaveCampaign').innerText = 'Update Campaign';
+  document.getElementById('modalNewCampaign').classList.add('active');
+}
+
+function closeCampaignModal() {
+  document.getElementById('modalNewCampaign').classList.remove('active');
+}
+
+async function saveCampaignForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('campModalId').value.trim();
+  const name = document.getElementById('campModalName').value.trim();
+  const shortName = document.getElementById('campModalShortName').value.trim();
+  const color = document.getElementById('campModalColor').value;
+  const iconChoice = document.getElementById('campModalIconSelect').value;
+
+  const iconsMap = {
+    droplet: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
+    cup: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l-1.5 16a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8L6 3z"/><line x1="6" y1="8" x2="18" y2="8"/></svg>',
+    spray: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="10" height="12" rx="2"/><path d="M12 10V6"/><path d="M9 6h6"/><path d="M9 3h3v3"/><line x1="18" y1="5" x2="21" y2="5"/><line x1="18" y1="3" x2="20" y2="2"/><line x1="18" y1="7" x2="20" y2="8"/></svg>',
+    book: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>',
+    star: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    sparkles: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18M6.5 6.5l11 11M6.5 17.5l11-11"/></svg>',
+    shield: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+    tag: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>'
+  };
+
+  const iconSvg = iconsMap[iconChoice] || iconsMap.droplet;
+
+  try {
+    const url = id ? `/api/campaigns/${encodeURIComponent(id)}` : '/api/campaigns';
+    const method = 'POST';
+    const res = await authFetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, shortName, color, iconSvg })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(id ? 'Campaign updated!' : 'New campaign created!', 'success');
+      closeCampaignModal();
+      await loadCampaigns();
+      await loadTemplates();
+    } else {
+      showToast(data.error || 'Failed to save campaign', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while saving campaign', 'error');
+  }
+}
+
+async function deleteCampaign(campId) {
+  const camp = campaignsList.find(c => c.id === campId);
+  if (!camp) return;
+
+  const confirmDelete = confirm(`Are you sure you want to delete campaign "${camp.name}"?\n\nThis will also remove all stage presets inside it.`);
+  if (!confirmDelete) return;
+
+  try {
+    const res = await authFetch(`/api/campaigns/${encodeURIComponent(campId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Campaign "${camp.name}" deleted.`, 'success');
+      await loadCampaigns();
+      await loadTemplates();
+    } else {
+      showToast(data.error || 'Failed to delete campaign', 'error');
+    }
+  } catch (e) {
+    showToast('Network error deleting campaign', 'error');
+  }
+}
+
+/* ========================================================
+   PRESET (STAGE) CRUD MODAL HANDLERS
+   ======================================================== */
+function populatePresetModalCampaignSelect() {
+  const sel = document.getElementById('presetModalCampaignSelect');
+  if (!sel) return;
+  sel.innerHTML = campaignsList.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+function openNewPresetModal(preselectedCampId = null) {
+  populatePresetModalCampaignSelect();
+  const campId = preselectedCampId || campaignsList[0]?.id || 'water_flosser';
+  const sel = document.getElementById('presetModalCampaignSelect');
+  if (sel) sel.value = campId;
+
+  const count = templatesList.filter(t => t.campaignId === campId).length;
+  const nextStage = count + 1;
+
+  document.getElementById('presetModalStage').value = nextStage;
+  document.getElementById('presetModalStageLabel').value = `Stage ${nextStage}: Follow-Up`;
+  document.getElementById('presetModalName').value = '';
+  document.getElementById('presetModalDesc').value = '';
+  document.getElementById('presetModalSubject').value = '';
+  document.getElementById('presetModalDiscountCode').value = 'HOLISTIC10';
+  document.getElementById('presetModalDiscountPercent').value = 10;
+
+  document.getElementById('modalNewPreset').classList.add('active');
+}
+
+function closePresetModal() {
+  document.getElementById('modalNewPreset').classList.remove('active');
+}
+
+async function savePresetForm(e) {
+  e.preventDefault();
+  const campaignId = document.getElementById('presetModalCampaignSelect').value;
+  const stage = parseInt(document.getElementById('presetModalStage').value, 10) || 1;
+  const stageLabel = document.getElementById('presetModalStageLabel').value.trim();
+  const name = document.getElementById('presetModalName').value.trim();
+  const description = document.getElementById('presetModalDesc').value.trim();
+  const subject = document.getElementById('presetModalSubject').value.trim();
+  const discountCode = document.getElementById('presetModalDiscountCode').value.trim();
+  const discountPercent = parseInt(document.getElementById('presetModalDiscountPercent').value, 10) || 0;
+
+  try {
+    const res = await authFetch('/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId,
+        stage,
+        stageLabel,
+        name,
+        description,
+        subject,
+        discountCode,
+        discountPercent
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Preset "${name}" created!`, 'success');
+      closePresetModal();
+      await loadTemplates();
+    } else {
+      showToast(data.error || 'Failed to create preset', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while creating preset', 'error');
+  }
+}
+
+async function deleteTemplate(tplId) {
+  const tpl = templatesList.find(t => t.id === tplId);
+  if (!tpl) return;
+
+  const ok = confirm(`Delete preset "${tpl.name}"?\n\nThis action cannot be undone.`);
+  if (!ok) return;
+
+  try {
+    const res = await authFetch(`/api/templates/${encodeURIComponent(tplId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Preset "${tpl.name}" deleted.`, 'success');
+      await loadTemplates();
+    } else {
+      showToast(data.error || 'Failed to delete preset', 'error');
+    }
+  } catch (err) {
+    showToast('Network error deleting preset', 'error');
+  }
+}
+
+/* ========================================================
+   AUTOMATED RULES MODAL HANDLERS
+   ======================================================== */
+let rulesList = [];
+
+function populateRuleCampaignSelect() {
+  const sel = document.getElementById('ruleInputCampaignSelect');
+  if (!sel) return;
+  sel.innerHTML = campaignsList.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+async function openRulesModal() {
+  populateRuleCampaignSelect();
+  await loadRules();
+  document.getElementById('modalRules').classList.add('active');
+}
+
+function closeRulesModal() {
+  document.getElementById('modalRules').classList.remove('active');
+}
+
+function toggleNewRuleForm() {
+  const wrap = document.getElementById('newRuleFormWrap');
+  if (!wrap) return;
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+function onRuleTriggerTypeChange() {
+  const type = document.getElementById('ruleInputTriggerType').value;
+  const valWrap = document.getElementById('ruleInputValueWrap');
+  const label = document.getElementById('ruleInputValueLabel');
+  const input = document.getElementById('ruleInputValue');
+
+  if (type === 'spend_min') {
+    valWrap.style.display = 'block';
+    label.innerText = 'Min Amount (£)';
+    input.value = 150;
+  } else if (type === 'orders_min') {
+    valWrap.style.display = 'block';
+    label.innerText = 'Min Orders Count';
+    input.value = 2;
+  } else {
+    valWrap.style.display = 'none';
+  }
+}
+
+async function loadRules() {
+  try {
+    const res = await authFetch('/api/rules');
+    const data = await res.json();
+    if (data.success) {
+      rulesList = data.rules || [];
+      renderRulesList();
+    }
+  } catch (e) {
+    console.error('Failed to load rules:', e);
+  }
+}
+
+function renderRulesList() {
+  const container = document.getElementById('rulesListContainer');
+  if (!container) return;
+
+  if (rulesList.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 24px; text-align: center; color: var(--p-color-text-subdued); font-size: 13px;">
+        No automated follow-up rules configured yet.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = rulesList.map(r => {
+    const camp = campaignsList.find(c => c.id === r.campaignId);
+    const campName = camp?.name || r.campaignId;
+    let condStr = '';
+    if (r.triggerType === 'spend_min') condStr = `Customer Total Spent &ge; &pound;${r.triggerValue}`;
+    else if (r.triggerType === 'orders_min') condStr = `Orders Placed &ge; ${r.triggerValue}`;
+    else if (r.triggerType === 'never_followed_up') condStr = 'Never Followed Up';
+    else condStr = 'All Store Customers';
+
+    const lastRunStr = r.lastRunAt
+      ? new Date(r.lastRunAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : 'Never run';
+
+    return `
+      <div class="rule-item-card">
+        <div class="rule-item-left">
+          <div class="rule-item-title">${escapeHtml(r.name)}</div>
+          <div class="rule-item-meta">
+            <strong>Condition:</strong> ${condStr} &nbsp;|&nbsp;
+            <strong>Target:</strong> ${escapeHtml(campName)} (Stage ${r.stage || 1})
+          </div>
+          <div style="font-size: 11px; color: var(--p-color-text-subdued);">
+            Dispatched so far: <strong>${r.enrolledCount || 0}</strong> emails · Last Run: ${lastRunStr}
+          </div>
+        </div>
+        <div class="rule-item-right">
+          <button class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="runRuleNow('${r.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Run Rule Now
+          </button>
+          <button class="Polaris-Button Polaris-Button--slim btn-danger-text" onclick="deleteRule('${r.id}')" title="Delete rule">
+            &times;
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function submitNewRuleForm(e) {
+  e.preventDefault();
+  const name = document.getElementById('ruleInputName').value.trim();
+  const triggerType = document.getElementById('ruleInputTriggerType').value;
+  const triggerValue = document.getElementById('ruleInputValue')?.value || 0;
+  const campaignId = document.getElementById('ruleInputCampaignSelect').value;
+  const stage = parseInt(document.getElementById('ruleInputStageSelect').value, 10) || 1;
+
+  try {
+    const res = await authFetch('/api/rules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        triggerType,
+        triggerValue,
+        campaignId,
+        stage,
+        active: true
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Rule "${name}" created!`, 'success');
+      toggleNewRuleForm();
+      document.getElementById('ruleInputName').value = '';
+      await loadRules();
+    } else {
+      showToast(data.error || 'Failed to create rule', 'error');
+    }
+  } catch (err) {
+    showToast('Network error saving rule', 'error');
+  }
+}
+
+async function deleteRule(id) {
+  const rule = rulesList.find(r => r.id === id);
+  if (!rule) return;
+  const ok = confirm(`Delete rule "${rule.name}"?`);
+  if (!ok) return;
+
+  try {
+    const res = await authFetch(`/api/rules/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Rule "${rule.name}" deleted.`, 'success');
+      await loadRules();
+    }
+  } catch (e) {
+    showToast('Network error deleting rule', 'error');
+  }
+}
+
+async function runRuleNow(id) {
+  const rule = rulesList.find(r => r.id === id);
+  if (!rule) return;
+
+  showToast(`Running automated rule "${rule.name}"...`, 'info');
+
+  try {
+    const res = await authFetch(`/api/rules/${encodeURIComponent(id)}/run`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || `Rule executed: ${data.sent} sent!`, 'success');
+      await Promise.all([loadRules(), loadStats(), loadCustomers(), loadDispatches()]);
+    } else {
+      showToast(data.error || 'Failed to execute rule', 'error');
+    }
+  } catch (err) {
+    showToast('Error executing rule', 'error');
+  }
 }
 
 function openComposerWithTemplate(templateId = null) {

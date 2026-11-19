@@ -107,6 +107,37 @@ class Database {
     if (!this.data.dispatches) { this.data.dispatches = []; changed = true; }
     if (!this.data.clicks) { this.data.clicks = []; changed = true; }
     if (!this.data.conversions) { this.data.conversions = []; changed = true; }
+    if (!this.data.campaigns || this.data.campaigns.length === 0) {
+      this.data.campaigns = JSON.parse(JSON.stringify(CAMPAIGNS));
+      changed = true;
+    }
+    if (!this.data.rules) {
+      this.data.rules = [
+        {
+          id: 'rule_high_spenders',
+          name: 'Auto-Target High Spenders (>= £150)',
+          triggerType: 'spend_min',
+          triggerValue: 150,
+          campaignId: 'water_flosser',
+          stage: 1,
+          active: true,
+          lastRunAt: null,
+          enrolledCount: 0
+        },
+        {
+          id: 'rule_repeat_buyers',
+          name: 'Auto-Target Repeat Buyers (>= 2 Orders)',
+          triggerType: 'orders_min',
+          triggerValue: 2,
+          campaignId: 'ebook_50',
+          stage: 1,
+          active: true,
+          lastRunAt: null,
+          enrolledCount: 0
+        }
+      ];
+      changed = true;
+    }
     if (!this.data.templates || this.data.templates.length < 20) {
       this.data.templates = DEFAULT_TEMPLATES;
       changed = true;
@@ -202,9 +233,73 @@ class Database {
     return customer;
   }
 
-  // --- Campaigns & Templates ---
+  // --- Campaigns & Templates (Dynamic & Fully Customizable) ---
   getCampaigns() {
-    return CAMPAIGNS;
+    this.reloadIfChanged();
+    return this.data.campaigns || CAMPAIGNS;
+  }
+
+  getCampaignById(id) {
+    this.reloadIfChanged();
+    return (this.data.campaigns || CAMPAIGNS).find(c => c.id === id);
+  }
+
+  createCampaign(campData) {
+    this.reloadIfChanged();
+    if (!this.data.campaigns) this.data.campaigns = JSON.parse(JSON.stringify(CAMPAIGNS));
+    const cleanId = (campData.id || campData.name || 'camp')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .substring(0, 32);
+    
+    // Ensure unique ID
+    let finalId = cleanId;
+    let counter = 1;
+    while (this.data.campaigns.some(c => c.id === finalId)) {
+      finalId = `${cleanId}_${counter++}`;
+    }
+
+    const newCamp = {
+      id: finalId,
+      name: campData.name || 'Custom Follow-Up Campaign',
+      shortName: campData.shortName || campData.name || 'Campaign',
+      icon: campData.icon || '',
+      iconSvg: campData.iconSvg || '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      color: campData.color || '#008060',
+      createdAt: new Date().toISOString()
+    };
+    this.data.campaigns.push(newCamp);
+    this.save();
+    return newCamp;
+  }
+
+  updateCampaign(id, updates = {}) {
+    this.reloadIfChanged();
+    if (!this.data.campaigns) this.data.campaigns = JSON.parse(JSON.stringify(CAMPAIGNS));
+    const camp = this.data.campaigns.find(c => c.id === id);
+    if (!camp) return null;
+    Object.assign(camp, updates, { updatedAt: new Date().toISOString() });
+    this.save();
+    return camp;
+  }
+
+  deleteCampaign(id) {
+    this.reloadIfChanged();
+    if (!this.data.campaigns) this.data.campaigns = JSON.parse(JSON.stringify(CAMPAIGNS));
+    const idx = this.data.campaigns.findIndex(c => c.id === id);
+    if (idx === -1) return false;
+    this.data.campaigns.splice(idx, 1);
+    // Also remove associated templates/presets
+    if (this.data.templates) {
+      this.data.templates = this.data.templates.filter(t => t.campaignId !== id);
+    }
+    // Also remove associated rules
+    if (this.data.rules) {
+      this.data.rules = this.data.rules.filter(r => r.campaignId !== id);
+    }
+    this.save();
+    return true;
   }
 
   getTemplates(campaignId = null) {
@@ -228,6 +323,122 @@ class Database {
       }
     }
     return tpl;
+  }
+
+  createTemplate(tplData) {
+    this.reloadIfChanged();
+    if (!this.data.templates) this.data.templates = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+    
+    const baseId = (tplData.id || tplData.name || 'tpl')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .substring(0, 32);
+
+    let finalId = baseId;
+    let counter = 1;
+    while (this.data.templates.some(t => t.id === finalId)) {
+      finalId = `${baseId}_${counter++}`;
+    }
+
+    const campaignId = tplData.campaignId || 'water_flosser';
+    const stage = Number(tplData.stage) || 1;
+    const fileName = `${finalId}.html`;
+
+    // Persist custom HTML to disk if provided
+    if (tplData.htmlContent) {
+      const filePath = path.join(__dirname, 'templates', fileName);
+      try {
+        fs.writeFileSync(filePath, tplData.htmlContent, 'utf8');
+      } catch (err) {
+        console.error('[Database] Failed writing custom template file:', err.message);
+      }
+    }
+
+    const newTpl = {
+      id: finalId,
+      campaignId,
+      stage,
+      stageLabel: tplData.stageLabel || `Stage ${stage}`,
+      name: tplData.name || 'New Custom Preset',
+      description: tplData.description || 'Clinical guidance and follow-up.',
+      subject: tplData.subject || 'A personal follow-up from Dr. Marc Mortiboys',
+      discountCode: tplData.discountCode || 'HOLISTIC10',
+      discountPercent: tplData.discountPercent !== undefined ? Number(tplData.discountPercent) : 10,
+      file: fileName,
+      htmlContent: tplData.htmlContent || '',
+      createdAt: new Date().toISOString()
+    };
+
+    this.data.templates.push(newTpl);
+    this.save();
+    return newTpl;
+  }
+
+  deleteTemplate(id) {
+    this.reloadIfChanged();
+    if (!this.data.templates) return false;
+    const idx = this.data.templates.findIndex(t => t.id === id);
+    if (idx === -1) return false;
+    const tpl = this.data.templates[idx];
+    this.data.templates.splice(idx, 1);
+    if (tpl.file) {
+      const filePath = path.join(__dirname, 'templates', tpl.file);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {}
+      }
+    }
+    this.save();
+    return true;
+  }
+
+  // --- Automated Rules ---
+  getRules() {
+    this.reloadIfChanged();
+    return this.data.rules || [];
+  }
+
+  getRuleById(id) {
+    this.reloadIfChanged();
+    return (this.data.rules || []).find(r => r.id === id);
+  }
+
+  saveRule(ruleData) {
+    this.reloadIfChanged();
+    if (!this.data.rules) this.data.rules = [];
+    if (ruleData.id) {
+      const idx = this.data.rules.findIndex(r => r.id === ruleData.id);
+      if (idx !== -1) {
+        Object.assign(this.data.rules[idx], ruleData, { updatedAt: new Date().toISOString() });
+        this.save();
+        return this.data.rules[idx];
+      }
+    }
+    const newRule = {
+      id: 'rule_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      name: ruleData.name || 'New Automation Rule',
+      triggerType: ruleData.triggerType || 'spend_min',
+      triggerValue: ruleData.triggerValue !== undefined ? ruleData.triggerValue : 150,
+      campaignId: ruleData.campaignId || 'water_flosser',
+      stage: Number(ruleData.stage) || 1,
+      active: ruleData.active !== undefined ? Boolean(ruleData.active) : true,
+      lastRunAt: null,
+      enrolledCount: 0,
+      createdAt: new Date().toISOString()
+    };
+    this.data.rules.push(newRule);
+    this.save();
+    return newRule;
+  }
+
+  deleteRule(id) {
+    this.reloadIfChanged();
+    if (!this.data.rules) return false;
+    const idx = this.data.rules.findIndex(r => r.id === id);
+    if (idx === -1) return false;
+    this.data.rules.splice(idx, 1);
+    this.save();
+    return true;
   }
 
   saveTemplate(id, updates = {}) {

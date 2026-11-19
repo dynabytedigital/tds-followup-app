@@ -6,7 +6,7 @@
   <title>RetentionFlow &middot; The Dental Shaman</title>
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <link rel="stylesheet" href="style.css?v=16.0">
+  <link rel="stylesheet" href="style.css?v=18.0">
 </head>
 <body>
 
@@ -209,10 +209,30 @@
           </div>
         </div>
 
+        <!-- POLARIS STICKY BULK ACTION BAR -->
+        <div id="bulkActionsBar" class="Polaris-BulkActionsBar" style="display: none;">
+          <div class="bulk-actions-info">
+            <span class="bulk-badge-count" id="bulkSelectedCount">0</span> selected
+            <button type="button" id="btnSelectAllFiltered" class="Polaris-Button Polaris-Button--plain" style="margin-left: 10px; display: none;" onclick="selectAllFilteredCustomers()">
+              Select all <span id="bulkFilteredTotalCount">0</span> matching filter
+            </button>
+          </div>
+          <div class="bulk-actions-btns">
+            <button type="button" id="btnBulkFollowUp" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openBulkComposer()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Follow Up (<span id="bulkActionCount">0</span>) &rarr;
+            </button>
+            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="clearCustomerSelection()">Deselect All</button>
+          </div>
+        </div>
+
         <div class="table-responsive-wrapper">
           <table class="Polaris-DataTable">
             <thead>
               <tr>
+                <th style="width: 44px; text-align: center;">
+                  <input type="checkbox" id="selectAllCustomersCheckbox" onchange="toggleSelectAllPage(this.checked)" title="Select all on this page">
+                </th>
                 <th>Customer</th>
                 <th>Email</th>
                 <th>Orders</th>
@@ -224,7 +244,7 @@
             </thead>
             <tbody id="customersTableBody">
               <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: var(--p-color-text-subdued);">
+                <td colspan="8" style="text-align: center; padding: 40px; color: var(--p-color-text-subdued);">
                   Loading synchronized Shopify customers...
                 </td>
               </tr>
@@ -242,11 +262,24 @@
         <div class="Polaris-Card__Header">
           <div>
             <div class="Polaris-Card__Title">Campaign Sequences</div>
+            <p class="Polaris-Card__Subtitle" style="font-size: 12px; color: var(--p-color-text-subdued); margin-top: 2px;">
+              Fully dynamic campaigns, presets, and automated follow-up sequences.
+            </p>
           </div>
-          <button class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openComposerWithTemplate()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Compose Follow-Up
-          </button>
+          <div class="Polaris-ButtonGroup">
+            <button class="Polaris-Button Polaris-Button--slim" onclick="openNewCampaignModal()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              + New Campaign
+            </button>
+            <button class="Polaris-Button Polaris-Button--slim" onclick="openRulesModal()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Automated Rules
+            </button>
+            <button class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" onclick="openComposerWithTemplate()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Compose Follow-Up
+            </button>
+          </div>
         </div>
 
         <div class="Polaris-TableControls" style="border-bottom: none;">
@@ -254,11 +287,7 @@
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <span style="font-size: 12px; font-weight: 600; color: var(--p-color-text);">Sequence:</span>
               <div class="Polaris-FilterPills" id="templateCampaignPills">
-                <button class="Polaris-FilterPill active" onclick="setTemplateCampaign('all', this)">All Sequences (20)</button>
-                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('water_flosser', this)">Water Flosser (5)</button>
-                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_cup', this)">Mouthwash Cup (5)</button>
-                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('bogof_spray', this)">Ozomist Spray (5)</button>
-                <button class="Polaris-FilterPill" onclick="setTemplateCampaign('ebook_50', this)">All E-Books 50% (5)</button>
+                <button class="Polaris-FilterPill active" onclick="setTemplateCampaign('all', this)">All Sequences</button>
               </div>
             </div>
             <div>
@@ -631,48 +660,55 @@
     <div class="modal-card modal-card--wide">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">
+          <h2 class="modal-title" id="composerModalTitle">
             Compose Customer Follow-Up
           </h2>
-          <p style="font-size: 12px; color: var(--p-color-text-subdued);" id="composerCustomerBadge">
-            Targeting: Loading...
-          </p>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+            <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;" id="composerCustomerBadge">
+              Targeting: Loading...
+            </p>
+            <button type="button" id="btnToggleRecipientsList" class="Polaris-Button--plain" style="font-size: 11.5px; display: none;" onclick="toggleRecipientsList()">
+              Show Recipients &#9662;
+            </button>
+          </div>
         </div>
         <button class="Polaris-Button Polaris-Button--slim" onclick="closeComposerModal()">&times; Close</button>
       </div>
 
       <div class="modal-body">
+        <!-- Expandable Multi-Recipient Chips Drawer -->
+        <div id="composerRecipientsBox" class="composer-recipients-box" style="display: none;">
+          <!-- Dynamically populated customer recipient chips with remove buttons -->
+        </div>
+
         <!-- 1. CAMPAIGN SILO SELECTOR -->
         <div class="composer-campaign-bar">
           <div class="composer-section-label">Campaign:</div>
           <div class="composer-camp-tabs" id="composerCampTabs">
-            <button type="button" class="composer-camp-tab active" data-camp="water_flosser" onclick="selectComposerCampaign('water_flosser')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-              <span>Water Flosser</span>
-            </button>
-            <button type="button" class="composer-camp-tab" data-camp="bogof_cup" onclick="selectComposerCampaign('bogof_cup')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l-1.5 16a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8L6 3z"/><line x1="6" y1="8" x2="18" y2="8"/></svg>
-              <span>Mouthwash Cup</span>
-            </button>
-            <button type="button" class="composer-camp-tab" data-camp="bogof_spray" onclick="selectComposerCampaign('bogof_spray')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="10" height="12" rx="2"/><path d="M12 10V6"/><path d="M9 6h6"/><path d="M9 3h3v3"/><line x1="18" y1="5" x2="21" y2="5"/><line x1="18" y1="3" x2="20" y2="2"/><line x1="18" y1="7" x2="20" y2="8"/></svg>
-              <span>Ozomist Spray</span>
-            </button>
-            <button type="button" class="composer-camp-tab" data-camp="ebook_50" onclick="selectComposerCampaign('ebook_50')">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
-              <span>All E-Books 50%</span>
-            </button>
+            <!-- Dynamically populated campaign tabs -->
           </div>
         </div>
 
-        <!-- 2. STAGE STEPPER (1 TO 5) -->
-        <div class="composer-stage-bar">
-          <div class="composer-stage-strip" id="composerStageStrip">
-            <!-- Dynamically populated 5 stage pills -->
+        <!-- 2. STAGE STEPPER (1 TO 5+) WITH IN-LINE PRESET SAVER -->
+        <div class="composer-stage-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="composer-stage-strip" id="composerStageStrip">
+              <!-- Dynamically populated stage pills -->
+            </div>
+            <div class="composer-stage-title-pill" id="composerStageTitlePill">
+              <span id="composerStageActiveName">Loading Stage...</span>
+              <span id="composerStageActiveTiming" style="font-size: 11px; color: var(--p-color-text-subdued);">Day 1</span>
+            </div>
           </div>
-          <div class="composer-stage-title-pill" id="composerStageTitlePill">
-            <span id="composerStageActiveName">Loading Stage...</span>
-            <span id="composerStageActiveTiming" style="font-size: 11px; color: var(--p-color-text-subdued);">Day 1</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openSavePresetDialog()" title="Save customized subject, discount, and body as a template preset">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save as Preset
+            </button>
+            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="openNewPresetModal(composerActiveCampaign)" title="Add a new stage or preset to this campaign">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              + Stage
+            </button>
           </div>
         </div>
 
@@ -752,8 +788,234 @@
         <button class="Polaris-Button" onclick="closeComposerModal()">Cancel</button>
         <button id="btnDispatchCustomerEmail" class="Polaris-Button Polaris-Button--primary" onclick="dispatchCustomerEmail()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Send Official Follow-Up
+          <span id="btnDispatchCustomerEmailText">Send Official Follow-Up</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: BATCH DISPATCH PROGRESS & LOG
+       ======================================================== -->
+  <div id="modalBatchProgress" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="batchProgressTitle">Dispatching Follow-Up Batch</h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;" id="batchProgressSubtitle">
+            Sending personalized emails with conversion tracking...
+          </p>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="batch-progress-bar-wrap">
+          <div id="batchProgressBarFill" class="batch-progress-bar-fill"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 12px;">
+          <span id="batchProgressCounter">0 of 0 dispatched</span>
+          <span id="batchProgressPercent" style="color: var(--p-color-brand);">0%</span>
+        </div>
+        <div class="batch-log-box" id="batchProgressLog">
+          <div>[System] Initializing batch dispatch engine...</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: flex-end;">
+        <button id="btnBatchDone" class="Polaris-Button Polaris-Button--primary" style="display: none;" onclick="closeBatchProgressModal()">
+          Done &amp; Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: CREATE / EDIT CAMPAIGN
+       ======================================================== -->
+  <div id="modalNewCampaign" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="campaignModalTitle">Create New Campaign</h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;">
+            Define a custom campaign silo to organize your follow-up sequence presets.
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closeCampaignModal()">&times; Close</button>
+      </div>
+      <form onsubmit="saveCampaignForm(event)">
+        <input type="hidden" id="campModalId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Campaign Full Name *</label>
+            <input type="text" id="campModalName" class="form-input" placeholder="e.g. VIP Whitening Routine &amp; Care" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Short Name (for tab pill)</label>
+            <input type="text" id="campModalShortName" class="form-input" placeholder="e.g. VIP Whitening">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Theme Accent Color</label>
+              <input type="color" id="campModalColor" class="form-input" value="#008060" style="height: 40px; padding: 2px 6px;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Icon Symbol</label>
+              <select id="campModalIconSelect" class="form-input">
+                <option value="droplet">💧 Water Droplet</option>
+                <option value="cup">🥛 Cup / Rinse</option>
+                <option value="spray">🧴 Spray / Mist</option>
+                <option value="book">📖 Book / E-Book</option>
+                <option value="star">⭐ VIP Star</option>
+                <option value="sparkles">✨ Sparkles / Whitening</option>
+                <option value="shield">🛡️ Defense / Hygiene</option>
+                <option value="tag">🏷️ Promotion / Gift</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="Polaris-Button" onclick="closeCampaignModal()">Cancel</button>
+          <button type="submit" class="Polaris-Button Polaris-Button--primary" id="btnSaveCampaign">Save Campaign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: CREATE / EDIT PRESET (STAGE)
+       ======================================================== -->
+  <div id="modalNewPreset" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="presetModalTitle">Create Campaign Stage Preset</h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;">
+            Add a reusable clinical follow-up preset to a campaign.
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closePresetModal()">&times; Close</button>
+      </div>
+      <form onsubmit="savePresetForm(event)">
+        <input type="hidden" id="presetModalId">
+        <div class="modal-body">
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Campaign *</label>
+              <select id="presetModalCampaignSelect" class="form-input" required></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Stage Number *</label>
+              <input type="number" id="presetModalStage" class="form-input" min="1" max="20" value="1" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stage Label Badge *</label>
+            <input type="text" id="presetModalStageLabel" class="form-input" placeholder="e.g. Stage 1: Setup &amp; Guidance" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preset Title / Objective *</label>
+            <input type="text" id="presetModalName" class="form-input" placeholder="e.g. Clinical Onboarding &amp; Acclimation" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Clinical Description</label>
+            <input type="text" id="presetModalDesc" class="form-input" placeholder="Short description of clinical purpose">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Subject Line *</label>
+            <input type="text" id="presetModalSubject" class="form-input" placeholder="Subject for customer inbox" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Default Promo Code</label>
+              <input type="text" id="presetModalDiscountCode" class="form-input" style="text-transform: uppercase;" value="HOLISTIC10">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Discount (%)</label>
+              <input type="number" id="presetModalDiscountPercent" class="form-input" min="0" max="100" value="10">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="Polaris-Button" onclick="closePresetModal()">Cancel</button>
+          <button type="submit" class="Polaris-Button Polaris-Button--primary">Save Preset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: AUTOMATED RULES MANAGER
+       ======================================================== -->
+  <div id="modalRules" class="modal-overlay">
+    <div class="modal-card modal-card--wide">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Automated Follow-Up Rules</h2>
+          <p style="font-size: 12px; color: var(--p-color-text-subdued); margin: 0;">
+            Automatically trigger campaign sequence follow-ups based on customer spend and purchase history.
+          </p>
+        </div>
+        <button class="Polaris-Button Polaris-Button--slim" onclick="closeRulesModal()">&times; Close</button>
+      </div>
+      <div class="modal-body">
+        <!-- New Rule Form Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 14px; font-weight: 700; color: var(--p-color-text); margin: 0;">Active Rules</h3>
+          <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="toggleNewRuleForm()">+ Create New Rule</button>
+        </div>
+
+        <!-- Inline New Rule Form -->
+        <div id="newRuleFormWrap" style="display: none; background: #f8fafc; border: 1px solid var(--p-color-border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <form onsubmit="submitNewRuleForm(event)">
+            <div style="font-weight: 600; font-size: 13px; margin-bottom: 10px;">New Automation Rule</div>
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Rule Name *</label>
+                <input type="text" id="ruleInputName" class="form-input" placeholder="e.g. VIP Spend Trigger" required>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Trigger Condition *</label>
+                <select id="ruleInputTriggerType" class="form-input" onchange="onRuleTriggerTypeChange()">
+                  <option value="spend_min">Total Spent &ge; Amount</option>
+                  <option value="orders_min">Orders Count &ge; Count</option>
+                  <option value="never_followed_up">Never Followed Up</option>
+                  <option value="all">All Store Customers</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin: 0;" id="ruleInputValueWrap">
+                <label class="form-label" id="ruleInputValueLabel">Min Amount (£)</label>
+                <input type="number" id="ruleInputValue" class="form-input" value="150" min="0" step="10">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; margin-bottom: 14px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Target Campaign *</label>
+                <select id="ruleInputCampaignSelect" class="form-input"></select>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Start Stage</label>
+                <select id="ruleInputStageSelect" class="form-input">
+                  <option value="1">Stage 1 (Initial Guidance)</option>
+                  <option value="2">Stage 2</option>
+                  <option value="3">Stage 3</option>
+                  <option value="4">Stage 4</option>
+                  <option value="5">Stage 5</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+              <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="toggleNewRuleForm()">Cancel</button>
+              <button type="submit" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim">Save Rule</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Rules List Container -->
+        <div id="rulesListContainer">
+          <!-- Dynamically populated rules list -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="Polaris-Button" onclick="closeRulesModal()">Close</button>
       </div>
     </div>
   </div>
@@ -761,6 +1023,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=16.0"></script>
+  <script src="app.js?v=18.0"></script>
 </body>
 </html>
