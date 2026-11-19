@@ -752,11 +752,34 @@ function renderCustomersTable() {
     const spent = `£${parseFloat(c.total_spent || 0).toFixed(2)}`;
     const isSelected = selectedCustomerIds.has(String(c.id));
     
-    // Segment tags (clean, understated)
+    // Segment badges (Professional Rank Badges)
     const tags = [];
-    if (orders >= 2) tags.push(`<span class="Polaris-Tag">Repeat (${orders})</span>`);
-    if (parseFloat(c.total_spent || 0) >= 100) tags.push(`<span class="Polaris-Tag">VIP</span>`);
-    if (c.conversionStatus === 'converted') tags.push(`<span class="Polaris-Tag">Ordered</span>`);
+    const spentVal = parseFloat(c.total_spent || 0);
+
+    // Spend Tier Rank Badge
+    if (spentVal >= 500) {
+      tags.push(`<span class="rank-badge rank-badge-svip">SVIP</span>`);
+    } else if (spentVal >= 250) {
+      tags.push(`<span class="rank-badge rank-badge-vip_plus">VIP+</span>`);
+    } else if (spentVal >= 100) {
+      tags.push(`<span class="rank-badge rank-badge-vip">VIP</span>`);
+    }
+
+    // Repeat Buyer Rank Badge
+    if (orders >= 2) {
+      tags.push(`<span class="rank-badge rank-badge-builder">REPEAT (${orders})</span>`);
+    }
+
+    // Conversion / Ordered Rank Badge
+    if (c.conversionStatus === 'converted') {
+      tags.push(`<span class="rank-badge rank-badge-dev">ORDERED</span>`);
+    }
+
+    // Delivery Failed Rank Badge
+    if (c.lastFollowUpStatus === 'failed') {
+      tags.push(`<span class="rank-badge rank-badge-admin">FAILED</span>`);
+    }
+
     const segmentBadges = tags.length > 0 ? tags.join(' ') : `<span style="font-size:12px; color:var(--p-color-text-subdued);">&mdash;</span>`;
 
     // Last follow-up status
@@ -1773,11 +1796,11 @@ function renderDispatchesTable() {
     const promoCode = d.discountCode ? `<code>${escapeHtml(d.discountCode)}</code>` : '<span style="color:var(--p-color-text-subdued);">&mdash;</span>';
 
     const deliveryBadge = d.status === 'sent'
-      ? `<span style="font-size:12px; color:#008060; font-weight:500;">Delivered</span>`
-      : `<span style="font-size:12px; color:#d82c0d; font-weight:600;">Failed</span><div style="font-size:11px; color:#d82c0d; margin-top:2px;" title="${escapeHtml(d.error || '')}">${escapeHtml(d.error || 'Delivery failed')}</div>`;
+      ? `<span class="rank-badge rank-badge-dev">DELIVERED</span>`
+      : `<span class="rank-badge rank-badge-admin">FAILED</span><div style="font-size:11px; color:#bc4141; margin-top:2px;" title="${escapeHtml(d.error || '')}">${escapeHtml(d.error || 'Delivery failed')}</div>`;
 
     const clickBadge = d.clicked
-      ? `<span style="font-size:12px; color:var(--p-color-text); font-weight:500;">${d.clickCount || 1} click${(d.clickCount || 1) > 1 ? 's' : ''}</span>`
+      ? `<span class="rank-badge rank-badge-vip_plus">${d.clickCount || 1} CLICK${(d.clickCount || 1) > 1 ? 'S' : ''}</span>`
       : `<span style="font-size:12px; color:var(--p-color-text-subdued);">&mdash;</span>`;
 
     let conversionBadge = '';
@@ -1967,7 +1990,7 @@ function renderTemplateCards() {
           return `
             <div class="sequence-row">
               <div class="sequence-col sequence-col-stage">
-                <span class="stage-pill stage-${stageNum}">
+                <span class="rank-badge rank-badge-helper">
                   ${escapeHtml(stageLabel)}
                 </span>
               </div>
