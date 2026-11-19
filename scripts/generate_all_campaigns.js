@@ -42,13 +42,13 @@ function buildEmailHtml({
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
       <tr>
         <td width="33.33%" style="padding:0 1px 0 0; vertical-align:top; line-height:0;">
-          <img src="https://shop.thedentalshaman.com/cdn/shop/files/Screenshot_2026-01-27_120348.png?v=1769523750" alt="Biological Care" style="display:block; width:100%; height:140px; object-fit:cover; border:0;">
+          <img src="https://cdn.shopify.com/s/files/1/0946/8238/2665/files/Screenshot_2026-01-27_120348_b0a9652d-b9d2-4921-a3fb-41fca50682fb.png?v=1794600987" alt="Biological Care" style="display:block; width:100%; height:140px; object-fit:cover; border:0;">
         </td>
         <td width="33.33%" style="padding:0 1px 0 1px; vertical-align:top; line-height:0;">
-          <img src="https://shop.thedentalshaman.com/cdn/shop/files/Screenshot_2026-01-27_115431.png?v=1769523750" alt="Clinical Tool" style="display:block; width:100%; height:140px; object-fit:cover; border:0;">
+          <img src="https://cdn.shopify.com/s/files/1/0946/8238/2665/files/Screenshot_2026-01-27_115431_508e408a-e4dd-4d6d-a7a6-3b4bb040bef6.png?v=1794600987" alt="Clinical Tool" style="display:block; width:100%; height:140px; object-fit:cover; border:0;">
         </td>
         <td width="33.33%" style="padding:0 0 0 1px; vertical-align:top; line-height:0;">
-          <img src="https://shop.thedentalshaman.com/cdn/shop/files/Screenshot_2026-01-27_115522.png?v=1769523750" alt="Dr. Marc Mortiboys" style="display:block; width:100%; height:140px; object-fit:cover; border:0;">
+          <img src="https://cdn.shopify.com/s/files/1/0946/8238/2665/files/Screenshot_2026-01-27_115522_e8ef0163-3657-4412-83e8-97f7aaba9733.png?v=1794600987" alt="Dr. Marc Mortiboys" style="display:block; width:100%; height:140px; object-fit:cover; border:0;">
         </td>
       </tr>
     </table>
@@ -83,11 +83,22 @@ function buildEmailHtml({
       </a>
     </div>
 
-    <p style="font-size:14px; line-height:1.6; color:#666666; margin:28px 0 0 0; border-top:1px solid #f0ecf2; padding-top:20px;">
-      Warmest holistic wishes,<br>
-      <strong style="color:#0d0820;">Dr. Marc Mortiboys (BDS)</strong><br>
-      <span style="font-size:12.5px; color:#888888;">Founder &amp; Biological Dental Surgeon &middot; The Dental Shaman</span>
-    </p>
+    <div style="margin:28px 0 0 0; border-top:1px solid #f0ecf2; padding-top:20px;">
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="vertical-align:middle; padding-right:14px; width:56px;">
+            <img src="https://thedentalshaman.com/marc_smiling_nature.jpg" alt="Dr. Marc Mortiboys (BDS)" width="56" height="56" style="display:block; width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #744B6F;">
+          </td>
+          <td style="vertical-align:middle;">
+            <p style="font-size:14px; line-height:1.5; color:#666666; margin:0;">
+              Warmest holistic wishes,<br>
+              <strong style="color:#0d0820; font-size:15px;">Dr. Marc Mortiboys (BDS)</strong><br>
+              <span style="font-size:12px; color:#888888;">Founder &amp; Biological Dental Surgeon &middot; The Dental Shaman</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
   </div>
 
   <!-- FOOTER -->
