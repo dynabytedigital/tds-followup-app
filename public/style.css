@@ -1976,6 +1976,41 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Analytics Unified View Switcher */
+.analytics-view-switcher {
+  display: flex;
+  gap: 4px;
+  background: #eef0f2;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.analytics-view-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--p-color-text-subdued);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap !important;
+  transition: all 0.15s ease;
+}
+
+.analytics-view-btn:hover {
+  color: var(--p-color-text);
+}
+
+.analytics-view-btn.active {
+  background: #ffffff;
+  color: var(--p-color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
 /* Period KPI mini grid */
 .period-kpi-grid {
   display: grid;
@@ -2644,5 +2679,25 @@ html, body {
     overflow: hidden !important;
     width: 100% !important;
     max-width: 100% !important;
+  }
+
+  /* Analytics View Switcher on Phone */
+  .analytics-view-switcher {
+    width: 100% !important;
+  }
+
+  .analytics-view-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+  }
+
+  #dispatchStatusFilterWrap {
+    width: 100% !important;
+  }
+
+  #dispatchStatusFilterWrap .Polaris-FilterPills {
+    width: 100% !important;
   }
 }

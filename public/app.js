@@ -179,26 +179,51 @@ async function loadStats() {
 
 function updateKpiCards(stats) {
   if (!stats) return;
-  document.getElementById('kpiTotalCustomers').innerText = (stats.totalCustomers || 0).toLocaleString();
-  document.getElementById('kpiTotalDispatched').innerText = (stats.totalDispatched || 0).toLocaleString();
-  document.getElementById('kpiTotalClicked').innerText = (stats.totalClicked || 0).toLocaleString();
-  document.getElementById('kpiClickRate').innerText = (stats.clickRate || 0).toFixed(1);
-  document.getElementById('kpiTotalConverted').innerText = (stats.totalConverted || 0).toLocaleString();
-  document.getElementById('kpiConversionRate').innerText = (stats.conversionRate || 0).toFixed(1);
-  document.getElementById('kpiTotalRevenue').innerText = `£${Number(stats.totalRevenueGenerated || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const custEl = document.getElementById('kpiTotalCustomers');
+  if (custEl) custEl.innerText = (stats.totalCustomers || 0).toLocaleString();
+  const dispEl = document.getElementById('kpiTotalDispatched');
+  if (dispEl) dispEl.innerText = (stats.totalDispatched || 0).toLocaleString();
+  const clickEl = document.getElementById('kpiTotalClicked');
+  if (clickEl) clickEl.innerText = (stats.totalClicked || 0).toLocaleString();
+  const rateEl = document.getElementById('kpiClickRate');
+  if (rateEl) rateEl.innerText = (stats.clickRate || 0).toFixed(1);
+  const convEl = document.getElementById('kpiTotalConverted');
+  if (convEl) convEl.innerText = (stats.totalConverted || 0).toLocaleString();
+  const convRateEl = document.getElementById('kpiConversionRate');
+  if (convRateEl) convRateEl.innerText = (stats.conversionRate || 0).toFixed(1);
+  const revEl = document.getElementById('kpiTotalRevenue');
+  if (revEl) revEl.innerText = `£${Number(stats.totalRevenueGenerated || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  document.getElementById('badgeCustomerCount').innerText = stats.totalCustomers || 0;
-  document.getElementById('badgeConversionCount').innerText = stats.totalConverted || 0;
-  document.getElementById('badgeDispatchCount').innerText = stats.totalDispatched || 0;
+  const badgeCust = document.getElementById('badgeCustomerCount');
+  if (badgeCust) badgeCust.innerText = stats.totalCustomers || 0;
+  const badgeTpl = document.getElementById('badgeTemplateCount');
+  if (badgeTpl) badgeTpl.innerText = templatesList.length || 20;
+  const badgeAna = document.getElementById('badgeAnalyticsCount');
+  if (badgeAna) badgeAna.innerText = stats.totalDispatched || 0;
+
+  const anaDisp = document.getElementById('analyticsDispatchesCount');
+  if (anaDisp) anaDisp.innerText = stats.totalDispatched || 0;
+  const anaConv = document.getElementById('analyticsConversionsCount');
+  if (anaConv) anaConv.innerText = stats.totalConverted || 0;
 }
 
 /* ========================================================
-   TABS SWITCHING
+   TABS SWITCHING (UNIFIED 3 CORE TABS)
    ======================================================== */
 function switchTab(tabName, el) {
+  // Map legacy tab names to unified analytics
+  if (tabName === 'conversions' || tabName === 'dispatches') {
+    tabName = 'analytics';
+  }
+
   // Update tab buttons
   document.querySelectorAll('.Polaris-Tab').forEach(tab => tab.classList.remove('active'));
-  if (el) el.classList.add('active');
+  if (el) {
+    el.classList.add('active');
+  } else {
+    const matching = document.querySelector(`.Polaris-Tab[onclick*="'${tabName}'"]`);
+    if (matching) matching.classList.add('active');
+  }
 
   // Update tab content panels
   document.querySelectorAll('.Polaris-TabContent').forEach(panel => panel.classList.remove('active'));
@@ -207,10 +232,71 @@ function switchTab(tabName, el) {
 
   // Refresh data for active tab
   if (tabName === 'customers') renderCustomersTable();
-  if (tabName === 'conversions') loadConversions();
-  if (tabName === 'dispatches') loadDispatches();
   if (tabName === 'templates') renderTemplateCards();
+  if (tabName === 'analytics') loadAnalytics();
   if (tabName === 'settings') loadSettings();
+}
+
+/* ========================================================
+   UNIFIED ANALYTICS & ACTIVITY LOGIC
+   ======================================================== */
+let analyticsSubView = 'dispatches'; // 'dispatches' or 'conversions'
+let analyticsCampaign = 'all';
+
+async function loadAnalytics() {
+  renderAnalyticsDynamicCampaignPills();
+  await Promise.all([
+    loadStats(),
+    loadConversions(),
+    loadDispatches()
+  ]);
+}
+
+function renderAnalyticsDynamicCampaignPills() {
+  const container = document.getElementById('analyticsCampaignPills');
+  if (!container) return;
+  const isAll = analyticsCampaign === 'all';
+  let html = `<button type="button" class="Polaris-FilterPill ${isAll ? 'active' : ''}" onclick="setAnalyticsCampaign('all', this)">All Campaigns</button>`;
+  html += campaignsList.map(c => {
+    const isActive = analyticsCampaign === c.id;
+    return `<button type="button" class="Polaris-FilterPill ${isActive ? 'active' : ''}" onclick="setAnalyticsCampaign('${c.id}', this)">${escapeHtml(c.shortName || c.name)}</button>`;
+  }).join('');
+  container.innerHTML = html;
+}
+
+function setAnalyticsCampaign(campaignId, btn) {
+  analyticsCampaign = campaignId;
+  activeConversionCampaign = campaignId;
+  activeDispatchCampaign = campaignId;
+  document.querySelectorAll('#analyticsCampaignPills .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  Promise.all([loadConversions(), loadDispatches()]);
+}
+
+function setAnalyticsPeriod(period, btn) {
+  setConversionPeriod(period, btn);
+}
+
+function setAnalyticsSubView(view, btn) {
+  analyticsSubView = view;
+  document.querySelectorAll('.analytics-view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const dispatchesPane = document.getElementById('analyticsDispatchesPane');
+  const conversionsPane = document.getElementById('analyticsConversionsPane');
+  const statusFilterWrap = document.getElementById('dispatchStatusFilterWrap');
+
+  if (view === 'conversions') {
+    if (dispatchesPane) dispatchesPane.style.display = 'none';
+    if (conversionsPane) conversionsPane.style.display = 'block';
+    if (statusFilterWrap) statusFilterWrap.style.display = 'none';
+    loadConversions();
+  } else {
+    if (dispatchesPane) dispatchesPane.style.display = 'block';
+    if (conversionsPane) conversionsPane.style.display = 'none';
+    if (statusFilterWrap) statusFilterWrap.style.display = 'flex';
+    loadDispatches();
+  }
 }
 
 /* ========================================================
@@ -1615,15 +1701,18 @@ async function loadConversions() {
     const data = await res.json();
     if (data.success) {
       conversionsList = data.conversions || [];
-      document.getElementById('badgeConversionCount').innerText = conversionsList.length;
+      const convBadge = document.getElementById('analyticsConversionsCount');
+      if (convBadge) convBadge.innerText = conversionsList.length;
 
-      // Update Period Mini KPIs
+      // Update KPIs dynamically
       const periodStats = data.periodStats || {};
-      if (document.getElementById('periodKpiRevenue')) {
-        document.getElementById('periodKpiRevenue').innerText = `£${Number(periodStats.totalRevenue || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const revEl = document.getElementById('kpiTotalRevenue');
+      if (revEl && periodStats.totalRevenue !== undefined) {
+        revEl.innerText = `£${Number(periodStats.totalRevenue || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
-      if (document.getElementById('periodKpiOrders')) {
-        document.getElementById('periodKpiOrders').innerText = periodStats.totalConversions || 0;
+      const ordEl = document.getElementById('kpiTotalConverted');
+      if (ordEl && periodStats.totalConversions !== undefined) {
+        ordEl.innerText = periodStats.totalConversions || 0;
       }
       if (document.getElementById('periodKpiClients')) {
         document.getElementById('periodKpiClients').innerText = periodStats.uniqueEmails || 0;
@@ -1813,11 +1902,18 @@ async function loadDispatches() {
     const data = await res.json();
     if (data.success) {
       dispatchesList = data.dispatches || [];
-      document.getElementById('badgeDispatchCount').innerText = dispatchesList.length;
+      const dispBadge = document.getElementById('analyticsDispatchesCount');
+      if (dispBadge) dispBadge.innerText = dispatchesList.length;
+      const anaBadge = document.getElementById('badgeAnalyticsCount');
+      if (anaBadge) anaBadge.innerText = dispatchesList.length;
 
       const failedCount = dispatchesList.filter(d => d.status === 'failed').length;
       const failedBadge = document.getElementById('dispatchFailedCount');
       if (failedBadge) failedBadge.innerText = failedCount;
+
+      const delCount = dispatchesList.filter(d => d.status === 'sent').length;
+      const delBadge = document.getElementById('kpiDeliveredCount');
+      if (delBadge) delBadge.innerText = delCount;
 
       renderDispatchesTable();
     }
