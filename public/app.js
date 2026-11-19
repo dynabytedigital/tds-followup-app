@@ -2180,6 +2180,7 @@ async function loadCampaigns() {
       renderComposerCampaignTabs();
       populatePresetModalCampaignSelect();
       populateRuleCampaignSelect();
+      renderTemplateCards();
     }
   } catch (e) {
     console.error('Failed to load campaigns:', e);
