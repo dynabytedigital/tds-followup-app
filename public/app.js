@@ -269,7 +269,12 @@ async function syncCustomers() {
 function setCustomerFilter(filterType, el) {
   currentFilter = filterType;
   document.querySelectorAll('.Polaris-FilterPills .Polaris-FilterPill').forEach(p => p.classList.remove('active'));
-  if (el) el.classList.add('active');
+  if (el) {
+    el.classList.add('active');
+  } else {
+    const targetPill = document.querySelector(`.Polaris-FilterPills .Polaris-FilterPill[onclick*="'${filterType}'"]`);
+    if (targetPill) targetPill.classList.add('active');
+  }
   currentPage = 1;
   filterCustomers();
 }
@@ -468,7 +473,9 @@ function filterCustomers() {
       if (!matchesSearch) return false;
 
       // Segment filter match
-      if (currentFilter === 'never_followed') {
+      if (currentFilter === 'selected') {
+        if (!selectedCustomerIds.has(String(c.id))) return false;
+      } else if (currentFilter === 'never_followed') {
         if (c.lastFollowUpAt || (c.followUpCount && c.followUpCount > 0)) return false;
       } else if (currentFilter === 'repeat_buyers') {
         if ((parseInt(c.orders_count, 10) || 0) < 2) return false;
@@ -478,13 +485,15 @@ function filterCustomers() {
         if (c.lastFollowUpStatus !== 'failed' && !c.lastFollowUpError) return false;
       }
 
-      // Customer Spend Filter (Min / Max range or preset)
-      const totalSpent = parseFloat(c.total_spent || 0);
-      if (spendFilterMin !== null && totalSpent < spendFilterMin) {
-        return false;
-      }
-      if (spendFilterMax !== null && totalSpent > spendFilterMax) {
-        return false;
+      // Customer Spend Filter (Min / Max range or preset) - applied unless user chose 'selected' view
+      if (currentFilter !== 'selected') {
+        const totalSpent = parseFloat(c.total_spent || 0);
+        if (spendFilterMin !== null && totalSpent < spendFilterMin) {
+          return false;
+        }
+        if (spendFilterMax !== null && totalSpent > spendFilterMax) {
+          return false;
+        }
       }
 
       return true;
@@ -532,14 +541,45 @@ function toggleSelectAllPage(isChecked) {
 }
 
 function selectAllFilteredCustomers() {
-  filteredCustomers.forEach(c => selectedCustomerIds.add(String(c.id)));
+  let newlyAdded = 0;
+  filteredCustomers.forEach(c => {
+    const strId = String(c.id);
+    if (!selectedCustomerIds.has(strId)) {
+      selectedCustomerIds.add(strId);
+      newlyAdded++;
+    }
+  });
   renderCustomersTable();
-  showToast(`Selected all ${filteredCustomers.length.toLocaleString()} customers matching filter!`, 'info');
+  if (newlyAdded > 0) {
+    showToast(`Added ${newlyAdded.toLocaleString()} customers to selection (Total: ${selectedCustomerIds.size.toLocaleString()})`, 'info');
+  } else {
+    showToast(`All ${filteredCustomers.length.toLocaleString()} customers in this filter are already selected.`, 'info');
+  }
+}
+
+function viewSelectedCustomersOnly() {
+  if (selectedCustomerIds.size === 0) {
+    showToast('No customers currently selected.', 'warning');
+    return;
+  }
+  const pill = document.getElementById('pillFilterSelected');
+  if (currentFilter === 'selected') {
+    const allPill = document.querySelector('.Polaris-FilterPills .Polaris-FilterPill');
+    setCustomerFilter('all', allPill);
+  } else {
+    setCustomerFilter('selected', pill);
+  }
 }
 
 function clearCustomerSelection() {
   selectedCustomerIds.clear();
-  renderCustomersTable();
+  if (currentFilter === 'selected') {
+    const allPill = document.querySelector('.Polaris-FilterPills .Polaris-FilterPill');
+    setCustomerFilter('all', allPill);
+  } else {
+    renderCustomersTable();
+  }
+  showToast('Cleared customer selections.', 'info');
 }
 
 function syncMasterCheckboxState() {
@@ -571,23 +611,69 @@ function updateBulkActionsBar() {
   const actionCountEl = document.getElementById('bulkActionCount');
   const selectAllBtn = document.getElementById('btnSelectAllFiltered');
   const filteredCountEl = document.getElementById('bulkFilteredTotalCount');
+  const viewSelectedBtn = document.getElementById('btnViewSelectedOnly');
+  const contextBadge = document.getElementById('bulkFilterContextBadge');
+  const selectedInViewEl = document.getElementById('bulkSelectedInViewCount');
+  const selectedPill = document.getElementById('pillFilterSelected');
+  const pillCountEl = document.getElementById('badgePillSelectedCount');
 
-  const count = selectedCustomerIds.size;
-  if (countEl) countEl.innerText = count.toLocaleString();
-  if (actionCountEl) actionCountEl.innerText = count.toLocaleString();
+  const totalCount = selectedCustomerIds.size;
+  if (countEl) countEl.innerText = totalCount.toLocaleString();
+  if (actionCountEl) actionCountEl.innerText = totalCount.toLocaleString();
 
-  if (count > 0) {
+  // Update "Selected (X)" pill in the filter row
+  if (selectedPill && pillCountEl) {
+    pillCountEl.innerText = totalCount.toLocaleString();
+    if (totalCount > 0) {
+      selectedPill.style.display = 'inline-flex';
+    } else {
+      selectedPill.style.display = 'none';
+      if (currentFilter === 'selected') {
+        const allPill = document.querySelector('.Polaris-FilterPills .Polaris-FilterPill');
+        setCustomerFilter('all', allPill);
+      }
+    }
+  }
+
+  if (totalCount > 0) {
     if (bar) bar.style.display = 'flex';
+
+    // Calculate selection inside the current filtered view
+    const selectedInView = filteredCustomers.filter(c => selectedCustomerIds.has(String(c.id))).length;
+    const unselectedInView = filteredCustomers.length - selectedInView;
+
+    // Context badge (e.g. "(3 in current filter)")
+    if (contextBadge && selectedInViewEl) {
+      if (currentFilter !== 'selected' && filteredCustomers.length < customersList.length) {
+        selectedInViewEl.innerText = selectedInView.toLocaleString();
+        contextBadge.style.display = 'inline-block';
+      } else {
+        contextBadge.style.display = 'none';
+      }
+    }
+
+    // Toggle button text between "View Selected" and "Show All"
+    if (viewSelectedBtn) {
+      if (currentFilter === 'selected') {
+        viewSelectedBtn.innerText = 'Show All Customers \u2190';
+      } else {
+        viewSelectedBtn.innerText = `View Selected (${totalCount.toLocaleString()})`;
+      }
+    }
+
+    // Button to select all remaining customers in this filtered view
     if (selectAllBtn && filteredCountEl) {
-      if (filteredCustomers.length > count) {
+      if (unselectedInView > 0) {
         filteredCountEl.innerText = filteredCustomers.length.toLocaleString();
-        selectAllBtn.style.display = 'inline-block';
+        selectAllBtn.innerText = `Select all ${filteredCustomers.length.toLocaleString()} matching filter`;
+        selectAllBtn.style.display = 'inline-flex';
       } else {
         selectAllBtn.style.display = 'none';
       }
     }
   } else {
     if (bar) bar.style.display = 'none';
+    if (contextBadge) contextBadge.style.display = 'none';
   }
 }
 
@@ -2529,9 +2615,49 @@ async function loadSettings() {
       if (document.getElementById('settingReplyTo')) document.getElementById('settingReplyTo').value = s.replyTo || '';
       if (document.getElementById('settingResendApiKey')) document.getElementById('settingResendApiKey').value = s.resendApiKey || '';
       if (document.getElementById('settingDefaultPromo')) document.getElementById('settingDefaultPromo').value = s.defaultDiscountCode || 'HOLISTIC10';
+      if (document.getElementById('settingEmailProvider')) document.getElementById('settingEmailProvider').value = s.emailProvider || 'google_workspace';
+      if (document.getElementById('settingSmtpPass') && s.smtpPass) document.getElementById('settingSmtpPass').value = s.smtpPass;
+      toggleProviderSettingsFields();
     }
   } catch (e) {
     console.error('Failed to load settings:', e);
+  }
+}
+
+function toggleProviderSettingsFields() {
+  const provider = document.getElementById('settingEmailProvider')?.value || 'google_workspace';
+  const gmailField = document.getElementById('fieldGoogleAppPass');
+  const resendField = document.getElementById('fieldResendKey');
+  const gmailCard = document.getElementById('gmailConnectedCard');
+
+  if (provider === 'google_workspace') {
+    if (gmailField) gmailField.style.display = 'block';
+    if (resendField) resendField.style.display = 'none';
+    if (gmailCard) gmailCard.style.display = 'flex';
+  } else {
+    if (gmailField) gmailField.style.display = 'none';
+    if (resendField) resendField.style.display = 'block';
+    if (gmailCard) gmailCard.style.display = 'none';
+  }
+}
+
+async function testGoogleWorkspaceConnection() {
+  showToast('Testing Google Workspace Gmail connection (smtp.gmail.com:465)...', 'info');
+  try {
+    const pass = (document.getElementById('settingSmtpPass')?.value || '').trim();
+    const res = await authFetch('/api/settings/verify-gmail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ smtpPass: pass })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Google Workspace Gmail connection verified successfully!', 'success');
+    } else {
+      showToast('Google Workspace connection failed: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (e) {
+    showToast('Failed to test connection: ' + e.message, 'error');
   }
 }
 
@@ -2541,6 +2667,12 @@ async function saveSettings(event) {
     senderName: document.getElementById('settingSenderName').value.trim(),
     senderEmail: document.getElementById('settingSenderEmail').value.trim(),
     replyTo: document.getElementById('settingReplyTo').value.trim(),
+    emailProvider: document.getElementById('settingEmailProvider').value,
+    smtpHost: 'smtp.gmail.com',
+    smtpPort: 465,
+    smtpSecure: true,
+    smtpUser: document.getElementById('settingSenderEmail').value.trim(),
+    smtpPass: document.getElementById('settingSmtpPass').value.trim().replace(/\s+/g, ''),
     resendApiKey: document.getElementById('settingResendApiKey').value.trim(),
     defaultDiscountCode: document.getElementById('settingDefaultPromo').value.trim()
   };
@@ -2583,7 +2715,7 @@ async function sendDiagnosticTestEmail() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`Diagnostic email successfully received by ${recipient} via Resend!`, 'success');
+      showToast(`Diagnostic email successfully sent to ${recipient} via ${data.usedProtocol || 'Google Workspace Gmail'}!`, 'success');
       await Promise.all([loadStats(), loadDispatches()]);
     } else {
       showToast(data.error || 'Diagnostic email failed', 'error');

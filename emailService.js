@@ -11,12 +11,12 @@ class EmailService {
     this.templatesDir = path.join(__dirname, 'templates');
   }
 
-  getTransporter() {
-    const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
-    const port = parseInt(process.env.SMTP_PORT || '465', 10);
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const user = process.env.SMTP_USER || 'shop@thedentalshaman.com';
-    const pass = process.env.SMTP_PASS;
+  getTransporter(settings = {}) {
+    const host = settings.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com';
+    const port = parseInt(settings.smtpPort || process.env.SMTP_PORT || '465', 10);
+    const secure = (settings.smtpSecure !== undefined ? settings.smtpSecure : (process.env.SMTP_SECURE === 'true')) || port === 465;
+    const user = settings.smtpUser || process.env.SMTP_USER || 'shop@thedentalshaman.com';
+    const pass = (settings.smtpPass || process.env.SMTP_PASS || '').replace(/\s+/g, '');
 
     return nodemailer.createTransport({
       host,
@@ -24,9 +24,9 @@ class EmailService {
       secure,
       auth: { user, pass },
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 6000,
-      greetingTimeout: 6000,
-      socketTimeout: 8000
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000
     });
   }
 
@@ -197,11 +197,13 @@ class EmailService {
 
     try {
       let messageId = null;
-      let usedProtocol = 'Resend REST API (HTTPS Port 443)';
+      let usedProtocol = 'Google Workspace Gmail';
 
+      const preferredProvider = settings.emailProvider || process.env.EMAIL_PROVIDER || 'google_workspace';
       const resendKey = settings.resendApiKey || process.env.RESEND_API_KEY;
 
-      if (resendKey && resendKey.trim()) {
+      if (preferredProvider === 'resend' && resendKey && resendKey.trim()) {
+        usedProtocol = 'Resend REST API (HTTPS Port 443)';
         const payload = {
           from: `${fromName} <${fromEmail}>`,
           to: [rawTo],
@@ -220,9 +222,9 @@ class EmailService {
 
         messageId = res.data?.id || `resend_${Date.now()}`;
       } else {
-        // Fallback to SMTP
-        usedProtocol = 'Hostinger SMTP';
-        const transporter = this.getTransporter();
+        // Default: Google Workspace Gmail SMTP
+        usedProtocol = `Google Workspace Gmail (${fromEmail})`;
+        const transporter = this.getTransporter(settings);
         const info = await transporter.sendMail({
           from: `"${fromName}" <${fromEmail}>`,
           to: rawTo,

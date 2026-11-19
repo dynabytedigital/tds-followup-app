@@ -6,7 +6,7 @@
   <title>RetentionFlow &middot; The Dental Shaman</title>
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <link rel="stylesheet" href="style.css?v=18.0">
+  <link rel="stylesheet" href="style.css?v=18.2">
 </head>
 <body>
 
@@ -133,6 +133,9 @@
 
           <div class="Polaris-FilterPills">
             <button class="Polaris-FilterPill active" onclick="setCustomerFilter('all', this)">All</button>
+            <button id="pillFilterSelected" class="Polaris-FilterPill pill-selected-indicator" style="display: none;" onclick="setCustomerFilter('selected', this)">
+              Selected (<span id="badgePillSelectedCount">0</span>)
+            </button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('never_followed', this)">Never Followed Up</button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('repeat_buyers', this)">Repeat Buyers (2+)</button>
             <button class="Polaris-FilterPill" onclick="setCustomerFilter('converted', this)">Converted</button>
@@ -212,8 +215,16 @@
         <!-- POLARIS STICKY BULK ACTION BAR -->
         <div id="bulkActionsBar" class="Polaris-BulkActionsBar" style="display: none;">
           <div class="bulk-actions-info">
-            <span class="bulk-badge-count" id="bulkSelectedCount">0</span> selected
-            <button type="button" id="btnSelectAllFiltered" class="Polaris-Button Polaris-Button--plain" style="margin-left: 10px; display: none;" onclick="selectAllFilteredCustomers()">
+            <span class="bulk-selected-label">
+              <strong id="bulkSelectedCount" class="bulk-badge-count">0</strong> customers selected
+            </span>
+            <span id="bulkFilterContextBadge" class="bulk-context-badge" style="display: none;">
+              (<span id="bulkSelectedInViewCount">0</span> in current filter)
+            </span>
+            <button type="button" id="btnViewSelectedOnly" class="Polaris-Button Polaris-Button--plain" style="margin-left: 6px;" onclick="viewSelectedCustomersOnly()">
+              View Selected
+            </button>
+            <button type="button" id="btnSelectAllFiltered" class="Polaris-Button Polaris-Button--plain" style="margin-left: 6px; display: none;" onclick="selectAllFilteredCustomers()">
               Select all <span id="bulkFilteredTotalCount">0</span> matching filter
             </button>
           </div>
@@ -508,7 +519,27 @@
         </div>
 
         <div class="Polaris-Card__Body">
+          <!-- GOOGLE WORKSPACE GMAIL STATUS CARD -->
+          <div id="gmailConnectedCard" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 10px; height: 10px; border-radius: 50%; background: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);"></div>
+              <div>
+                <strong style="color: #166534; font-size: 13.5px; display: block;">Google Workspace Gmail Connected</strong>
+                <span style="font-size: 12px; color: #15803d;">Active Provider: smtp.gmail.com (SSL Port 465) &bull; shop@thedentalshaman.com</span>
+              </div>
+            </div>
+            <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="testGoogleWorkspaceConnection()">Test Connection</button>
+          </div>
+
           <form id="settingsForm" onsubmit="saveSettings(event)">
+            <div class="form-group">
+              <label class="form-label">Email Delivery Provider</label>
+              <select id="settingEmailProvider" class="form-input" onchange="toggleProviderSettingsFields()">
+                <option value="google_workspace" selected>Google Workspace Gmail SMTP (shop@thedentalshaman.com)</option>
+                <option value="resend">Resend REST API (thedentalshaman.com)</option>
+              </select>
+            </div>
+
             <div class="form-group">
               <label class="form-label">Sender Name</label>
               <input type="text" id="settingSenderName" class="form-input" value="Dr. Marc Mortiboys | The Dental Shaman">
@@ -525,8 +556,16 @@
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Resend API Key</label>
+            <div id="fieldGoogleAppPass" class="form-group">
+              <label class="form-label">Google Workspace Gmail App Password</label>
+              <input type="password" id="settingSmtpPass" class="form-input" placeholder="16-character App Password (e.g. fyrt eoil dyxu lyeh)">
+              <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
+                16-letter dedicated Google Workspace App Password for shop@thedentalshaman.com.
+              </p>
+            </div>
+
+            <div id="fieldResendKey" class="form-group" style="display: none;">
+              <label class="form-label">Resend API Key (Backup)</label>
               <input type="password" id="settingResendApiKey" class="form-input" placeholder="re_...">
               <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
                 Used for sending transactional follow-up emails via Resend.
@@ -813,7 +852,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 12px;">
           <span id="batchProgressCounter">0 of 0 dispatched</span>
-          <span id="batchProgressPercent" style="color: var(--p-color-brand);">0%</span>
+          <span id="batchProgressPercent" style="color: var(--p-color-action-primary, #008060); font-weight: 700;">0%</span>
         </div>
         <div class="batch-log-box" id="batchProgressLog">
           <div>[System] Initializing batch dispatch engine...</div>
@@ -1023,6 +1062,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.0"></script>
+  <script src="app.js?v=18.2"></script>
 </body>
 </html>

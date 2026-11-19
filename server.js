@@ -712,6 +712,16 @@ app.post('/api/settings', (req, res) => {
   }
 });
 
+app.post('/api/settings/verify-gmail', async (req, res) => {
+  try {
+    const transporter = emailService.getTransporter(req.body || {});
+    await transporter.verify();
+    res.json({ success: true, message: 'Google Workspace Gmail connection verified successfully!' });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 /* ========================================================
    SERVER INITIALIZATION
    ======================================================== */

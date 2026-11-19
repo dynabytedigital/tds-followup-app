@@ -46,6 +46,14 @@
   --p-color-brand-hover: #5e3a5a;
   --p-color-brand-light: #f7f1f6;
   --p-color-brand-border: #d9c4d6;
+  --p-color-brand: #008060;
+  --color-brand: #744B6F;
+  --color-text-title: #202223;
+  --color-text-muted: #6d7175;
+  --color-text-subdued: #5c5f62;
+  --color-border: #e1e3e5;
+  --color-emerald: #008060;
+  --radius-sm: 4px;
 
   /* Badges & Status */
   --p-badge-success-bg: #cbf4c9;
@@ -1155,18 +1163,67 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: var(--p-color-text);
+  color: var(--p-color-text, #202223);
+}
+
+.bulk-selected-label {
+  color: var(--p-color-text, #202223);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.bulk-context-badge {
+  font-size: 11.5px;
+  color: var(--p-color-text-subdued, #5c5f62);
+  background: #e4e5e7;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.pill-selected-indicator {
+  border-color: var(--p-color-action-primary, #008060) !important;
+  color: var(--p-color-action-primary, #008060) !important;
+  font-weight: 600 !important;
+}
+
+.pill-selected-indicator.active {
+  background: var(--p-color-action-primary, #008060) !important;
+  color: #ffffff !important;
+  border-color: var(--p-color-action-primary, #008060) !important;
 }
 
 .bulk-badge-count {
-  background: var(--p-color-brand);
-  color: #ffffff;
-  padding: 2px 8px;
-  border-radius: 12px;
+  display: inline-block;
   font-weight: 700;
-  font-size: 11.5px;
+  color: var(--p-color-text, #202223) !important;
+  background: transparent !important;
+  padding: 0;
+  border-radius: 0;
+  font-size: 13.5px;
+}
+
+.Polaris-Button--plain {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #2c6ecb !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  padding: 3px 6px !important;
+  border-radius: 4px !important;
+  text-decoration: underline !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.Polaris-Button--plain:hover {
+  color: #1f5199 !important;
+  background: rgba(44, 110, 203, 0.08) !important;
 }
 
 .bulk-actions-btns {
@@ -1180,7 +1237,7 @@ html, body {
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: var(--p-color-brand);
+  accent-color: #008060;
   border-radius: 3px;
   vertical-align: middle;
 }
@@ -1235,7 +1292,7 @@ html, body {
 
 .batch-progress-bar-fill {
   height: 100%;
-  background: var(--p-color-brand);
+  background: var(--p-color-action-primary, #008060);
   width: 0%;
   transition: width 0.2s ease;
 }
