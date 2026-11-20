@@ -45,12 +45,16 @@ app.get(['/', '/index.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Health check for Render
-app.get('/healthz', (req, res) => {
+// Health check for Render (wakes up instance & checks scheduled queue)
+app.get('/healthz', async (req, res) => {
+  if (typeof processDueScheduledDispatches === 'function') {
+    processDueScheduledDispatches().catch(() => {});
+  }
   res.json({
     status: 'ok',
     service: 'dental-shaman-followup-app',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    uptime: Math.round(process.uptime())
   });
 });
 
@@ -157,7 +161,7 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Protect all /api endpoints except /api/auth, /healthz, and /t/c/
 app.use('/api', (req, res, next) => {
-  if (req.path.startsWith('/auth/')) return next();
+  if (req.path.startsWith('/auth/') || req.path.startsWith('/cron/')) return next();
 
   const authHeader = req.headers['authorization'];
   let token = null;
@@ -527,7 +531,8 @@ app.post('/api/followup/batch-send', async (req, res) => {
       customBody,
       scheduleFullSequence = true,
       sessionId: customSessionId,
-      sessionName: customSessionName
+      sessionName: customSessionName,
+      stageSchedules = {}
     } = req.body;
 
     const allCustomers = db.getCustomers();
@@ -606,8 +611,12 @@ app.post('/api/followup/batch-send', async (req, res) => {
 
     const successes = [];
     const failures = [];
+    let scheduledCount = 0;
 
-    // Stage 1 / Active Stage Dispatch (Immediate)
+    // Check if active stage is scheduled for later or immediate
+    const activeSched = stageSchedules[activeStageNum] || stageSchedules[String(activeStageNum)];
+    const isActiveScheduled = activeSched && activeSched.isInstant === false && activeSched.scheduledIso;
+
     for (const cust of targetCustomers) {
       const email = (cust.email || '').trim();
       if (!email || !email.includes('@')) {
@@ -620,41 +629,65 @@ app.post('/api/followup/batch-send', async (req, res) => {
         continue;
       }
 
-      try {
-        const result = await emailService.sendFollowUpEmail({
-          to: email,
-          customer: cust,
-          templateId: activeTpl.id,
-          customSubject,
-          customDiscountCode,
-          customBody,
-          mode: 'batch_manual',
+      if (isActiveScheduled) {
+        // Scheduled active stage
+        const scheduledDate = new Date(activeSched.scheduledIso);
+        const disp = db.addDispatch({
           sessionId: session.id,
+          campaignId: campaignId,
+          campaignName: campaignName,
           stage: activeStageNum,
-          stageLabel: activeTpl.stageLabel || `Stage ${activeStageNum}`
+          stageLabel: activeTpl.stageLabel || `Stage ${activeStageNum}`,
+          templateId: activeTpl.id,
+          templateName: activeTpl.name,
+          subject: customSubject || activeTpl.subject,
+          htmlContent: customBody || activeTpl.html || null,
+          customerEmail: email,
+          customerName: cust.name || cust.first_name || email,
+          customerFirstName: cust.first_name || (cust.name ? cust.name.split(' ')[0] : email.split('@')[0]),
+          customerId: cust.id,
+          discountCode: customDiscountCode || 'TDS-CARE',
+          status: 'scheduled',
+          scheduledFor: scheduledDate.toISOString(),
+          sentAt: null,
+          mode: 'campaign_stage_scheduled'
         });
+        scheduledCount++;
+      } else {
+        // Immediate active stage dispatch
+        try {
+          const result = await emailService.sendFollowUpEmail({
+            to: email,
+            customer: cust,
+            templateId: activeTpl.id,
+            customSubject,
+            customDiscountCode,
+            customBody,
+            mode: 'batch_manual',
+            sessionId: session.id,
+            stage: activeStageNum,
+            stageLabel: activeTpl.stageLabel || `Stage ${activeStageNum}`
+          });
 
-        successes.push({
-          customerId: cust.id,
-          name: cust.name || 'Valued Customer',
-          email,
-          dispatchId: result.dispatchId
-        });
-      } catch (err) {
-        failures.push({
-          customerId: cust.id,
-          name: cust.name || 'Valued Customer',
-          email,
-          error: err.message || 'Delivery error'
-        });
+          successes.push({
+            customerId: cust.id,
+            name: cust.name || 'Valued Customer',
+            email,
+            dispatchId: result.dispatchId
+          });
+        } catch (err) {
+          failures.push({
+            customerId: cust.id,
+            name: cust.name || 'Valued Customer',
+            email,
+            error: err.message || 'Delivery error'
+          });
+        }
+        await new Promise(r => setTimeout(r, 80));
       }
-
-      // 80ms gentle throttle between dispatches
-      await new Promise(r => setTimeout(r, 80));
     }
 
-    // Schedule Subsequent Stages (Stages 2-5) if scheduleFullSequence is true
-    let scheduledCount = 0;
+    // Schedule Subsequent Stages (Stages 2-5+) if scheduleFullSequence is true
     if (scheduleFullSequence) {
       const remainingTemplates = allTemplates
         .filter(t => t.campaignId === campaignId && Number(t.stage) > activeStageNum)
@@ -670,8 +703,15 @@ app.post('/api/followup/batch-send', async (req, res) => {
       const now = new Date();
       for (const tpl of remainingTemplates) {
         const stageNum = Number(tpl.stage);
-        const delayDays = defaultDelays[stageNum] || ((stageNum - 1) * 7);
-        const scheduledDate = new Date(now.getTime() + delayDays * 86400000);
+        const stageSched = stageSchedules[stageNum] || stageSchedules[String(stageNum)];
+
+        let scheduledDate;
+        if (stageSched && stageSched.scheduledIso) {
+          scheduledDate = new Date(stageSched.scheduledIso);
+        } else {
+          const delayDays = defaultDelays[stageNum] || ((stageNum - 1) * 7);
+          scheduledDate = new Date(now.getTime() + delayDays * 86400000);
+        }
 
         for (const cust of targetCustomers) {
           const email = (cust.email || '').trim();
@@ -682,7 +722,7 @@ app.post('/api/followup/batch-send', async (req, res) => {
             campaignId: campaignId,
             campaignName: campaignName,
             stage: stageNum,
-            stageLabel: tpl.stageLabel || `Stage ${stageNum} (+${delayDays}d)`,
+            stageLabel: tpl.stageLabel || `Stage ${stageNum}`,
             templateId: tpl.id,
             templateName: tpl.name,
             subject: tpl.subject,
@@ -879,8 +919,11 @@ app.post('/api/settings/verify-gmail', async (req, res) => {
    START FRESH SEQUENCES, AUTOMATED SCHEDULING & PRESETS
    ======================================================== */
 
-// Background Scheduler: runs every 30 seconds to check and execute due scheduled stages
-setInterval(async () => {
+// Robust Background Scheduler: checks every 30s and processes due UK scheduled emails
+let isSchedulerRunning = false;
+async function processDueScheduledDispatches() {
+  if (isSchedulerRunning) return { skipped: true, reason: 'Already running' };
+  isSchedulerRunning = true;
   try {
     const allDispatches = db.getDispatches();
     const now = new Date();
@@ -890,12 +933,15 @@ setInterval(async () => {
       new Date(d.scheduledFor) <= now
     );
 
-    if (dueDispatches.length > 0) {
-      console.log(`[Scheduler] Found ${dueDispatches.length} due scheduled sequence email(s). Processing...`);
-    }
+    if (dueDispatches.length === 0) return { processed: 0 };
+
+    console.log(`[Scheduler] Found ${dueDispatches.length} due scheduled email(s) at UK reference ${now.toISOString()}. Executing...`);
+
+    let sent = 0;
+    let failed = 0;
 
     for (const d of dueDispatches) {
-      console.log(`[Scheduler] Processing dispatch ${d.id} for ${d.customerEmail} (Stage ${d.stage})...`);
+      console.log(`[Scheduler] Dispatching due email ${d.id} to ${d.customerEmail} (Stage ${d.stage || 1})...`);
       try {
         const allCustomers = db.getCustomers();
         let cust = d.customerId ? allCustomers.find(c => String(c.id) === String(d.customerId)) : null;
@@ -913,30 +959,63 @@ setInterval(async () => {
         await emailService.sendFollowUpEmail({
           to: d.customerEmail,
           customer: cust,
-          templateId: d.templateId || 'fresh_sequence',
+          templateId: d.templateId || 'water_flosser_1',
           customSubject: d.subject,
           customDiscountCode: d.discountCode || 'TDS-CARE',
           customBody: d.htmlContent || null,
-          mode: 'scheduled_automated'
+          mode: 'scheduled_automated',
+          sessionId: d.sessionId || null,
+          stage: d.stage || 1,
+          stageLabel: d.stageLabel || 'Scheduled Stage',
+          existingDispatchId: d.id
         });
 
         db.updateDispatch(d.id, {
           status: 'sent',
-          sentAt: new Date().toISOString()
+          sentAt: new Date().toISOString(),
+          error: null
         });
         console.log(`[Scheduler] Successfully sent scheduled dispatch ${d.id} to ${d.customerEmail}`);
+        sent++;
       } catch (err) {
         console.error(`[Scheduler] Failed dispatch ${d.id} for ${d.customerEmail}:`, err.message);
         db.updateDispatch(d.id, {
           status: 'failed',
           error: err.message
         });
+        failed++;
       }
+      await new Promise(r => setTimeout(r, 100)); // Throttling
     }
+
+    // Trigger cloud sync to immediately persist updated dispatch states
+    try {
+      const cloudSync = require('./cloudSync');
+      cloudSync.schedulePush();
+    } catch (e) {}
+
+    return { processed: dueDispatches.length, sent, failed };
   } catch (e) {
     console.error('[Scheduler] Error in background execution loop:', e.message);
+    return { error: e.message };
+  } finally {
+    isSchedulerRunning = false;
   }
-}, 30000);
+}
+
+// Check every 30 seconds
+setInterval(processDueScheduledDispatches, 30000);
+
+// Public Keepalive & Scheduled Queue Runner for Free Cron (cron-job.org / uptimerobot)
+app.get('/api/cron/process-scheduled', async (req, res) => {
+  const result = await processDueScheduledDispatches();
+  res.json({
+    success: true,
+    message: 'Scheduled sequence queue evaluated.',
+    timestamp: new Date().toISOString(),
+    ...result
+  });
+});
 
 // API: Get Fresh Presets
 app.get('/api/fresh-presets', (req, res) => {

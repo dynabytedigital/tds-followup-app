@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.38">
+  <link rel="stylesheet" href="style.css?v=18.39">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -964,19 +964,60 @@
               </div>
             </div>
 
-            <!-- Multi-Stage Sequence Session Scheduler Option -->
-            <div class="composer-session-option-box" style="margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px;">
-              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none;">
-                <input type="checkbox" id="composerScheduleFullSequence" checked style="margin-top: 2px; accent-color: #008060; width: 15px; height: 15px; flex-shrink: 0;">
-                <div>
-                  <div style="font-size: 12px; font-weight: 700; color: #166534;">
-                    Start Multi-Stage Activity Session ("Season")
+            <!-- Delivery Timing & Schedule (UK Time) -->
+            <div class="composer-delivery-timing-box" style="margin-top: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <label class="form-label" style="margin-bottom: 0; font-size: 12px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 5px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>Stage Delivery Timing (UK Time)</span>
+                </label>
+                <span id="composerUkTimeBadge" style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-family: monospace;">
+                  🇬🇧 UK Time: Loading...
+                </span>
+              </div>
+
+              <!-- Single Stage Mode: Dispatch Now vs Schedule for Later -->
+              <div id="composerCurrentStageTimingWrap" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b;">
+                  <input type="radio" name="composerActiveStageSendMode" value="now" id="composerSendModeNow" checked onchange="onComposerTimingModeChange()" style="accent-color: #008060;">
+                  <span>⚡ Dispatch Immediately</span>
+                </label>
+                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b;">
+                  <input type="radio" name="composerActiveStageSendMode" value="scheduled" id="composerSendModeScheduled" onchange="onComposerTimingModeChange()" style="accent-color: #008060;">
+                  <span>🕒 Schedule for Later</span>
+                </label>
+                <div id="composerActiveStageDateWrap" style="display: none; align-items: center; gap: 6px; width: 100%; margin-top: 4px;">
+                  <input type="datetime-local" id="composerActiveStageDateInput" class="form-input" style="font-size: 12px; height: 34px; padding: 4px 8px;" onchange="onActiveStageDateChange()">
+                  <span style="font-size: 11px; font-weight: 600; color: #008060; white-space: nowrap;">🇬🇧 UK Time</span>
+                </div>
+              </div>
+
+              <!-- Multi-Stage Sequence Session Scheduler Option -->
+              <div style="padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+                <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="composerScheduleFullSequence" checked onchange="onToggleFullSequenceSchedule(this.checked)" style="margin-top: 2px; accent-color: #008060; width: 15px; height: 15px; flex-shrink: 0;">
+                  <div style="flex: 1;">
+                    <div style="font-size: 12px; font-weight: 700; color: #166534; display: flex; align-items: center; justify-content: space-between;">
+                      <span>Start Multi-Stage Activity Session ("Season")</span>
+                    </div>
+                    <div style="font-size: 11px; color: #15803d; margin-top: 2px; line-height: 1.35;">
+                      Dispatches current stage, and automatically schedules remaining sequence stages. You can customize exact dates &amp; times below.
+                    </div>
                   </div>
-                  <div style="font-size: 11px; color: #15803d; margin-top: 2px; line-height: 1.35;">
-                    Dispatches current stage now, and automatically schedules remaining sequence stages (+3d, +7d, +14d, +21d). Track each customer's progression in Analytics.
+                </label>
+
+                <!-- Detailed Editable Schedule for All Stages in Sequence -->
+                <div id="composerSequenceStagesScheduleWrap" style="margin-top: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Sequence Stage Delivery Dates (UK Time)
+                    </span>
+                  </div>
+                  <div id="composerSequenceStagesScheduleList" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 6px; max-height: 180px; overflow-y: auto;">
+                    <!-- Rendered dynamically for each stage in the current campaign -->
                   </div>
                 </div>
-              </label>
+              </div>
             </div>
 
             <div class="composer-preview-jump-wrap">
@@ -1457,9 +1498,12 @@
             <input type="text" id="rescheduleSubject" class="form-input" readonly style="background: #f8fafc;">
           </div>
           <div class="form-group">
-            <label class="form-label">New Scheduled Date &amp; Time *</label>
+            <label class="form-label">New Scheduled Date &amp; Time (UK / London GMT) *</label>
             <input type="datetime-local" id="rescheduleDateTime" class="form-input" required>
             <p style="font-size: 11.5px; color: var(--p-color-text-subdued); margin-top: 4px;">
+              Scheduled times are processed and delivered according to official UK (Europe/London) timezone.
+            </p>
+          </div>
               The background automation runner will dispatch the email when this time is reached.
             </p>
           </div>
@@ -1551,6 +1595,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.38"></script>
+  <script src="app.js?v=18.39"></script>
 </body>
 </html>

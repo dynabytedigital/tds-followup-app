@@ -1,3 +1,94 @@
+/* ========================================================
+   UNIVERSAL UK (LONDON / GMT) TIMEZONE UTILITIES
+   ======================================================== */
+function getUkDateParts(dateObj = new Date()) {
+  const d = typeof dateObj === 'string' ? new Date(dateObj) : dateObj;
+  const validDate = isNaN(d.getTime()) ? new Date() : d;
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(validDate);
+  const get = t => parts.find(p => p.type === t)?.value || '00';
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour'),
+    minute: get('minute'),
+    second: get('second')
+  };
+}
+
+function isoToUKDateTimeInput(dateObj = new Date()) {
+  const p = getUkDateParts(dateObj);
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+function ukDateTimeToISO(ukDateTimeString) {
+  if (!ukDateTimeString) return null;
+  const [datePart, timePart] = ukDateTimeString.split('T');
+  if (!datePart) return null;
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute] = (timePart || '10:00').split(':').map(Number);
+
+  const approx = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    timeZoneName: 'shortOffset'
+  });
+  const parts = formatter.formatToParts(approx);
+  const tzPart = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT';
+  let offsetHours = 0;
+  if (tzPart.includes('+')) {
+    offsetHours = parseInt(tzPart.split('+')[1], 10);
+  } else if (tzPart.includes('-')) {
+    offsetHours = -parseInt(tzPart.split('-')[1], 10);
+  }
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+  return utcDate.toISOString();
+}
+
+function formatUkDate(dateOrIso, options = {}) {
+  if (!dateOrIso) return '';
+  const d = typeof dateOrIso === 'string' ? new Date(dateOrIso) : dateOrIso;
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    day: 'numeric',
+    month: 'short',
+    ...options
+  });
+}
+
+function formatUkDateTime(dateOrIso) {
+  if (!dateOrIso) return '';
+  const d = typeof dateOrIso === 'string' ? new Date(dateOrIso) : dateOrIso;
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }) + ' UK';
+}
+
+function updateUkLiveClock() {
+  const badge = document.getElementById('composerUkTimeBadge');
+  if (!badge) return;
+  const p = getUkDateParts(new Date());
+  badge.innerText = `🇬🇧 UK Time: ${p.hour}:${p.minute}:${p.second} GMT`;
+}
+setInterval(updateUkLiveClock, 1000);
+
 // RetentionFlow &middot; The Dental Shaman
 // Customer Care Follow-Up & Verifiable Conversion Attribution Engine
 
@@ -1362,7 +1453,9 @@ function openComposerById(customerId) {
    COMPOSER CAMPAIGN & STAGE PROFESSIONAL NAVIGATOR
    ======================================================== */
 let composerActiveCampaign = 'water_flosser';
+let composerActiveCampaignId = 'water_flosser';
 let composerActiveTemplateId = null;
+let composerStageSchedules = {};
 
 function renderComposerCampaignTabs() {
   const container = document.getElementById('composerCampTabs');
@@ -1383,6 +1476,7 @@ function renderComposerCampaignTabs() {
 
 function selectComposerCampaign(campaignId, preselectedTplId = null) {
   composerActiveCampaign = campaignId;
+  composerActiveCampaignId = campaignId;
 
   // Render dynamic campaign tabs
   renderComposerCampaignTabs();
@@ -1392,6 +1486,261 @@ function selectComposerCampaign(campaignId, preselectedTplId = null) {
 
   // Render the stages for this campaign
   renderComposerStages(campaignId, preselectedTplId);
+}
+
+
+function initComposerStageSchedules(siloTemplates) {
+  composerStageSchedules = {};
+  const defaultDelays = { 1: 0, 2: 3, 3: 7, 4: 14, 5: 21 };
+  const now = new Date();
+
+  siloTemplates.forEach((t, idx) => {
+    const stageNum = Number(t.stage) || (idx + 1);
+    if (stageNum === 1) {
+      composerStageSchedules[stageNum] = {
+        isInstant: true,
+        ukDateTime: isoToUKDateTimeInput(now),
+        scheduledIso: now.toISOString(),
+        label: 'Now'
+      };
+    } else {
+      const delayDays = defaultDelays[stageNum] || ((stageNum - 1) * 7);
+      const futureDate = new Date(now.getTime() + delayDays * 86400000);
+      const ukParts = getUkDateParts(futureDate);
+      const ukDateTime = `${ukParts.year}-${ukParts.month}-${ukParts.day}T10:00`;
+      const scheduledIso = ukDateTimeToISO(ukDateTime);
+      const shortUK = formatUkDate(scheduledIso, { hour: '2-digit', minute: '2-digit' });
+      composerStageSchedules[stageNum] = {
+        isInstant: false,
+        ukDateTime,
+        scheduledIso,
+        label: shortUK || `+${delayDays}d`
+      };
+    }
+  });
+}
+
+function renderComposerSequenceSchedules(siloTemplates) {
+  const listEl = document.getElementById('composerSequenceStagesScheduleList');
+  if (!listEl) return;
+
+  const activeTpl = siloTemplates.find(t => t.id === composerActiveTemplateId) || siloTemplates[0];
+  const activeStageNum = Number(activeTpl?.stage) || 1;
+
+  listEl.innerHTML = siloTemplates.map((t, idx) => {
+    const stageNum = Number(t.stage) || (idx + 1);
+    const sched = composerStageSchedules[stageNum] || {
+      isInstant: stageNum === 1,
+      ukDateTime: isoToUKDateTimeInput(new Date()),
+      scheduledIso: new Date().toISOString()
+    };
+    const isRowActive = stageNum === activeStageNum;
+
+    return `
+      <div class="composer-stage-schedule-row ${isRowActive ? 'active' : ''}" data-stage="${stageNum}" id="scheduleRowStage${stageNum}">
+        <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+          <span class="stage-tag-badge">Stage ${stageNum}</span>
+          <span class="stage-name-label" title="${escapeHtml(t.name || 'Stage ' + stageNum)}">${escapeHtml(t.name || 'Stage ' + stageNum)}</span>
+        </div>
+        <div class="stage-timing-inputs-wrap">
+          <select class="form-input form-input--slim" style="font-size: 11px; height: 28px; padding: 2px 6px;" onchange="onStageRowModeChange(${stageNum}, this.value)">
+            <option value="now" ${sched.isInstant ? 'selected' : ''}>⚡ Now</option>
+            <option value="scheduled" ${!sched.isInstant ? 'selected' : ''}>🕒 Scheduled</option>
+          </select>
+          <input type="datetime-local" class="form-input form-input--slim stage-date-input" style="font-size: 11px; height: 28px; padding: 2px 6px; display: ${sched.isInstant ? 'none' : 'inline-block'}; width: 165px;" value="${sched.ukDateTime || ''}" onchange="onStageRowDateChange(${stageNum}, this.value)">
+          <span class="uk-tz-chip">🇬🇧 UK</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function syncActiveStageTimingControls(stageNum) {
+  const sched = composerStageSchedules[stageNum] || { isInstant: true, ukDateTime: isoToUKDateTimeInput(new Date()) };
+  const modeNow = document.getElementById('composerSendModeNow');
+  const modeSched = document.getElementById('composerSendModeScheduled');
+  const dateWrap = document.getElementById('composerActiveStageDateWrap');
+  const dateInput = document.getElementById('composerActiveStageDateInput');
+
+  if (sched.isInstant) {
+    if (modeNow) modeNow.checked = true;
+    if (dateWrap) dateWrap.style.display = 'none';
+  } else {
+    if (modeSched) modeSched.checked = true;
+    if (dateWrap) dateWrap.style.display = 'flex';
+    if (dateInput) dateInput.value = sched.ukDateTime || isoToUKDateTimeInput(new Date());
+  }
+
+  updateComposerSubmitButtonText();
+}
+
+function onComposerTimingModeChange() {
+  const modeSched = document.getElementById('composerSendModeScheduled')?.checked;
+  const dateWrap = document.getElementById('composerActiveStageDateWrap');
+  const dateInput = document.getElementById('composerActiveStageDateInput');
+
+  const activeTpl = templatesList.find(t => t.id === composerActiveTemplateId);
+  const stageNum = Number(activeTpl?.stage) || 1;
+
+  if (modeSched) {
+    if (dateWrap) dateWrap.style.display = 'flex';
+    if (!dateInput.value) {
+      dateInput.value = isoToUKDateTimeInput(new Date(Date.now() + 86400000));
+    }
+    const iso = ukDateTimeToISO(dateInput.value);
+    const shortUK = formatUkDate(iso, { hour: '2-digit', minute: '2-digit' });
+    composerStageSchedules[stageNum] = {
+      isInstant: false,
+      ukDateTime: dateInput.value,
+      scheduledIso: iso,
+      label: shortUK
+    };
+  } else {
+    if (dateWrap) dateWrap.style.display = 'none';
+    composerStageSchedules[stageNum] = {
+      isInstant: true,
+      ukDateTime: isoToUKDateTimeInput(new Date()),
+      scheduledIso: new Date().toISOString(),
+      label: 'Now'
+    };
+  }
+
+  // Sync to row in sequence list
+  const rowSelect = document.querySelector(`#scheduleRowStage${stageNum} select`);
+  const rowDateInput = document.querySelector(`#scheduleRowStage${stageNum} input[type="datetime-local"]`);
+  if (rowSelect) rowSelect.value = modeSched ? 'scheduled' : 'now';
+  if (rowDateInput) {
+    rowDateInput.style.display = modeSched ? 'inline-block' : 'none';
+    rowDateInput.value = dateInput.value;
+  }
+
+  refreshStageStripButtons();
+  updateComposerStageTitle(activeTpl);
+  updateComposerSubmitButtonText();
+}
+
+function onActiveStageDateChange() {
+  const dateInput = document.getElementById('composerActiveStageDateInput');
+  if (!dateInput || !dateInput.value) return;
+
+  const activeTpl = templatesList.find(t => t.id === composerActiveTemplateId);
+  const stageNum = Number(activeTpl?.stage) || 1;
+
+  const iso = ukDateTimeToISO(dateInput.value);
+  const shortUK = formatUkDate(iso, { hour: '2-digit', minute: '2-digit' });
+  composerStageSchedules[stageNum] = {
+    isInstant: false,
+    ukDateTime: dateInput.value,
+    scheduledIso: iso,
+    label: shortUK
+  };
+
+  const rowDateInput = document.querySelector(`#scheduleRowStage${stageNum} input[type="datetime-local"]`);
+  if (rowDateInput) rowDateInput.value = dateInput.value;
+
+  refreshStageStripButtons();
+  updateComposerStageTitle(activeTpl);
+}
+
+function onStageRowModeChange(stageNum, mode) {
+  const isSched = mode === 'scheduled';
+  const rowDateInput = document.querySelector(`#scheduleRowStage${stageNum} input[type="datetime-local"]`);
+  if (rowDateInput) {
+    rowDateInput.style.display = isSched ? 'inline-block' : 'none';
+    if (isSched && !rowDateInput.value) {
+      rowDateInput.value = isoToUKDateTimeInput(new Date(Date.now() + 86400000));
+    }
+  }
+
+  const ukVal = rowDateInput ? rowDateInput.value : isoToUKDateTimeInput(new Date());
+  const iso = ukDateTimeToISO(ukVal);
+  const shortUK = formatUkDate(iso, { hour: '2-digit', minute: '2-digit' });
+
+  composerStageSchedules[stageNum] = {
+    isInstant: !isSched,
+    ukDateTime: ukVal,
+    scheduledIso: iso,
+    label: isSched ? shortUK : 'Now'
+  };
+
+  const activeTpl = templatesList.find(t => t.id === composerActiveTemplateId);
+  if (Number(activeTpl?.stage) === stageNum) {
+    syncActiveStageTimingControls(stageNum);
+  }
+
+  refreshStageStripButtons();
+  updateComposerStageTitle(activeTpl);
+}
+
+function onStageRowDateChange(stageNum, ukValue) {
+  if (!ukValue) return;
+  const iso = ukDateTimeToISO(ukValue);
+  const shortUK = formatUkDate(iso, { hour: '2-digit', minute: '2-digit' });
+
+  composerStageSchedules[stageNum] = {
+    isInstant: false,
+    ukDateTime: ukValue,
+    scheduledIso: iso,
+    label: shortUK
+  };
+
+  const activeTpl = templatesList.find(t => t.id === composerActiveTemplateId);
+  if (Number(activeTpl?.stage) === stageNum) {
+    const activeDateInput = document.getElementById('composerActiveStageDateInput');
+    if (activeDateInput) activeDateInput.value = ukValue;
+  }
+
+  refreshStageStripButtons();
+  updateComposerStageTitle(activeTpl);
+}
+
+function onToggleFullSequenceSchedule(checked) {
+  const wrap = document.getElementById('composerSequenceStagesScheduleWrap');
+  if (wrap) wrap.style.display = checked ? 'block' : 'none';
+}
+
+function refreshStageStripButtons() {
+  const container = document.getElementById('composerStageStrip');
+  if (!container) return;
+
+  const siloTemplates = templatesList
+    .filter(t => t.campaignId === composerActiveCampaignId)
+    .sort((a, b) => (a.stage || 1) - (b.stage || 1));
+
+  siloTemplates.forEach((t, idx) => {
+    const stageNum = Number(t.stage) || (idx + 1);
+    const sched = composerStageSchedules[stageNum];
+    const btn = container.querySelector(`[data-tpl-id="${t.id}"]`);
+    if (btn) {
+      const timingSpan = btn.querySelector('.stage-timing');
+      if (timingSpan) {
+        if (sched && sched.isInstant) {
+          timingSpan.innerText = '⚡ Now';
+        } else if (sched && sched.label) {
+          timingSpan.innerText = sched.label;
+        } else {
+          timingSpan.innerText = `Day ${stageNum}`;
+        }
+      }
+    }
+  });
+}
+
+function updateComposerSubmitButtonText() {
+  const btnText = document.getElementById('btnDispatchCustomerEmailText');
+  if (!btnText) return;
+
+  const count = composerTargetCustomers ? composerTargetCustomers.length : 0;
+  const activeTpl = templatesList.find(t => t.id === composerActiveTemplateId);
+  const stageNum = Number(activeTpl?.stage) || 1;
+  const sched = composerStageSchedules[stageNum];
+  const isSched = sched && !sched.isInstant;
+
+  if (count <= 1) {
+    btnText.innerText = isSched ? `🕒 Schedule Follow-Up (UK) →` : `Send Follow-Up →`;
+  } else {
+    btnText.innerText = isSched ? `🕒 Schedule for ${count} Customers (UK) →` : `Send to ${count} Customers →`;
+  }
 }
 
 function renderComposerStages(campaignId, preselectedTplId = null) {
@@ -1423,16 +1772,27 @@ function renderComposerStages(campaignId, preselectedTplId = null) {
   composerActiveTemplateId = activeTpl.id;
   if (tplSelect) tplSelect.value = activeTpl.id;
 
+  // Initialize UK Schedule state if needed
+  if (!Object.keys(composerStageSchedules).length || composerActiveCampaignId !== campaignId) {
+    initComposerStageSchedules(siloTemplates);
+  }
+
   // Render clean Stage buttons + 6th "+ Stage" tab at the end
   const nextStageNum = siloTemplates.length + 1;
   const stageBtnsHtml = siloTemplates.map((t, idx) => {
     const stageNum = t.stage || (idx + 1);
-    const timing = t.timing || `Day ${stageNum === 1 ? 1 : stageNum === 2 ? 3 : stageNum === 3 ? 7 : stageNum === 4 ? 14 : 21}`;
+    const sched = composerStageSchedules[stageNum];
+    let timingLabel = `Day ${stageNum}`;
+    if (sched) {
+      timingLabel = sched.isInstant ? '⚡ Now' : (sched.label || `Stage ${stageNum}`);
+    } else {
+      timingLabel = t.timing || `Day ${stageNum === 1 ? 1 : stageNum === 2 ? 3 : stageNum === 3 ? 7 : stageNum === 4 ? 14 : 21}`;
+    }
     const isActive = t.id === activeTpl.id;
     return `
       <button type="button" class="composer-stage-btn ${isActive ? 'active' : ''}" data-tpl-id="${t.id}" onclick="selectComposerStage('${t.id}')">
         <span>Stage ${stageNum}</span>
-        <span class="stage-timing">${escapeHtml(timing)}</span>
+        <span class="stage-timing">${escapeHtml(timingLabel)}</span>
       </button>
     `;
   }).join('');
@@ -1445,6 +1805,11 @@ function renderComposerStages(campaignId, preselectedTplId = null) {
   `;
 
   container.innerHTML = stageBtnsHtml + addStageTabHtml;
+
+  // Render editable UK sequence schedule list
+  renderComposerSequenceSchedules(siloTemplates);
+  syncActiveStageTimingControls(Number(activeTpl.stage) || 1);
+  updateUkLiveClock();
 
   updateComposerStageTitle(activeTpl);
   onTemplateChange();
@@ -1466,16 +1831,38 @@ function selectComposerStage(templateId) {
     }
   });
 
+  const stageNum = Number(tpl.stage) || 1;
+  syncActiveStageTimingControls(stageNum);
+
+  // Highlight row in sequence list
+  document.querySelectorAll('.composer-stage-schedule-row').forEach(row => {
+    if (Number(row.getAttribute('data-stage')) === stageNum) {
+      row.classList.add('active');
+    } else {
+      row.classList.remove('active');
+    }
+  });
+
   updateComposerStageTitle(tpl);
   onTemplateChange();
 }
 
 function updateComposerStageTitle(tpl) {
+  if (!tpl) return;
   const nameEl = document.getElementById('composerStageActiveName');
   const timingEl = document.getElementById('composerStageActiveTiming');
-  if (nameEl) nameEl.innerText = `Stage ${tpl.stage || 1}: ${tpl.name || 'Follow-Up'}`;
+  const stageNum = Number(tpl.stage) || 1;
+  const sched = composerStageSchedules[stageNum];
+
+  if (nameEl) nameEl.innerText = `Stage ${stageNum}: ${tpl.name || 'Follow-Up'}`;
   if (timingEl) {
-    timingEl.innerText = `(${tpl.timing || 'Day 1'})`;
+    if (sched && sched.isInstant) {
+      timingEl.innerText = '(⚡ Instant Dispatch)';
+    } else if (sched && sched.ukDateTime) {
+      timingEl.innerText = `(Scheduled ${sched.label || sched.ukDateTime.replace('T', ' ')} UK)`;
+    } else {
+      timingEl.innerText = `(${tpl.timing || 'Day ' + stageNum})`;
+    }
   }
 }
 
@@ -1678,7 +2065,8 @@ async function dispatchCustomerEmail() {
         customSubject,
         customDiscountCode,
         customBody,
-        scheduleFullSequence
+        scheduleFullSequence,
+        stageSchedules: composerStageSchedules
       })
     });
     const data = await res.json();
@@ -2351,16 +2739,15 @@ function renderDispatchesTable() {
   tbody.innerHTML = filteredDispatches.map(d => {
     let dateTimingHtml = '';
     if (d.status === 'scheduled') {
-      const schDate = d.scheduledFor ? new Date(d.scheduledFor) : null;
-      const schStr = schDate ? schDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
+      const schStr = d.scheduledFor ? formatUkDateTime(d.scheduledFor) : 'Pending';
       dateTimingHtml = `
         <div style="font-size: 12px; font-weight: 700; color: #0284c7;">SCHEDULED</div>
         <div style="font-size: 11px; color: var(--p-color-text-subdued);">${schStr}</div>
       `;
     } else {
-      const sentDate = d.sentAt ? new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Sent';
+      const sentDate = d.sentAt ? formatUkDateTime(d.sentAt) : 'Sent';
       dateTimingHtml = `
-        <div style="font-size: 12.5px; font-weight: 500;">${sentDate}</div>
+        <div style="font-size: 12px; font-weight: 500;">${sentDate}</div>
         <div style="font-size: 10.5px; font-family: monospace; color: var(--color-text-muted);">${d.id}</div>
       `;
     }
@@ -4243,8 +4630,7 @@ function openRescheduleModal(dispatchId) {
   if (subjInput) subjInput.value = `${d.stageLabel || ('Stage ' + d.stage)}: ${d.subject || ''}`;
   
   if (dateInput) {
-    const curDate = d.scheduledFor ? new Date(d.scheduledFor) : new Date(Date.now() + 86400000);
-    dateInput.value = curDate.toISOString().substring(0, 16);
+    dateInput.value = isoToUKDateTimeInput(d.scheduledFor || new Date(Date.now() + 86400000));
   }
 
   if (modal) modal.classList.add('active');
@@ -4263,14 +4649,15 @@ async function submitRescheduleDispatch(e) {
 
   try {
     showToast('Updating scheduled time...', 'info');
+    const ukIso = ukDateTimeToISO(dateInput.value);
     const res = await authFetch(`/api/dispatches/${encodeURIComponent(idInput.value)}/reschedule`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduledFor: new Date(dateInput.value).toISOString() })
+      body: JSON.stringify({ scheduledFor: ukIso })
     });
     const data = await res.json();
     if (data.success) {
-      showToast('Scheduled time updated successfully!', 'success');
+      showToast(`Scheduled delivery updated to ${formatUkDateTime(ukIso)}!`, 'success');
       closeRescheduleModal();
       loadDispatches();
     } else {
@@ -4538,7 +4925,7 @@ async function openSessionInspector(sessionId) {
               let stageActions = '';
 
               if (isSent) {
-                const sDate = d.sentAt ? new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Sent';
+                const sDate = d.sentAt ? formatUkDateTime(d.sentAt) : 'Sent';
                 timingHtml = `<span style="color:#16a34a; font-weight:600; font-size:11.5px;" title="Dispatched to mail provider">✓ Sent (${sDate})</span>`;
                 stageActions = `
                   <div style="display: flex; gap: 4px; align-items: center;">
@@ -4550,7 +4937,7 @@ async function openSessionInspector(sessionId) {
                   </div>
                 `;
               } else if (isSch) {
-                const schDate = d.scheduledFor ? new Date(d.scheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
+                const schDate = d.scheduledFor ? formatUkDateTime(d.scheduledFor) : 'Pending';
                 timingHtml = `<span style="color:#0284c7; font-weight:600; font-size:11.5px;">🕒 Scheduled for ${schDate}</span>`;
                 stageActions = `
                   <div style="display: flex; gap: 4px; align-items: center;">
