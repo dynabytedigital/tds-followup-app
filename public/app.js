@@ -3778,7 +3778,7 @@ function renderFreshRecipientsChips() {
   const prevRecipientBadge = document.getElementById('freshPreviewRecipientBadge');
 
   if (countBadge) countBadge.textContent = `${freshRecipients.length} Recipient${freshRecipients.length === 1 ? '' : 's'}`;
-  if (launchBtn) launchBtn.textContent = `🚀 Launch Sequence (${freshRecipients.length} Recipient${freshRecipients.length === 1 ? '' : 's'})`;
+  if (launchBtn) launchBtn.textContent = `Launch Sequence (${freshRecipients.length} Recipient${freshRecipients.length === 1 ? '' : 's'})`;
 
   if (!box) return;
 
@@ -4222,7 +4222,7 @@ async function launchFreshSequence() {
     });
     const data = await res.json();
     if (data.success) {
-      alert(`🎉 Sequence Successfully Launched!\n\n${data.message}`);
+      alert(`Sequence Successfully Launched!\n\n${data.message}`);
       closeFreshSequenceModal();
       loadDispatches();
     } else {
