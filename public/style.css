@@ -3870,3 +3870,59 @@ body.modal-open .sticky-start-fresh-btn {
     flex: 1;
   }
 }
+
+
+/* ========================================================
+   STICKY ACTIONS COLUMN (ALWAYS VISIBLE & ACCESSIBLE)
+   ======================================================== */
+.Polaris-DataTable thead th.col-actions {
+  position: sticky !important;
+  right: 0 !important;
+  background: var(--p-color-bg-surface-subdued) !important;
+  z-index: 3 !important;
+  box-shadow: -4px 0 8px -2px rgba(0, 0, 0, 0.08) !important;
+  min-width: 155px !important;
+  text-align: right !important;
+}
+
+.Polaris-DataTable tbody td.col-actions {
+  position: sticky !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  z-index: 2 !important;
+  box-shadow: -4px 0 8px -2px rgba(0, 0, 0, 0.08) !important;
+  min-width: 155px !important;
+  text-align: right !important;
+}
+
+.Polaris-DataTable tbody tr:hover td.col-actions {
+  background: var(--p-color-bg-surface-secondary) !important;
+}
+
+.col-actions .actions-button-group {
+  display: flex !important;
+  gap: 5px !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+
+.btn-delete-dispatch {
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+  background: #fff5f5 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 3px 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  cursor: pointer;
+  transition: all 0.15s ease !important;
+}
+
+.btn-delete-dispatch:hover {
+  background: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #b91c1c !important;
+}

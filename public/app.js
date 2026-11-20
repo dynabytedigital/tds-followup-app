@@ -2777,37 +2777,44 @@ function renderDispatchesTable() {
     }
 
     let actionsHtml = '';
+    const deleteBtn = `
+      <button type="button" class="Polaris-Button Polaris-Button--slim btn-delete-dispatch" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record & adjust analytics">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Delete
+      </button>
+    `;
+
     if (d.status === 'scheduled') {
       actionsHtml = `
-        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+        <div class="actions-button-group">
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="sendScheduledDispatchNow('${d.id}')" title="Send immediately">⚡ Send Now</button>
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="openRescheduleModal('${d.id}')" title="Reschedule date & time">🕒 Reschedule</button>
-          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+          ${deleteBtn}
         </div>
       `;
     } else if (d.status === 'failed') {
       actionsHtml = `
-        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+        <div class="actions-button-group">
           <button type="button" class="Polaris-Button Polaris-Button--slim btn-failed-retry" style="font-size: 10.5px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="retryFailedDispatch('${d.id}')" title="Retry Delivery to ${escapeHtml(d.customerEmail)}">
             ⚡ Send Again
           </button>
-          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+          ${deleteBtn}
         </div>
       `;
     } else if (d.status === 'sent') {
       actionsHtml = `
-        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+        <div class="actions-button-group">
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 7px; display: inline-flex; align-items: center; gap: 4px;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             Send Again
           </button>
-          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+          ${deleteBtn}
         </div>
       `;
     } else {
       actionsHtml = `
-        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
-          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+        <div class="actions-button-group">
+          ${deleteBtn}
         </div>
       `;
     }
@@ -2818,18 +2825,18 @@ function renderDispatchesTable() {
           ${dateTimingHtml}
         </td>
         <td>
-          <div style="font-weight: 600; color: var(--color-text-title);">${escapeHtml(d.customerName || 'Customer')}</div>
-          <div style="font-size: 12px; color: var(--p-color-text-subdued);">${escapeHtml(d.customerEmail)}</div>
+          <div style="font-weight: 600; color: var(--color-text-title); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(d.customerName || 'Customer')}">${escapeHtml(d.customerName || 'Customer')}</div>
+          <div style="font-size: 11.5px; color: var(--p-color-text-subdued); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(d.customerEmail)}">${escapeHtml(d.customerEmail)}</div>
         </td>
         <td>
-          <div style="font-weight: 600; color: var(--color-brand); font-size: 12px;">${escapeHtml(d.campaignName || 'Campaign')}</div>
+          <div style="font-weight: 600; color: var(--color-brand); font-size: 11.5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(d.campaignName || 'Campaign')}">${escapeHtml(d.campaignName || 'Campaign')}</div>
           <div style="font-size: 10.5px; color: var(--color-text-muted); font-weight: 500;">${escapeHtml(d.stageLabel || ('Stage ' + (d.stage || 1)))}</div>
         </td>
         <td>
-          <span style="font-size: 12.5px;">${escapeHtml(d.templateName || d.templateId || 'Care Follow-Up')}</span>
+          <div style="font-size: 12px; max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(d.templateName || d.templateId || 'Care Follow-Up')}">${escapeHtml(d.templateName || d.templateId || 'Care Follow-Up')}</div>
         </td>
         <td>
-          <div style="font-size: 12.5px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(d.subject)}">
+          <div style="font-size: 12.5px; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(d.subject)}">
             ${escapeHtml(d.subject)}
           </div>
         </td>
@@ -2845,7 +2852,7 @@ function renderDispatchesTable() {
         <td>
           ${conversionBadge}
         </td>
-        <td style="text-align: right;">
+        <td class="col-actions" style="text-align: right;">
           ${actionsHtml}
         </td>
       </tr>
@@ -4933,7 +4940,7 @@ async function openSessionInspector(sessionId) {
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                       Send Again
                     </button>
-                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-delete-dispatch" style="font-size: 10.5px; padding: 2px 7px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
                   </div>
                 `;
               } else if (isSch) {
@@ -4942,7 +4949,7 @@ async function openSessionInspector(sessionId) {
                 stageActions = `
                   <div style="display: flex; gap: 4px; align-items: center;">
                     <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="sendScheduledDispatchNow('${d.id}')" title="Send immediately">⚡ Send Now</button>
-                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-delete-dispatch" style="font-size: 10.5px; padding: 2px 7px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
                   </div>
                 `;
               } else if (isFail) {
@@ -4952,14 +4959,14 @@ async function openSessionInspector(sessionId) {
                     <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 11px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
                       ⚡ Send Again
                     </button>
-                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-delete-dispatch" style="font-size: 10.5px; padding: 2px 7px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
                   </div>
                 `;
               } else {
                 timingHtml = `<span style="color:#64748b; font-size:11px;">Cancelled</span>`;
                 stageActions = `
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-delete-dispatch" style="font-size: 10.5px; padding: 2px 7px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete</button>
                   </div>
                 `;
               }
