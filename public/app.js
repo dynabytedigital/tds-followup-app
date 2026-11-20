@@ -4549,27 +4549,43 @@ async function openSessionInspector(sessionId) {
               else if (isFail) rowClass += ' stage-failed';
 
               let timingHtml = '';
+              let stageActions = '';
+
               if (isSent) {
                 const sDate = d.sentAt ? new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Sent';
                 timingHtml = `<span style="color:#16a34a; font-weight:600; font-size:11.5px;" title="Dispatched to mail provider">✓ Sent (${sDate})</span>`;
-              } else if (isSch) {
-                const schDate = d.scheduledFor ? new Date(d.scheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
-                timingHtml = `<span style="color:#0284c7; font-weight:600; font-size:11.5px;">🕒 Scheduled for ${schDate}</span>`;
-              } else if (isFail) {
-                stageActions = `
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 11px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
-                      ⚡ Send Again
-                    </button>
-                  </div>
-                `;
-              } else if (isSent) {
                 stageActions = `
                   <div style="display: flex; gap: 4px; align-items: center;">
                     <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 7px; display: inline-flex; align-items: center; gap: 3px;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                       Send Again
                     </button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                  </div>
+                `;
+              } else if (isSch) {
+                const schDate = d.scheduledFor ? new Date(d.scheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
+                timingHtml = `<span style="color:#0284c7; font-weight:600; font-size:11.5px;">🕒 Scheduled for ${schDate}</span>`;
+                stageActions = `
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="sendScheduledDispatchNow('${d.id}')" title="Send immediately">⚡ Send Now</button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                  </div>
+                `;
+              } else if (isFail) {
+                timingHtml = `<span style="color:#dc2626; font-weight:600; font-size:11.5px;">⚠️ Failed</span>`;
+                stageActions = `
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 11px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
+                      ⚡ Send Again
+                    </button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+                  </div>
+                `;
+              } else {
+                timingHtml = `<span style="color:#64748b; font-size:11px;">Cancelled</span>`;
+                stageActions = `
+                  <div style="display: flex; gap: 4px; align-items: center;">
                     <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
                   </div>
                 `;
