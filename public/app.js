@@ -2395,7 +2395,7 @@ function renderDispatchesTable() {
         <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="sendScheduledDispatchNow('${d.id}')" title="Send immediately">⚡ Send Now</button>
           <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px;" onclick="openRescheduleModal('${d.id}')" title="Reschedule date & time">🕒 Reschedule</button>
-          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="cancelScheduledDispatch('${d.id}')" title="Cancel">✕</button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
         </div>
       `;
     } else if (d.status === 'failed') {
@@ -2404,6 +2404,7 @@ function renderDispatchesTable() {
           <button type="button" class="Polaris-Button Polaris-Button--slim btn-failed-retry" style="font-size: 10.5px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="retryFailedDispatch('${d.id}')" title="Retry Delivery to ${escapeHtml(d.customerEmail)}">
             ⚡ Send Again
           </button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
         </div>
       `;
     } else if (d.status === 'sent') {
@@ -2413,10 +2414,15 @@ function renderDispatchesTable() {
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             Send Again
           </button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
         </div>
       `;
     } else {
-      actionsHtml = `<span style="font-size:12px; color:var(--p-color-text-subdued);">&mdash;</span>`;
+      actionsHtml = `
+        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+          <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
+        </div>
+      `;
     }
 
     return `
@@ -4564,6 +4570,7 @@ async function openSessionInspector(sessionId) {
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                       Send Again
                     </button>
+                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="deleteDispatchRecord('${d.id}', event)" title="Delete record and adjust analytics">✕</button>
                   </div>
                 `;
               }
@@ -4705,6 +4712,29 @@ async function resendWholeSession(sessionId) {
       }
     } else {
       showToast(data.error || 'Failed to re-send session.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+
+async function deleteDispatchRecord(dispatchId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Are you sure you want to delete this email record? Your analytics totals (emails sent, revenue, clicks) will be adjusted immediately.')) return;
+  try {
+    const res = await authFetch(`/api/dispatches/${encodeURIComponent(dispatchId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Dispatch record deleted. Analytics adjusted.', 'info');
+      await Promise.all([loadStats(), loadDispatches(), loadActivitySessions()]);
+      if (activeInspectedSessionId) {
+        openSessionInspector(activeInspectedSessionId);
+      }
+    } else {
+      showToast(data.error || 'Failed to delete dispatch.', 'critical');
     }
   } catch (err) {
     showToast(err.message, 'critical');

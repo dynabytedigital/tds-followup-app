@@ -95,6 +95,10 @@ class Database {
       if (fs.existsSync(DB_FILE)) {
         this.lastMtime = fs.statSync(DB_FILE).mtimeMs;
       }
+      try {
+        const cloudSync = require('./cloudSync');
+        cloudSync.schedulePush();
+      } catch (e) {}
     } catch (e) {
       console.error('[Database] Failed to write db.json:', e.message);
     }
@@ -646,7 +650,13 @@ class Database {
   // --- Settings ---
   getSettings() {
     this.reloadIfChanged();
-    return this.data.settings;
+    const s = this.data.settings || {};
+    return {
+      ...s,
+      resendApiKey: s.resendApiKey || process.env.RESEND_API_KEY || '',
+      smtpPass: s.smtpPass || process.env.SMTP_PASS || '',
+      emailProvider: s.emailProvider || process.env.EMAIL_PROVIDER || 'google_workspace'
+    };
   }
 
   updateSettings(newSettings) {
@@ -767,28 +777,29 @@ class Database {
     return session;
   }
 
-  deleteActivitySession(id) {
+  deleteActivitySession(id, purgeDispatches = true) {
     this.reloadIfChanged();
     if (!this.data.activitySessions) return false;
     const sessionIdx = this.data.activitySessions.findIndex(s => s.id === id);
     if (sessionIdx === -1) return false;
 
-    // Cancel all scheduled / pending dispatches under this session
-    let cancelledCount = 0;
-    if (this.data.dispatches) {
+    let removedDispatchesCount = 0;
+    if (purgeDispatches && this.data.dispatches) {
+      const beforeCount = this.data.dispatches.length;
+      this.data.dispatches = this.data.dispatches.filter(d => d.sessionId !== id);
+      removedDispatchesCount = beforeCount - this.data.dispatches.length;
+    } else if (this.data.dispatches) {
       this.data.dispatches.forEach(d => {
         if (d.sessionId === id && d.status === 'scheduled') {
           d.status = 'cancelled';
           d.cancelledAt = new Date().toISOString();
-          cancelledCount++;
         }
       });
     }
 
-    // Permanently remove session from active list
     this.data.activitySessions.splice(sessionIdx, 1);
     this.save();
-    return { success: true, cancelledCount };
+    return { success: true, removedDispatchesCount };
   }
 
   // --- Metrics Summary ---

@@ -6,6 +6,8 @@ const path = require('path');
 const crypto = require('crypto');
 
 const db = require('./database');
+const cloudSync = require('./cloudSync');
+cloudSync.pullFromGitHub().catch(e => console.warn('[CloudSync] Initial pull error:', e.message));
 const shopifyClient = require('./shopifyClient');
 const emailService = require('./emailService');
 const trackingEngine = require('./trackingEngine');
@@ -1263,16 +1265,17 @@ app.post('/api/dispatches/:id/retry', async (req, res) => {
   }
 });
 
-// API: Cancel a scheduled dispatch
+// API: Permanently delete a dispatch record (recalculates analytics immediately)
 app.delete('/api/dispatches/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const updated = db.updateDispatch(id, {
-      status: 'cancelled',
-      cancelledAt: new Date().toISOString()
-    });
-    if (!updated) return res.status(404).json({ success: false, error: 'Dispatch not found.' });
-    res.json({ success: true, message: 'Scheduled dispatch cancelled.' });
+    const dispatch = db.getDispatchById(id);
+    if (!dispatch) return res.status(404).json({ success: false, error: 'Dispatch record not found.' });
+
+    const deleted = db.deleteDispatch(id);
+    if (!deleted) return res.status(404).json({ success: false, error: 'Could not delete dispatch record.' });
+
+    res.json({ success: true, message: 'Dispatch record permanently deleted.' });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -1381,11 +1384,12 @@ app.post('/api/activity-sessions/:id/retry-failed', async (req, res) => {
 
 app.delete('/api/activity-sessions/:id', (req, res) => {
   try {
-    const result = db.deleteActivitySession(req.params.id);
+    const purgeDispatches = req.query.purgeDispatches !== 'false';
+    const result = db.deleteActivitySession(req.params.id, purgeDispatches);
     if (!result) return res.status(404).json({ success: false, error: 'Activity session not found.' });
     res.json({
       success: true,
-      message: `Activity session deleted. All pending scheduled emails (${result.cancelledCount}) were paused and cancelled.`,
+      message: `Activity session deleted successfully${result.removedDispatchesCount ? ` (${result.removedDispatchesCount} dispatch records removed)` : ''}.`,
       ...result
     });
   } catch (err) {
