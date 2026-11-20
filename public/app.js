@@ -2369,7 +2369,7 @@ function renderDispatchesTable() {
 
     let deliveryBadge = '';
     if (d.status === 'sent') {
-      deliveryBadge = `<span class="rank-badge rank-badge-dev">DELIVERED</span>`;
+      deliveryBadge = `<span class="rank-badge rank-badge-dev" title="Dispatched successfully via mail provider">SENT</span>`;
     } else if (d.status === 'scheduled') {
       deliveryBadge = `<span class="rank-badge rank-badge-scheduled">SCHEDULED</span>`;
     } else if (d.status === 'cancelled') {
@@ -4545,7 +4545,7 @@ async function openSessionInspector(sessionId) {
               let timingHtml = '';
               if (isSent) {
                 const sDate = d.sentAt ? new Date(d.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Sent';
-                timingHtml = `<span style="color:#16a34a; font-weight:600; font-size:11.5px;">✓ Delivered (${sDate})</span>`;
+                timingHtml = `<span style="color:#16a34a; font-weight:600; font-size:11.5px;" title="Dispatched to mail provider">✓ Sent (${sDate})</span>`;
               } else if (isSch) {
                 const schDate = d.scheduledFor ? new Date(d.scheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
                 timingHtml = `<span style="color:#0284c7; font-weight:600; font-size:11.5px;">🕒 Scheduled for ${schDate}</span>`;
