@@ -7,7 +7,7 @@
   <!-- Shopify App Bridge (Embedded Admin Shell Support) -->
   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=18.29">
+  <link rel="stylesheet" href="style.css?v=18.30">
   <!-- Instant Pre-render Device 30-Day Authentication Check -->
   <script>
     (function() {
@@ -1540,6 +1540,8 @@
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="Polaris-Button Polaris-Button--primary Polaris-Button--slim" id="btnInspectorRetryFailed" style="background: #dc2626; border-color: #b91c1c; font-weight: 600; display: none;" onclick="retrySessionFailed(activeInspectedSessionId)">⚡ Send Again to Failed</button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim" id="btnInspectorResendAll" onclick="resendWholeSession(activeInspectedSessionId)">↺ Send Again to All</button>
           <button type="button" class="Polaris-Button Polaris-Button--destructive Polaris-Button--slim" id="btnInspectorDeleteSession" onclick="deleteCurrentInspectedSession()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             Delete Session &amp; Pause All
@@ -1576,6 +1578,6 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <script src="app.js?v=18.29"></script>
+  <script src="app.js?v=18.30"></script>
 </body>
 </html>

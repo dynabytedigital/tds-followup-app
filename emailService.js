@@ -166,6 +166,7 @@ class EmailService {
           stageLabel: stageLabel || rendered.template?.stageLabel || dispatch.stageLabel || 'Stage 1',
           discountCode: rendered.discountCode,
           subject: rendered.subject,
+          htmlContent: customBody || dispatch.htmlContent || null,
           mode
         });
       }
@@ -183,6 +184,7 @@ class EmailService {
         stageLabel: stageLabel || rendered.template?.stageLabel || 'Stage 1',
         discountCode: rendered.discountCode,
         subject: rendered.subject,
+        htmlContent: customBody || null,
         mode,
         status: 'sending',
         sessionId: sessionId || null

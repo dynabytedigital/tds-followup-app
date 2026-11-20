@@ -1075,8 +1075,9 @@ app.post('/api/fresh-sequence/dispatch', async (req, res) => {
               mode: 'fresh_sequence_instant',
               sessionId: finalSessionId,
               stage: stageNum,
-              stageLabel: `Stage ${stageNum} (Instant)`
-            });
+              stageLabel: `Stage ${stageNum} (Instant)`,
+                htmlContent: stage.htmlContent
+              });
 
             // Update dispatch with session info
             if (sendResult && sendResult.dispatchId) {
@@ -1086,7 +1087,8 @@ app.post('/api/fresh-sequence/dispatch', async (req, res) => {
                 campaignName: sequenceName || 'Custom Fresh Sequence',
                 templateName: `${sequenceName || 'Fresh Sequence'} (Stage ${stageNum})`,
                 stage: stageNum,
-                stageLabel: `Stage ${stageNum} (Instant)`
+                stageLabel: `Stage ${stageNum} (Instant)`,
+                htmlContent: stage.htmlContent
               });
             }
 
@@ -1291,6 +1293,87 @@ app.get('/api/activity-sessions/:id', (req, res) => {
     const session = db.getActivitySessionById(req.params.id);
     if (!session) return res.status(404).json({ success: false, error: 'Activity session not found.' });
     res.json({ success: true, session });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
+// API: Re-send to failed recipients in an activity session (or forceAll)
+app.post('/api/activity-sessions/:id/retry-failed', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { forceAll } = req.body || {};
+    const session = db.getActivitySessionById(id);
+    if (!session) return res.status(404).json({ success: false, error: 'Activity session not found.' });
+
+    let targets = (session.dispatches || []).filter(d => forceAll ? (d.status === 'failed' || d.status === 'sent') : d.status === 'failed');
+
+    if (targets.length === 0) {
+      if (!forceAll) {
+        return res.json({
+          success: true,
+          message: 'No failed recipients found in this session.',
+          retriedCount: 0,
+          sentCount: 0,
+          failedCount: 0
+        });
+      } else {
+        targets = session.dispatches || [];
+      }
+    }
+
+    const allCustomers = db.getCustomers();
+    const results = {
+      retriedCount: targets.length,
+      sentCount: 0,
+      failedCount: 0,
+      details: []
+    };
+
+    for (const d of targets) {
+      try {
+        let cust = d.customerId ? allCustomers.find(c => String(c.id) === String(d.customerId)) : null;
+        if (!cust) {
+          cust = {
+            id: d.customerId || ('cust_' + Date.now()),
+            email: d.customerEmail,
+            first_name: d.customerFirstName || (d.customerName ? d.customerName.split(' ')[0] : d.customerEmail.split('@')[0]),
+            name: d.customerName || d.customerEmail,
+            orders_count: 0,
+            total_spent: '0.00'
+          };
+        }
+
+        db.updateDispatch(d.id, { status: 'sending', error: null });
+
+        await emailService.sendFollowUpEmail({
+          to: d.customerEmail,
+          customer: cust,
+          templateId: d.templateId || 'fresh_sequence',
+          customSubject: d.subject,
+          customDiscountCode: d.discountCode || 'TDS-CARE',
+          customBody: d.htmlContent || null,
+          mode: 'session_retry',
+          sessionId: id,
+          stage: d.stage,
+          stageLabel: d.stageLabel,
+          existingDispatchId: d.id
+        });
+
+        results.sentCount++;
+        results.details.push({ id: d.id, email: d.customerEmail, status: 'sent' });
+      } catch (sendErr) {
+        results.failedCount++;
+        results.details.push({ id: d.id, email: d.customerEmail, status: 'failed', error: sendErr.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Processed ${results.retriedCount} recipient(s): ${results.sentCount} sent, ${results.failedCount} failed.`,
+      ...results
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

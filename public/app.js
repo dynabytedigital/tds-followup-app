@@ -2401,7 +2401,18 @@ function renderDispatchesTable() {
     } else if (d.status === 'failed') {
       actionsHtml = `
         <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
-          <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px; color: #b91c1c; border-color: #fca5a5;" onclick="retryFailedDispatch('${d.id}')" title="Retry Delivery">⚡ Retry</button>
+          <button type="button" class="Polaris-Button Polaris-Button--slim btn-failed-retry" style="font-size: 10.5px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600; display: inline-flex; align-items: center; gap: 3px;" onclick="retryFailedDispatch('${d.id}')" title="Retry Delivery to ${escapeHtml(d.customerEmail)}">
+            ⚡ Send Again
+          </button>
+        </div>
+      `;
+    } else if (d.status === 'sent') {
+      actionsHtml = `
+        <div style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+          <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 7px; display: inline-flex; align-items: center; gap: 4px;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            Send Again
+          </button>
         </div>
       `;
     } else {
@@ -4407,10 +4418,17 @@ function renderActiveSessionsChips(sessions) {
   }
 
   container.innerHTML = sessions.slice(0, 4).map(s => `
-    <button type="button" class="Polaris-FilterPill" style="font-size: 11px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px;" onclick="openSessionInspector('${s.id}')">
-      <span style="width: 6px; height: 6px; border-radius: 50%; background: ${s.status === 'completed' ? '#94a3b8' : '#16a34a'};"></span>
-      ${escapeHtml(s.name || 'Sequence')} (${s.sentCount || 0} sent, ${s.scheduledCount || 0} sch)
-    </button>
+    <div style="display: inline-flex; align-items: center; gap: 4px;">
+      <button type="button" class="Polaris-FilterPill" style="font-size: 11px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px;" onclick="openSessionInspector('${s.id}')">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: ${s.status === 'completed' ? '#94a3b8' : (s.failedCount > 0 ? '#dc2626' : '#16a34a')};"></span>
+        ${escapeHtml(s.name || 'Sequence')} (${s.sentCount || 0} sent${s.failedCount > 0 ? `, <span style="color:#dc2626; font-weight:bold;">${s.failedCount} failed</span>` : ''}, ${s.scheduledCount || 0} sch)
+      </button>
+      ${s.failedCount > 0 ? `
+        <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 6px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: bold;" onclick="retrySessionFailed('${s.id}', event)" title="Send again to ${s.failedCount} failed recipient(s)">
+          ⚡ Send Failed (${s.failedCount})
+        </button>
+      ` : ''}
+    </div>
   `).join('');
 }
 
@@ -4464,6 +4482,16 @@ async function openSessionInspector(sessionId) {
         ${failCount > 0 ? `<span style="font-size:12px; font-weight:600; color:#dc2626;">&bull; Failed: ${failCount}</span>` : ''}
         ${convCount > 0 ? `<span style="font-size:12px; font-weight:600; color:#008060;">&bull; Converted: ${convCount}</span>` : ''}
       `;
+
+      const btnRetryFailed = document.getElementById('btnInspectorRetryFailed');
+      if (btnRetryFailed) {
+        if (failCount > 0) {
+          btnRetryFailed.style.display = 'inline-flex';
+          btnRetryFailed.innerText = `⚡ Send Again to Failed (${failCount})`;
+        } else {
+          btnRetryFailed.style.display = 'none';
+        }
+      }
     }
 
     // Group dispatches by recipient
@@ -4522,31 +4550,19 @@ async function openSessionInspector(sessionId) {
                 const schDate = d.scheduledFor ? new Date(d.scheduledFor).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Pending';
                 timingHtml = `<span style="color:#0284c7; font-weight:600; font-size:11.5px;">🕒 Scheduled for ${schDate}</span>`;
               } else if (isFail) {
-                timingHtml = `<span style="color:#dc2626; font-weight:600; font-size:11.5px;">⚠️ Failed: ${escapeHtml(d.error || 'Delivery Error')}</span>`;
-              } else {
-                timingHtml = `<span style="color:#64748b; font-size:11.5px;">✕ Cancelled</span>`;
-              }
-
-              let stageActions = '';
-              if (isSch) {
                 stageActions = `
-                  <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 8px;" onclick="openRescheduleModal('${d.id}')">
-                      🕒 Change Date
-                    </button>
-                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 8px;" onclick="sendScheduledDispatchNow('${d.id}')">
-                      ⚡ Send Now
-                    </button>
-                    <button type="button" class="Polaris-Button Polaris-Button--slim btn-danger-text" style="font-size: 10.5px; padding: 2px 6px;" onclick="cancelScheduledDispatch('${d.id}')" title="Cancel this stage">
-                      ✕
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 11px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5; background: #fff5f5; font-weight: 600;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
+                      ⚡ Send Again
                     </button>
                   </div>
                 `;
-              } else if (isFail) {
+              } else if (isSent) {
                 stageActions = `
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 11px; padding: 2px 8px; color: #b91c1c; border-color: #fca5a5;" onclick="retryFailedDispatch('${d.id}')">
-                      ⚡ Retry Delivery
+                    <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size: 10.5px; padding: 2px 7px; display: inline-flex; align-items: center; gap: 3px;" onclick="retryFailedDispatch('${d.id}')" title="Send again to ${escapeHtml(d.customerEmail)}">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                      Send Again
                     </button>
                   </div>
                 `;
@@ -4638,6 +4654,57 @@ async function retryFailedDispatch(dispatchId) {
       }
     } else {
       showToast(data.error || 'Retry attempt failed.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+
+async function retrySessionFailed(sessionId, evt) {
+  if (evt) evt.stopPropagation();
+  try {
+    showToast('Sending again to all failed recipients in this session...', 'info');
+    const res = await authFetch(`/api/activity-sessions/${encodeURIComponent(sessionId)}/retry-failed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ forceAll: false })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Batch retry completed successfully!', 'success');
+      loadDispatches();
+      loadActivitySessions();
+      if (activeInspectedSessionId === sessionId) {
+        openSessionInspector(sessionId);
+      }
+    } else {
+      showToast(data.error || 'Failed to retry session recipients.', 'critical');
+    }
+  } catch (err) {
+    showToast(err.message, 'critical');
+  }
+}
+
+async function resendWholeSession(sessionId) {
+  if (!confirm('Send this sequence stage again to all recipients in this session?')) return;
+  try {
+    showToast('Re-sending email sequence to all recipients...', 'info');
+    const res = await authFetch(`/api/activity-sessions/${encodeURIComponent(sessionId)}/retry-failed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ forceAll: true })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Batch re-send completed successfully!', 'success');
+      loadDispatches();
+      loadActivitySessions();
+      if (activeInspectedSessionId === sessionId) {
+        openSessionInspector(sessionId);
+      }
+    } else {
+      showToast(data.error || 'Failed to re-send session.', 'critical');
     }
   } catch (err) {
     showToast(err.message, 'critical');
