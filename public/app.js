@@ -455,6 +455,7 @@ function switchTab(tabName, el) {
   // Refresh data for active tab
   if (tabName === 'customers') renderCustomersTable();
   if (tabName === 'templates') renderTemplateCards();
+  if (tabName === 'tracking-links') updateGeneratedLinks();
   if (tabName === 'analytics') loadAnalytics();
   if (tabName === 'settings') loadSettings();
 }
@@ -5136,3 +5137,93 @@ async function deleteDispatchRecord(dispatchId, event) {
     showToast(err.message, 'critical');
   }
 }
+
+/* ========================================================
+   SMART TRACKING LINK & BUTTON GENERATOR
+   ======================================================== */
+function setGenDest(url) {
+  const input = document.getElementById('genDestUrl');
+  if (input) input.value = url;
+  updateGeneratedLinks();
+}
+
+function updateGeneratedLinks() {
+  const destInput = document.getElementById('genDestUrl');
+  const campInput = document.getElementById('genCampaignName');
+  const seasonInput = document.getElementById('genSeason');
+  const elemInput = document.getElementById('genElement');
+  const codeInput = document.getElementById('genTrackingCode');
+  const textInput = document.getElementById('genButtonText');
+  const themeInput = document.getElementById('genButtonTheme');
+
+  const dest = (destInput ? destInput.value.trim() : '') || 'https://shop.thedentalshaman.com/';
+  let campaign = (campInput ? campInput.value.trim() : '') || 'followup';
+  // Normalize campaign name to URL-friendly lowercase slug
+  campaign = campaign.toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+
+  const season = (seasonInput ? seasonInput.value : '') || 'evergreen';
+  const element = (elemInput ? elemInput.value : '') || 'hero_cta_button';
+  const code = (codeInput ? codeInput.value.trim() : '') || 'TDS-CARE';
+  const buttonText = (textInput ? textInput.value.trim() : '') || 'Explore The Ozone Flosser &rarr;';
+  const themeColor = (themeInput ? themeInput.value : '') || '#2D8B7A';
+
+  const appBase = window.location.origin || 'https://tds-followup-app.onrender.com';
+
+  // 1. Dynamic Email Template Link (with per-user token)
+  const dynamicTrackingUrl = `${appBase}/t/c/{{dispatch_id}}?dest=${encodeURIComponent(dest)}&campaign=${encodeURIComponent(campaign)}&season=${encodeURIComponent(season)}&element=${encodeURIComponent(element)}&tds_trk=${encodeURIComponent(code)}`;
+
+  // 2. Responsive, Email-Safe HTML Button
+  const buttonHtml = `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:24px auto;">
+  <tr>
+    <td align="center" style="border-radius:4px; background-color:${themeColor};">
+      <a href="${dynamicTrackingUrl}" target="_blank"
+         style="display:inline-block; padding:16px 36px; font-family:Arial,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:4px; letter-spacing:0.5px;">
+        ${escapeHtml(buttonText)}
+      </a>
+    </td>
+  </tr>
+</table>`;
+
+  const outDyn = document.getElementById('outDynamicUrl');
+  if (outDyn) outDyn.value = dynamicTrackingUrl;
+
+  const outBtn = document.getElementById('outButtonHtml');
+  if (outBtn) outBtn.value = buttonHtml;
+
+  const preview = document.getElementById('genButtonPreview');
+  if (preview) {
+    preview.innerHTML = `
+      <a href="javascript:void(0)" 
+         style="display:inline-block; padding:14px 32px; font-family:Arial,sans-serif; font-size:14px; font-weight:bold; color:#ffffff; background-color:${themeColor}; text-decoration:none; border-radius:4px; letter-spacing:0.5px; box-shadow:0 3px 10px rgba(0,0,0,0.12);">
+        ${escapeHtml(buttonText)}
+      </a>
+    `;
+  }
+}
+
+async function copyGenField(elementId, btn) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  try {
+    await navigator.clipboard.writeText(el.value);
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '✓ Copied!';
+    btn.style.background = '#e6f4ea';
+    btn.style.color = '#137333';
+    setTimeout(() => {
+      btn.innerHTML = origHtml;
+      btn.style.background = '';
+      btn.style.color = '';
+    }, 2000);
+    showToast('Copied to clipboard!', 'success');
+  } catch (err) {
+    el.select();
+    document.execCommand('copy');
+    showToast('Copied to clipboard!', 'success');
+  }
+}
+
+// Auto-run update on load
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(updateGeneratedLinks, 500);
+});

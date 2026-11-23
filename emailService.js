@@ -207,8 +207,9 @@ class EmailService {
       throw new Error(errMsg);
     }
 
-    // 3. Wrap email links with Click & Conversion tracking gateway
-    const trackedHtml = trackingEngine.wrapEmailHtmlWithTracking(rendered.html, dispatch.id, rendered.discountCode);
+    // 3. Resolve dynamic per-recipient dispatch ID and wrap email links with Click & Conversion tracking gateway
+    const htmlWithDispatch = rendered.html.replace(/\{\{dispatch_id\}\}/gi, dispatch.id);
+    const trackedHtml = trackingEngine.wrapEmailHtmlWithTracking(htmlWithDispatch, dispatch.id, rendered.discountCode);
 
     try {
       let messageId = null;

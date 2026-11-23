@@ -47,7 +47,10 @@ class TrackingEngine {
    */
   handleClick(dispatchId, query = {}, req = {}) {
     const dest = query.dest || this.shopUrl;
-    const discount = query.discount || '';
+    const discount = query.discount || query.tds_trk || '';
+    const campaignName = query.campaign || query.utm_campaign || 'followup';
+    const seasonName = query.season || query.utm_term || '';
+    const elementName = query.element || query.utm_content || dispatchId;
     const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
     const userAgent = req.headers['user-agent'] || 'Unknown Browser';
 
@@ -56,19 +59,25 @@ class TrackingEngine {
       dispatchId,
       destinationUrl: dest,
       discountCode: discount,
+      campaign: campaignName,
+      season: seasonName,
+      element: elementName,
       ip: String(ip).split(',')[0].trim(),
       userAgent
     });
 
-    console.log(`[TrackingEngine] Verified Click on dispatch ${dispatchId} -> Redirecting to ${dest}`);
+    console.log(`[TrackingEngine] Verified Click on dispatch ${dispatchId} (Campaign: ${campaignName}) -> Redirecting to ${dest}`);
 
     // Build final shop destination URL with attribution params
     try {
       const destination = new URL(dest);
-      destination.searchParams.set('utm_source', 'followup_ea');
-      destination.searchParams.set('utm_medium', 'email');
-      destination.searchParams.set('utm_campaign', 'followup');
-      destination.searchParams.set('utm_content', dispatchId);
+      destination.searchParams.set('utm_source', query.utm_source || 'followup_ea');
+      destination.searchParams.set('utm_medium', query.utm_medium || 'email');
+      destination.searchParams.set('utm_campaign', campaignName);
+      destination.searchParams.set('utm_content', elementName);
+      if (seasonName) {
+        destination.searchParams.set('utm_term', seasonName);
+      }
       if (discount) {
         // Pure tracking tag for conversation and sequence attribution (NEVER auto-apply price discount on store)
         destination.searchParams.set('tds_trk', discount);
