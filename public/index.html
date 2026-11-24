@@ -97,7 +97,7 @@
           Campaigns <span class="Polaris-TabBadge" id="badgeTemplateCount">20</span>
         </button>
         <button class="Polaris-Tab" onclick="switchTab('tracking-links', this)">
-          🔗 Link Generator
+          Link & Button Generator
         </button>
         <button class="Polaris-Tab" onclick="switchTab('analytics', this)">
           Analytics <span class="Polaris-TabBadge" id="badgeAnalyticsCount">0</span>
@@ -326,30 +326,30 @@
          TAB: SMART TRACKING LINK & BUTTON GENERATOR
          ======================================================== -->
     <div id="tab-tracking-links" class="Polaris-TabContent">
-      <div class="Polaris-Card">
+      <div class="Polaris-Card" style="margin-bottom: 60px;">
         <div class="Polaris-Card__Header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--p-color-border-subdued); padding-bottom: 18px; margin-bottom: 20px;">
           <div>
-            <div class="Polaris-Card__Title" style="display: flex; align-items: center; gap: 8px;">
-              <span>🔗 Smart Tracking Link &amp; Button Generator</span>
-              <span class="badge" style="background:#e6f4ea; color:#137333; font-weight:700; font-size:11px; padding:3px 8px; border-radius:12px;">Zero Mismatch Guaranteed</span>
+            <div class="Polaris-Card__Title" style="display: flex; align-items: center; gap: 10px;">
+              <span>Campaign Link &amp; Button Builder</span>
+              <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:600; font-size:11px; padding:3px 10px; border-radius:4px; border:1px solid #cbd5e1;">Attribution Engine</span>
             </div>
-            <p class="Polaris-Card__Subtitle" style="margin: 4px 0 0 0; max-width: 720px; line-height: 1.5;">
-              Create bulletproof tracking links and pre-styled buttons for any campaign, season, or customer segment. Automatically connects click activity to RetentionFlow and attributes sales in Shopify without writing complex code.
+            <p class="Polaris-Card__Subtitle" style="margin: 6px 0 0 0; max-width: 760px; line-height: 1.5; color: #475569;">
+              Generate standardized destination URLs and client-compatible action buttons for marketing campaigns, sequence flows, and customer cohorts. Click telemetry and conversion parameters are preserved and synchronized with Shopify.
             </p>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-          <!-- Left Column: Generator Form -->
+          <!-- Left Column: Parameters -->
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
-            <div style="font-weight: 700; font-size: 14px; margin-bottom: 16px; color: #1e293b; display: flex; align-items: center; gap: 6px;">
-              <span>1. Configure Your Target &amp; Campaign</span>
+            <div style="font-weight: 700; font-size: 13px; margin-bottom: 16px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+              1. Destination &amp; Campaign Parameters
             </div>
 
             <!-- Destination URL -->
             <div class="form-group" style="margin-bottom: 16px;">
               <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                Destination URL on Store <span style="color:#e11d48;">*</span>
+                Store Destination URL <span style="color:#e11d48;">*</span>
               </label>
               <input type="text" id="genDestUrl" class="Polaris-TextField__Input" 
                      placeholder="https://shop.thedentalshaman.com/products/the-dental-shaman-water-flosser" 
@@ -358,10 +358,10 @@
               
               <!-- Quick Preset Buttons -->
               <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
-                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:3px 8px;" onclick="setGenDest('https://shop.thedentalshaman.com/')">🏠 Homepage</button>
-                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:3px 8px;" onclick="setGenDest('https://shop.thedentalshaman.com/products/the-dental-shaman-water-flosser')">🌿 Ozone Flosser</button>
-                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:3px 8px;" onclick="setGenDest('https://shop.thedentalshaman.com/collections/all')">📦 All Products</button>
-                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:3px 8px;" onclick="setGenDest('https://shop.thedentalshaman.com/cart')">🛒 Cart Page</button>
+                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:4px 10px;" onclick="setGenDest('https://shop.thedentalshaman.com/')">Homepage</button>
+                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:4px 10px;" onclick="setGenDest('https://shop.thedentalshaman.com/products/the-dental-shaman-water-flosser')">Ozone Water Flosser</button>
+                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:4px 10px;" onclick="setGenDest('https://shop.thedentalshaman.com/collections/all')">All Products</button>
+                <button type="button" class="Polaris-Button Polaris-Button--slim" style="font-size:11px; padding:4px 10px;" onclick="setGenDest('https://shop.thedentalshaman.com/cart')">Cart / Checkout</button>
               </div>
             </div>
 
@@ -377,7 +377,7 @@
               </div>
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                  Season / Batch
+                  Campaign Season / Cycle
                 </label>
                 <select id="genSeason" class="Polaris-Select__Input" style="width: 100%; box-sizing: border-box;" onchange="updateGeneratedLinks()">
                   <option value="winter_2026">Winter 2026</option>
@@ -394,7 +394,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                  Element / Button Name
+                  Placement / Element Type
                 </label>
                 <select id="genElement" class="Polaris-Select__Input" style="width: 100%; box-sizing: border-box;" onchange="updateGeneratedLinks()">
                   <option value="hero_cta_button" selected>Hero CTA Button</option>
@@ -406,7 +406,7 @@
               </div>
               <div>
                 <label style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-                  Tracking Ref Code
+                  Tracking Reference Token
                 </label>
                 <input type="text" id="genTrackingCode" class="Polaris-TextField__Input" 
                        placeholder="TDS-CARE" value="TDS-CARE" 
@@ -414,15 +414,15 @@
               </div>
             </div>
 
-            <!-- Button Visual Customizer -->
+            <!-- Button Specifications -->
             <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 16px;">
-              <div style="font-weight: 700; font-size: 13px; margin-bottom: 12px; color: #1e293b;">
-                2. Customize Button Visuals (Optional)
+              <div style="font-weight: 700; font-size: 13px; margin-bottom: 12px; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                2. Action Button Specifications
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div>
                   <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">
-                    Button Label
+                    Button Label Text
                   </label>
                   <input type="text" id="genButtonText" class="Polaris-TextField__Input" 
                          value="Explore The Ozone Flosser &rarr;" 
@@ -430,71 +430,71 @@
                 </div>
                 <div>
                   <label style="display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px;">
-                    Brand Color Theme
+                    Color Palette
                   </label>
                   <select id="genButtonTheme" class="Polaris-Select__Input" style="width: 100%; box-sizing: border-box;" onchange="updateGeneratedLinks()">
                     <option value="#2D8B7A" selected>Dr. Marc Teal (#2D8B7A)</option>
-                    <option value="#2E1760">Royal Shaman Purple (#2E1760)</option>
+                    <option value="#2E1760">Brand Purple (#2E1760)</option>
                     <option value="#744B6F">Clinical Plum (#744B6F)</option>
-                    <option value="#1B3A4B">Deep Ocean Slate (#1B3A4B)</option>
+                    <option value="#1B3A4B">Deep Slate (#1B3A4B)</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Right Column: Live Output & One-Click Copy -->
+          <!-- Right Column: Code & Embed -->
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-              <div style="font-weight: 700; font-size: 14px; margin-bottom: 16px; color: #1e293b; display: flex; justify-content: space-between; align-items: center;">
-                <span>3. Generated Tracking Links &amp; Code</span>
-                <span style="font-size: 11px; color: #64748b;">Ready to Paste</span>
+              <div style="font-weight: 700; font-size: 13px; margin-bottom: 16px; color: #0f172a; display: flex; justify-content: space-between; align-items: center; text-transform: uppercase; letter-spacing: 0.5px;">
+                <span>3. Generated Tracking Links &amp; Embed Code</span>
+                <span style="font-size: 11px; color: #64748b; font-weight: 500; text-transform: none; letter-spacing: 0;">Production Ready</span>
               </div>
 
-              <!-- Output 1: Dynamic Template Link (Per-User Attribution) -->
+              <!-- Output 1: Dynamic Link -->
               <div style="margin-bottom: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <label style="font-size: 12px; font-weight: 700; color: #0f172a;">
-                    A. Email Template Tracking Link (Per-User Token)
+                    A. Dynamic Tracking URL (Recipient-Attributed)
                   </label>
-                  <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="copyGenField('outDynamicUrl', this)" style="font-size:11px; padding:2px 8px; background:#f1f5f9;">
-                    📋 Copy Link
+                  <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="copyGenField('outDynamicUrl', this)" style="font-size:11px; padding:3px 10px; background:#f8fafc; border:1px solid #cbd5e1;">
+                    Copy URL
                   </button>
                 </div>
                 <p style="font-size: 11px; color: #64748b; margin: 0 0 6px 0;">
-                  Use this in your email templates. <code>{{dispatch_id}}</code> will automatically swap with each recipient's unique delivery ID!
+                  Integrate into email templates. The <code>{{dispatch_id}}</code> variable resolves dynamically for each recipient to log click engagement.
                 </p>
                 <textarea id="outDynamicUrl" class="Polaris-TextField__Input" readonly 
                           style="width: 100%; height: 52px; font-family: monospace; font-size: 11.5px; background: #f8fafc; resize: none; box-sizing: border-box;"></textarea>
               </div>
 
-              <!-- Output 2: Ready-to-Paste HTML Button Code -->
+              <!-- Output 2: HTML Button -->
               <div style="margin-bottom: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <label style="font-size: 12px; font-weight: 700; color: #0f172a;">
-                    B. Ready-to-Paste Email Button HTML
+                    B. Cross-Client Responsive HTML Button
                   </label>
-                  <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="copyGenField('outButtonHtml', this)" style="font-size:11px; padding:2px 8px; background:#065f46; color:#ffffff;">
-                    📋 Copy Button HTML
+                  <button type="button" class="Polaris-Button Polaris-Button--slim" onclick="copyGenField('outButtonHtml', this)" style="font-size:11px; padding:3px 10px; background:#1e293b; color:#ffffff;">
+                    Copy Button HTML
                   </button>
                 </div>
                 <p style="font-size: 11px; color: #64748b; margin: 0 0 6px 0;">
-                  Mobile-responsive, bulletproof button code for Apple Mail, Gmail &amp; Outlook.
+                  Standardized table markup rendering reliably across Apple Mail, Gmail, Outlook, and mobile clients.
                 </p>
                 <textarea id="outButtonHtml" class="Polaris-TextField__Input" readonly 
                           style="width: 100%; height: 80px; font-family: monospace; font-size: 11.5px; background: #f8fafc; resize: none; box-sizing: border-box;"></textarea>
               </div>
 
-              <!-- Output 3: Live Visual Button Preview -->
-              <div style="background: #faf8f5; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 18px; text-align: center; margin-bottom: 12px;">
-                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 10px; font-weight: 600;">Live Button Preview</div>
+              <!-- Output 3: Button Preview -->
+              <div style="background: #faf8f5; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 18px; text-align: center; margin-bottom: 14px;">
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 10px; font-weight: 600;">Button Preview</div>
                 <div id="genButtonPreview"></div>
               </div>
             </div>
 
-            <!-- Explanatory Trust Footer -->
-            <div style="background: #f1f5f9; border-radius: 6px; padding: 12px; font-size: 11.5px; color: #475569; line-height: 1.45;">
-              <strong>🛡️ Zero Mismatch Guarantee:</strong> When a recipient clicks this button, RetentionFlow logs their exact customer email &amp; dispatch ID, passes the campaign UTM tags into Shopify, and attributes any placed orders directly to this campaign.
+            <!-- Technical Protocol Note -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 14px; font-size: 11.5px; color: #475569; line-height: 1.5;">
+              <strong>Attribution Protocol:</strong> When a recipient follows this link, the system records the dispatch identifier, request metadata, and standardized campaign parameters (<code>utm_source</code>, <code>utm_campaign</code>, <code>utm_content</code>, <code>tds_trk</code>), then routes the visitor to Shopify with full attribution intact.
             </div>
           </div>
         </div>

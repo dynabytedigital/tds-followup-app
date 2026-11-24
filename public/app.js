@@ -452,6 +452,12 @@ function switchTab(tabName, el) {
   const target = document.getElementById(`tab-${tabName}`);
   if (target) target.classList.add('active');
 
+  // Hide floating action button on Link Generator and settings
+  const fab = document.getElementById('stickyStartFreshBtn');
+  if (fab) {
+    fab.style.display = (tabName === 'customers' || tabName === 'templates') ? 'flex' : 'none';
+  }
+
   // Refresh data for active tab
   if (tabName === 'customers') renderCustomersTable();
   if (tabName === 'templates') renderTemplateCards();
